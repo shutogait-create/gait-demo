@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gait 会員アプリ（プロトタイプ v2）</title>
+<style>
+:root{
+  --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6;
+  --ink:#1c2b24; --sub:#68796f; --line:#dfe9e3; --bg:#f4f7f5;
+  --warn:#c0392b; --line-green:#06c755; --gold:#e6a817;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.7}
+.demoChip{font-size:9.5px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:2px 9px;letter-spacing:.06em;font-weight:600;white-space:nowrap}
+
+/* ═══════ header ═══════ */
+.appbar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;gap:12px}
+.logo{font-weight:800;font-size:17px;letter-spacing:.06em;line-height:1.2;white-space:nowrap}
+.logo small{font-weight:600;font-size:9px;display:block;opacity:.85;letter-spacing:.18em}
+.deskNav{display:none;gap:4px;flex:1;justify-content:center}
+.deskNav button{background:none;border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:600;padding:8px 18px;border-radius:99px;cursor:pointer;opacity:.8}
+.deskNav button.act{background:rgba(255,255,255,.2);opacity:1;font-weight:800}
+.adminSwitch{font-size:11px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:99px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.adminSwitch.on{background:#fff;color:var(--gd);font-weight:700}
+
+/* ═══════ layout ═══════ */
+main{padding:16px 16px 96px;max-width:1100px;margin:0 auto;width:100%}
+.screen{display:none}
+.screen.act{display:block;animation:fade .1s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(30,60,45,.05)}
+.card h3{font-size:14px;color:var(--gd);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.btn{display:block;width:100%;background:var(--g);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn:active{background:var(--gd)}
+.btn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g)}
+.btn.line{background:var(--line-green)}
+.btn.ghost{background:none;color:var(--sub);font-weight:500;font-size:12.5px;padding:6px}
+
+/* ═══════ mobile bottom nav ═══════ */
+nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+nav.bottom button{flex:1;background:none;border:none;padding:9px 0 7px;font-size:10.5px;color:var(--sub);cursor:pointer;font-family:inherit}
+nav.bottom button .ic{font-size:20px;display:block;margin-bottom:1px;filter:grayscale(1);opacity:.55}
+nav.bottom button.act{color:var(--gd);font-weight:700}
+nav.bottom button.act .ic{filter:none;opacity:1}
+
+/* ═══════ login ═══════ */
+#scrLogin{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--gxl),var(--bg))}
+.loginCard{width:100%;max-width:420px;padding:40px 28px;text-align:center;background:#fff;border-radius:22px;border:1px solid var(--line);margin:20px;box-shadow:0 12px 40px rgba(31,122,86,.12)}
+.loginCard .mark{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;font-weight:800;font-size:25px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.loginCard h1{font-size:20px;margin-bottom:2px}
+.loginCard p.s{color:var(--sub);font-size:12px;margin-bottom:22px}
+.field{text-align:left;margin-bottom:12px}
+.field label{font-size:11.5px;font-weight:700;color:var(--sub)}
+.field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-top:3px}
+.field input:focus{outline:none;border-color:var(--g)}
+.keepbox{display:flex;gap:8px;align-items:flex-start;background:var(--gl);border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--gd);text-align:left;margin:14px 0}
+
+/* ═══════ home ═══════ */
+.hero{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:16px;color:#fff;padding:18px;margin-bottom:14px}
+.hero .hi{font-size:12px;opacity:.85}
+.hero .nm{font-size:19px;font-weight:800;margin-bottom:10px}
+.nextBk{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:12px}
+.nextBk .d{font-size:16px;font-weight:800}
+.nextBk .m{font-size:12px;opacity:.9}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px;text-align:center;cursor:pointer}
+.tile .ic{font-size:22px}
+.tile .t{font-size:12px;font-weight:700;margin-top:4px}
+.tile .s{font-size:10px;color:var(--sub)}
+.notice{font-size:12.5px;color:var(--sub);padding:2px 4px}
+.notice b{color:var(--ink)}
+
+/* ═══════ booking (shared) ═══════ */
+.stepLbl{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.stepLbl .n{width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.stepLbl b{font-size:14px;color:var(--gd)}
+.menuOpt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff}
+.menuOpt.sel{border-color:var(--g);background:var(--gxl);box-shadow:0 0 0 1px var(--g)}
+.menuOpt .n{font-weight:700;font-size:13.5px}
+.menuOpt .len{font-size:11px;color:var(--sub)}
+.menuOpt .pr{font-weight:800;color:var(--gd);font-size:14px;white-space:nowrap}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--sub);margin:8px 0 2px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.lg{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--line);background:#fff}
+.lg.ok{border-color:var(--g);background:var(--gxl)}
+.lg.ng{background:#eef1ef;border-color:#e4eae6}
+.syncNote{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--sub);margin-top:10px;line-height:1.6}
+
+/* mobile picker */
+.dayRow{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+.dayBtn{flex:none;width:52px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:7px 0;text-align:center;cursor:pointer;font-family:inherit}
+.dayBtn .w{font-size:10px;color:var(--sub)}
+.dayBtn .dd{font-size:16px;font-weight:800}
+.dayBtn.sel{border-color:var(--g);background:var(--g);color:#fff}
+.dayBtn.sel .w{color:#e0f2ea}
+.slotGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:9px 0;text-align:center;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+.slot.ng{background:#eef1ef;color:#b6c2ba;border-color:#e4eae6;cursor:default}
+.slot.ng small{display:block;font-size:8.5px;font-weight:500}
+.slot.sel{background:var(--g);border-color:var(--g);color:#fff}
+
+/* desktop week grid */
+.weekWrap{display:none;overflow-x:auto}
+table.week{width:100%;border-collapse:separate;border-spacing:5px;table-layout:fixed}
+table.week th{font-size:12px;color:var(--sub);font-weight:600;padding:4px 0;text-align:center}
+table.week th b{display:block;font-size:16px;color:var(--ink)}
+table.week th.today b{color:var(--gd)}
+table.week td{padding:0}
+table.week td:first-child,table.week th:first-child{width:56px}
+table.week .tlabel{font-size:12px;color:var(--sub);text-align:right;padding-right:8px;font-weight:600}
+.cell{display:flex;align-items:center;justify-content:center;height:44px;border-radius:9px;border:1.5px solid var(--g);background:var(--gxl);color:var(--gd);font-weight:800;font-size:15px;cursor:pointer;width:100%;font-family:inherit;transition:none}
+.cell:hover{transform:scale(1.05);background:var(--gl)}
+.cell.ng{border-color:#e4eae6;background:#eef1ef;color:#b9c5bd;cursor:default;font-weight:600;font-size:10px;flex-direction:column;line-height:1.3}
+.cell.ng:hover{transform:none;background:#eef1ef}
+.cell.sel{background:var(--g);color:#fff;border-color:var(--g);box-shadow:0 4px 12px rgba(46,158,114,.4)}
+.cell.closed{background:none;border:none;color:#c4cfc8;font-size:10px;cursor:default}
+.cell.closed:hover{transform:none;background:none}
+
+.confirmBox{background:var(--gxl);border:1.5px solid var(--g);border-radius:12px;padding:13px;margin:12px 0;font-size:13px}
+.confirmBox b{color:var(--gd)}
+.finePrint{font-size:10.5px;color:var(--sub);margin-top:8px}
+
+/* ═══════ toast ═══════ */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;width:88%;max-width:390px;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px 14px;display:none;z-index:80;border-left:5px solid var(--line-green)}
+#toast.show{display:flex;gap:10px;animation:fade .12s}
+#toast .lic{width:34px;height:34px;border-radius:9px;background:var(--line-green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex:none}
+#toast .tt{font-size:11px;color:var(--sub)}
+#toast .tm{font-size:12.5px;font-weight:700}
+
+/* ═══════ mypage ═══════ */
+.profRow{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+.profRow .nn{font-weight:800;font-size:16px}
+.profRow .rk{font-size:11px;color:var(--gold);font-weight:700}
+.privacy{font-size:10.5px;color:var(--sub);display:flex;align-items:flex-start;gap:5px;margin-top:6px;line-height:1.6}
+.baWrap{position:relative;border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--line)}
+.baImgs{position:relative;height:210px}
+.baImg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.baLbl{position:absolute;top:8px;font-size:10px;font-weight:800;color:#fff;background:rgba(28,43,36,.55);border-radius:99px;padding:2px 10px}
+.baWrap input[type=range]{width:100%;margin:0;accent-color:var(--g)}
+.baDate{display:flex;justify-content:space-between;font-size:10.5px;color:var(--sub);padding:6px 10px 10px}
+svg.figure{height:190px}
+.evalRow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:8px 0 3px}
+.bar{height:8px;border-radius:99px;background:var(--gl);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--g),var(--gd));border-radius:99px}
+.delta{color:var(--gd);font-weight:700;font-size:11px}
+.vid{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;cursor:pointer;background:#fff}
+.vid .th{width:74px;height:48px;border-radius:8px;background:linear-gradient(135deg,#28313c,#3d5247);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex:none}
+.vid .vt{font-weight:700;font-size:12.5px}
+.vid .vs{font-size:10.5px;color:var(--sub)}
+.hist{font-size:12.5px;width:100%}
+.hist tr td{padding:7px 4px;border-bottom:1px solid var(--gxl)}
+.hist td:last-child{text-align:right;color:var(--sub)}
+
+/* ═══════ admin ═══════ */
+.adminBanner{background:#233329;color:#fff;border-radius:14px;padding:12px 14px;font-size:12px;margin-bottom:14px;display:flex;gap:8px;align-items:center;line-height:1.6}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 6px;text-align:center}
+.kpi .v{font-size:17px;font-weight:800;color:var(--gd)}
+.kpi .l{font-size:9.5px;color:var(--sub)}
+.cust{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--gxl);cursor:pointer}
+.cust:hover{background:var(--gxl)}
+.cust .cn{font-weight:700;font-size:13.5px}
+.cust .ci{font-size:10.5px;color:var(--sub)}
+.cust .cr{text-align:right}
+.cust .amt{font-weight:800;color:var(--gd);font-size:13.5px}
+.tag{display:inline-block;font-size:9.5px;border-radius:99px;padding:1px 8px;font-weight:700;margin-left:5px;vertical-align:1px}
+.tag.new{background:#fff3d6;color:#9a6c00}.tag.rep{background:var(--gl);color:var(--gd)}.tag.slp{background:#fdeceb;color:var(--warn)}
+
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(20,30,25,.45);z-index:90;display:none;align-items:flex-end;justify-content:center}
+#modal.show{display:flex}
+#modal .sheet{background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px 34px;max-height:82vh;overflow-y:auto;animation:up .14s}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet h3{color:var(--gd);font-size:16px;margin-bottom:4px}
+.dt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+.dt td{padding:8px 4px;border-bottom:1px solid var(--gxl)}
+.dt td:first-child{color:var(--sub);width:36%}
+.dt td:last-child{font-weight:600}
+.memo{background:var(--gxl);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px}
+
+/* ═══════════════ DESKTOP ≥880px ═══════════════ */
+@media(min-width:880px){
+  body{font-size:15px}
+  .appbar{padding:14px 32px}
+  .deskNav{display:flex}
+  nav.bottom{display:none}
+  main{padding:28px 32px 80px}
+  /* booking: 2 columns */
+  .bookGrid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  .bookLeft{position:sticky;top:86px}
+  .weekWrap{display:block}
+  .mobilePick{display:none}
+  /* home: 2 columns */
+  .homeGrid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;align-items:start}
+  .hero{padding:26px}
+  .hero .nm{font-size:23px}
+  .nextBk .d{font-size:19px}
+  /* mypage: 2 columns */
+  .myGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .myGrid .span2{grid-column:1/-1}
+  /* admin */
+  .adminGrid{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;align-items:start}
+  .kpis{grid-template-columns:repeat(3,1fr);max-width:560px}
+  .kpi .v{font-size:22px}
+  /* modal centered */
+  #modal{align-items:center}
+  #modal .sheet{border-radius:22px;max-width:520px;animation:fade .1s}
+  #toast{bottom:40px}
+}
+</style>
+</head>
+<body>
+<!-- ══════════ LOGIN ══════════ -->
+<div id="scrLogin">
+  <div class="loginCard">
+    <div class="mark">gait</div>
+    <h1>gait 会員アプリ</h1>
+    <p class="s">リラクゼーション＆ピラティス gait ｜ 岡山<br><span style="opacity:.7">プロトタイプ v2（デモデータで動作します）</span></p>
+    <div class="field"><label>メールアドレス</label><input type="email" value="sample@example.com"></div>
+    <div class="field"><label>パスワード</label><input type="password" value="••••••••"></div>
+    <div class="keepbox">🔒 <span><b>一度ログインすれば、次回から自動ログイン。</b><br>ログイン状態は安全に保存され、毎回の入力は不要です。通信はすべて暗号化されています。</span></div>
+    <button class="btn" onclick="login()">ログイン</button>
+    <button class="btn ghost" onclick="login()">はじめての方（新規会員登録）→ ニックネームで登録できます</button>
+  </div>
+</div>
+
+<!-- ══════════ APP ══════════ -->
+<div id="scrApp" style="display:none">
+  <div class="appbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo">gait<small>PILATES × SEITAI</small></div>
+      <span class="demoChip">デモ</span>
+    </div>
+    <div class="deskNav">
+      <button class="act" data-t="home" onclick="go('home')">🏠 ホーム</button>
+      <button data-t="book" onclick="go('book')">📅 予約</button>
+      <button data-t="my" onclick="go('my')">🌿 マイページ</button>
+    </div>
+    <button class="adminSwitch" id="admBtn" onclick="toggleAdmin()">👤 オーナー画面へ</button>
+  </div>
+  <main>
+
+    <!-- ─── HOME ─── -->
+    <div class="screen act" id="tab-home">
+      <div class="homeGrid">
+        <div>
+          <div class="hero">
+            <div class="hi">こんにちは 🌿</div>
+            <div class="nm">みかん さん <span style="font-size:10px;font-weight:500;opacity:.8">（ニックネーム表示）</span></div>
+            <div class="nextBk">
+              <div style="font-size:10px;opacity:.85">次回のご予約</div>
+              <div class="d">8月12日（水）11:00〜</div>
+              <div class="m">整体×ピラティス 60分 ｜ 変更・キャンセルは予約画面から</div>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="tile" onclick="go('book')"><div class="ic">📅</div><div class="t">予約する</div><div class="s">空き枠から選択</div></div>
+            <div class="tile" onclick="go('my')"><div class="ic">📈</div><div class="t">マイページ</div><div class="s">記録・宿題動画</div></div>
+          </div>
+          <button class="btn line" onclick="lineToast('公式LINEのトークを開きます（lin.ee/DuCTZFa）')">💬 LINEで相談・連絡する</button>
+        </div>
+        <div>
+          <div class="card" style="margin-top:0">
+            <h3>📢 お知らせ</h3>
+            <p class="notice"><b>8/20</b> かけっこ教室 追加開催決定！</p>
+            <p class="notice"><b>誕生月特典</b> お誕生月の方に特別クーポンをLINEでお届けしています 🎂</p>
+          </div>
+          <div class="card">
+            <h3>🎬 今週の宿題</h3>
+            <p class="notice">「胸椎モビリティ・エクササイズ」が届いています。マイページからどうぞ 🆕</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BOOK ─── -->
+    <div class="screen" id="tab-book">
+      <div class="bookGrid">
+        <div class="bookLeft">
+          <div class="card" style="margin-top:0">
+            <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
+            <div id="menuList"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-top:0">
+            <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
+
+            <!-- desktop: week grid -->
+            <div class="weekWrap">
+              <div class="legend">
+                <span><span class="lg ok"></span> 予約できます</span>
+                <span><span class="lg ng"></span> 予約できません（予定あり）</span>
+              </div>
+              <table class="week" id="weekTable"></table>
+            </div>
+
+            <!-- mobile: day row + slots -->
+            <div class="mobilePick">
+              <div class="dayRow" id="dayRow"></div>
+              <div class="slotGrid" id="slotGrid"></div>
+            </div>
+
+            <div class="syncNote">🔄 空き状況はオーナーのGoogleカレンダー・他のご予約とリアルタイムで連動しています。埋まっている枠は選択できないため、ダブルブッキングは起こりません。</div>
+          </div>
+
+          <div class="card" id="confirmCard" style="display:none">
+            <div class="stepLbl"><span class="n">3</span><b>内容を確認して予約</b></div>
+            <div class="confirmBox" id="confirmText"></div>
+            <button class="btn" onclick="confirmBooking()">この内容で予約を確定する</button>
+            <p class="finePrint">予約と同時にオーナーのGoogleカレンダーへ自動登録され、公式LINEに確認メッセージと前日リマインドが届きます。お支払いは店舗にて。キャンセル・変更もこのアプリから行えます。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── MYPAGE ─── -->
+    <div class="screen" id="tab-my">
+      <div class="myGrid">
+        <div class="card span2" style="margin-top:0">
+          <div class="profRow">
+            <div class="avatar">🍊</div>
+            <div>
+              <div class="nn">みかん さん</div>
+              <div class="rk">★ ご来店 12回目 ｜ 会員No. G-0847</div>
+            </div>
+          </div>
+          <div class="privacy">🔒 本名・生年月日・写真はご本人とオーナーのみ閲覧できます（他の会員には一切公開されません）</div>
+        </div>
+
+        <div class="card">
+          <h3>📸 Before / After（姿勢の変化）</h3>
+          <div class="baWrap">
+            <div class="baImgs">
+              <div class="baImg" id="baBefore">
+                <span class="baLbl" style="left:8px">BEFORE 5/10</span>
+                <svg class="figure" viewBox="0 0 100 200">
+                  <g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round">
+                    <circle cx="57" cy="32" r="12" fill="#e6f0ea"/>
+                    <path d="M55 44 Q 44 70 46 105"/>
+                    <path d="M46 105 L 40 160 L 38 192"/>
+                    <path d="M46 105 L 55 158 L 56 192"/>
+                    <path d="M52 62 Q 68 80 66 98"/>
+                  </g>
+                  <text x="8" y="196" font-size="8" fill="#8fa89b">猫背・骨盤後傾</text>
+                </svg>
+              </div>
+              <div class="baImg" id="baAfter" style="opacity:.5">
+                <span class="baLbl" style="right:8px;background:var(--g)">AFTER 8/1</span>
+                <svg class="figure" viewBox="0 0 100 200">
+                  <g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round">
+                    <circle cx="50" cy="26" r="12" fill="#e6f5ee"/>
+                    <path d="M50 38 L 50 105"/>
+                    <path d="M50 105 L 42 158 L 41 192"/>
+                    <path d="M50 105 L 58 158 L 59 192"/>
+                    <path d="M50 58 L 64 92"/>
+                  </g>
+                  <text x="30" y="196" font-size="8" fill="#2e9e72">姿勢改善 ✓</text>
+                </svg>
+              </div>
+            </div>
+            <input type="range" min="0" max="100" value="50" oninput="baSlide(this.value)">
+            <div class="baDate"><span>◀ Before</span><span>スライダーで比較</span><span>After ▶</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📊 身体評価（理学療法士による評価）</h3>
+          <div class="evalRow"><span>姿勢アライメント</span><span class="delta">＋2.1 ▲</span></div>
+          <div class="bar"><i style="width:78%"></i></div>
+          <div class="evalRow"><span>体幹の安定性</span><span class="delta">＋1.4 ▲</span></div>
+          <div class="bar"><i style="width:64%"></i></div>
+          <div class="evalRow"><span>柔軟性（前屈）</span><span class="delta">＋3.0 ▲</span></div>
+          <div class="bar"><i style="width:85%"></i></div>
+          <div class="evalRow"><span>肩甲骨の可動性</span><span class="delta">＋0.8 ▲</span></div>
+          <div class="bar"><i style="width:57%"></i></div>
+          <p class="finePrint">初回（5/10）評価との比較。次回評価：9月上旬予定</p>
+        </div>
+
+        <div class="card">
+          <h3>🎬 あなたの宿題動画</h3>
+          <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">骨盤ニュートラルの作り方</div><div class="vs">3分 ｜ 毎日1セット ｜ 担当：修斗先生</div></div></div>
+          <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">胸椎モビリティ・エクササイズ</div><div class="vs">5分 ｜ 週3回 ｜ NEW 🆕</div></div></div>
+        </div>
+
+        <div class="card">
+          <h3>🗓 来店履歴</h3>
+          <table class="hist">
+            <tr><td>8/1（土）</td><td>整体×ピラティス60分</td><td>¥6,600</td></tr>
+            <tr><td>7/18（土）</td><td>ピラティス60分</td><td>¥6,000</td></tr>
+            <tr><td>7/4（土）</td><td>整体×ピラティス60分</td><td>¥6,600</td></tr>
+          </table>
+          <button class="btn ghost">すべて見る（12件）</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ADMIN ─── -->
+    <div class="screen" id="tab-admin">
+      <div class="adminBanner">🔐 <span><b>オーナー専用画面</b>（修斗さんのみアクセス可・2段階認証）— お客様側からこの画面は一切見えません</span></div>
+      <div class="kpis">
+        <div class="kpi"><div class="v">¥412,500</div><div class="l">今月売上</div></div>
+        <div class="kpi"><div class="v">68</div><div class="l">今月来店数</div></div>
+        <div class="kpi"><div class="v">9</div><div class="l">今月新規</div></div>
+      </div>
+      <div class="adminGrid">
+        <div class="card" style="margin-top:0">
+          <h3>📅 本日の予約（Googleカレンダー連動）</h3>
+          <table class="hist">
+            <tr><td><b>10:00</b></td><td>みかん さん ｜ 整体×ピラティス60</td><td>既存</td></tr>
+            <tr><td><b>13:00</b></td><td>りく さん ｜ 整体30</td><td>新規</td></tr>
+            <tr><td><b>15:00</b></td><td style="color:var(--sub)">（Googleカレンダー：キッズ教室）</td><td>—</td></tr>
+          </table>
+        </div>
+        <div class="card" style="margin-top:0">
+          <h3>👥 顧客管理（タップで詳細）</h3>
+          <div id="custList"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom" id="navUser">
+    <button class="act" data-t="home" onclick="go('home')"><span class="ic">🏠</span>ホーム</button>
+    <button data-t="book" onclick="go('book')"><span class="ic">📅</span>予約</button>
+    <button data-t="my" onclick="go('my')"><span class="ic">🌿</span>マイページ</button>
+  </nav>
+</div>
+
+<!-- toast -->
+<div id="toast"><div class="lic">LINE</div><div><div class="tt">gait 公式LINE</div><div class="tm" id="toastMsg"></div></div></div>
+
+<!-- customer modal -->
+<div id="modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="sheet" id="sheetBody"></div>
+</div>
+
+<script>
+/* ---------------- demo data ---------------- */
+const MENUS=[
+ {n:"整体×ピラティス",len:"60分",p:6600},
+ {n:"整体",len:"30分",p:4400},
+ {n:"パーソナルピラティス",len:"60分",p:6000},
+ {n:"【初回体験】整体×ピラティス",len:"60分",p:4400},
+];
+const DAYS=[["8/8","金"],["8/9","土"],["8/10","日"],["8/11","火"],["8/12","水"],["8/13","木"],["8/14","金"]];
+const CLOSED_DAY=2; /* 8/10 定休日 */
+const TIMES=["10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
+const BLOCKED=[
+ {"11:00":"g","14:00":"r"},
+ {"10:00":"r","13:00":"r","15:00":"g","16:00":"g"},
+ {},
+ {"13:00":"r"},
+ {"11:00":"r","15:00":"g"},
+ {"10:00":"r","16:00":"r"},
+ {"14:00":"g","17:00":"r"}
+];
+const CUSTOMERS=[
+ {nn:"みかん",name:"佐藤 美和",kana:"サトウ ミワ",tel:"090-1234-5678",dob:"1989/4/12",visits:12,total:74800,last:"8/1",first:"2026/5/10",st:"rep",memo:"デスクワーク由来の肩こり・猫背。胸椎モビリティ改善中。宿題動画の実施率高い。"},
+ {nn:"りく",name:"田中 陸",kana:"タナカ リク",tel:"080-2345-6789",dob:"1995/11/3",visits:1,total:4400,last:"8/7",first:"2026/8/7",st:"new",memo:"初回体験。ランニング時の膝痛。次回、身体評価とBefore写真の撮影を予定。"},
+ {nn:"はな",name:"山本 花子",kana:"ヤマモト ハナコ",tel:"090-3456-7890",dob:"1958/2/20",visits:24,total:158400,last:"7/30",first:"2025/12/2",st:"rep",memo:"シニア割。腰部脊柱管狭窄症の既往。無理のない範囲で体幹強化を継続。"},
+ {nn:"ゆう",name:"高橋 優",kana:"タカハシ ユウ",tel:"070-4567-8901",dob:"1992/7/8",visits:5,total:31800,last:"5/2",first:"2026/2/14",st:"slp",memo:"90日以上来店なし → LINEでフォロークーポン配信候補。"},
+];
+const ST={new:["新規","new"],rep:["既存","rep"],slp:["休眠","slp"]};
+
+/* ---------------- state ---------------- */
+let selMenu=0, selDay=0, selSlot=null;
+
+/* ---------------- login ---------------- */
+function login(){
+  document.getElementById("scrLogin").style.display="none";
+  document.getElementById("scrApp").style.display="block";
+  lineToast("ログインしました。次回から自動ログインされます 🔒");
+}
+
+/* ---------------- nav ---------------- */
+function go(t){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));
+  document.getElementById("tab-"+t).classList.add("act");
+  document.querySelectorAll("#navUser button, .deskNav button").forEach(b=>b.classList.toggle("act",b.dataset.t===t));
+  window.scrollTo(0,0);
+}
+let admin=false;
+function toggleAdmin(){
+  admin=!admin;
+  const b=document.getElementById("admBtn");
+  b.classList.toggle("on",admin);
+  b.textContent=admin?"← 会員画面に戻る":"👤 オーナー画面へ";
+  document.getElementById("navUser").style.display=admin?"none":"flex";
+  document.querySelector(".deskNav").style.visibility=admin?"hidden":"visible";
+  if(admin){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));document.getElementById("tab-admin").classList.add("act");}
+  else go("home");
+  window.scrollTo(0,0);
+}
+
+/* ---------------- booking: shared ---------------- */
+function isBlocked(d,t){ return d===CLOSED_DAY ? "closed" : (BLOCKED[d][t]||null); }
+function pick(d,t){
+  selDay=d; selSlot=t;
+  renderDays(); renderSlots(); renderWeek(); renderConfirm();
+}
+
+/* mobile picker */
+function renderMenus(){
+  document.getElementById("menuList").innerHTML=MENUS.map((m,i)=>
+   `<div class="menuOpt ${i===selMenu?'sel':''}" onclick="selMenu=${i};renderMenus();renderConfirm()">
+      <div><div class="n">${m.n}</div><div class="len">${m.len}</div></div>
+      <div class="pr">¥${m.p.toLocaleString()}</div></div>`).join("");
+}
+function renderDays(){
+  document.getElementById("dayRow").innerHTML=DAYS.map((d,i)=>
+   `<button class="dayBtn ${i===selDay?'sel':''}" onclick="selDay=${i};selSlot=null;renderDays();renderSlots();renderConfirm()">
+      <div class="w">${d[1]}</div><div class="dd">${d[0].split("/")[1]}</div></button>`).join("");
+}
+function renderSlots(){
+  const el=document.getElementById("slotGrid");
+  if(selDay===CLOSED_DAY){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です</div>`;return}
+  el.innerHTML=TIMES.map(t=>{
+    const b=isBlocked(selDay,t);
+    if(b) return `<div class="slot ng">×<small>${b==="g"?"予定あり":"予約済み"}</small></div>`;
+    return `<button class="slot ${selSlot===t?'sel':''}" onclick="pick(${selDay},'${t}')">${t}</button>`;
+  }).join("");
+}
+
+/* desktop week grid */
+function renderWeek(){
+  let html="<tr><th></th>"+DAYS.map((d,i)=>
+    `<th class="${i===0?'today':''}">${d[1]}<b>${d[0].split("/")[1]}</b></th>`).join("")+"</tr>";
+  html+=TIMES.map(t=>{
+    return "<tr><td class='tlabel'>"+t+"</td>"+DAYS.map((d,i)=>{
+      const b=isBlocked(i,t);
+      if(b==="closed") return `<td><div class="cell closed">定休</div></td>`;
+      if(b) return `<td><div class="cell ng">×<span>${b==="g"?"予定あり":"予約済み"}</span></div></td>`;
+      const sel=(selDay===i&&selSlot===t)?"sel":"";
+      return `<td><button class="cell ${sel}" onclick="pick(${i},'${t}')" title="${d[0]}（${d[1]}）${t}〜">${sel?"✓":"○"}</button></td>`;
+    }).join("")+"</tr>";
+  }).join("");
+  document.getElementById("weekTable").innerHTML=html;
+}
+
+function renderConfirm(){
+  const c=document.getElementById("confirmCard");
+  if(!selSlot){c.style.display="none";return}
+  const m=MENUS[selMenu],d=DAYS[selDay];
+  document.getElementById("confirmText").innerHTML=
+   `<b>${m.n}（${m.len}）</b><br>${d[0]}（${d[1]}）${selSlot}〜<br>料金：¥${m.p.toLocaleString()}（店舗でのお支払い）`;
+  c.style.display="block";
+  c.scrollIntoView({block:"nearest"});
+}
+function confirmBooking(){
+  const d=DAYS[selDay];
+  BLOCKED[selDay][selSlot]="r";
+  lineToast(`【予約確定】${d[0]}（${d[1]}）${selSlot}〜 ${MENUS[selMenu].n}。前日にリマインドをお送りします 📅`);
+  selSlot=null;renderSlots();renderWeek();renderConfirm();
+  setTimeout(()=>go("home"),700);
+}
+
+/* ---------------- admin ---------------- */
+function renderCust(){
+  document.getElementById("custList").innerHTML=CUSTOMERS.map((c,i)=>
+   `<div class="cust" onclick="openCust(${i})">
+      <div><div class="cn">${c.name} <span style="font-weight:500;color:var(--sub);font-size:11px">(${c.nn})</span><span class="tag ${ST[c.st][1]}">${ST[c.st][0]}</span></div>
+        <div class="ci">来店 ${c.visits}回 ｜ 最終 ${c.last}</div></div>
+      <div class="cr"><div class="amt">¥${c.total.toLocaleString()}</div><div class="ci">累計</div></div></div>`).join("");
+}
+function openCust(i){
+  const c=CUSTOMERS[i];
+  document.getElementById("sheetBody").innerHTML=
+   `<h3>${c.name}（${c.kana}）<span class="tag ${ST[c.st][1]}">${ST[c.st][0]}</span></h3>
+    <div style="font-size:11px;color:var(--sub)">アプリ表示名：${c.nn} さん</div>
+    <table class="dt">
+      <tr><td>電話番号</td><td>${c.tel}</td></tr>
+      <tr><td>生年月日</td><td>${c.dob}</td></tr>
+      <tr><td>累計利用金額</td><td style="color:var(--gd);font-weight:800">¥${c.total.toLocaleString()}</td></tr>
+      <tr><td>来店回数</td><td>${c.visits}回（平均単価 ¥${Math.round(c.total/c.visits).toLocaleString()}）</td></tr>
+      <tr><td>初回来店</td><td>${c.first}</td></tr>
+      <tr><td>最終来店</td><td>${c.last}</td></tr>
+    </table>
+    <div class="memo">📝 <b>カルテメモ：</b>${c.memo}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+      <button class="btn sub" onclick="lineToast('BeforeAfter写真・評価・宿題動画の割当て画面（本開発で実装）')">📸 記録・宿題管理</button>
+      <button class="btn line" onclick="lineToast('${c.nn}さんへのLINE個別トークを開きます')">💬 LINE連絡</button>
+    </div>
+    <button class="btn ghost" onclick="document.getElementById('modal').classList.remove('show')">閉じる</button>`;
+  document.getElementById("modal").classList.add("show");
+}
+
+/* ---------------- misc ---------------- */
+function baSlide(v){
+  document.getElementById("baAfter").style.opacity=v/100;
+  document.getElementById("baBefore").style.opacity=1-(v/100)*.75;
+}
+let toastTimer;
+function lineToast(msg){
+  document.getElementById("toastMsg").textContent=msg;
+  const t=document.getElementById("toast");
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+
+renderMenus();renderDays();renderSlots();renderWeek();renderCust();
+</script>
+</body>
+</html>
