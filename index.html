@@ -182,6 +182,14 @@ svg.figure{height:190px}
 .dt td{padding:8px 4px;border-bottom:1px solid var(--gxl)}
 .dt td:first-child{color:var(--sub);width:36%}
 .dt td:last-child{font-weight:600}
+/* ═══════ v3: 回数券 ═══════ */
+.tkBig{font-size:32px;font-weight:800;color:var(--gd);line-height:1}
+.tkDots{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 4px}
+.tkDot{width:17px;height:17px;border-radius:50%;background:var(--g)}
+.tkDot.used{background:#e3ebe6}
+.tkRow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--gxl)}
+.tkBtn{background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-weight:700;font-family:inherit;cursor:pointer;font-size:12px;white-space:nowrap}
+.tkBtn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g)}
 /* ═══════ v3: 主訴・問題点 ═══════ */
 .chief{background:#fff7e8;border:1px solid #f2dfb6;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.6}
 .probItem{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--gxl);font-size:12.5px;line-height:1.6}
@@ -268,6 +276,12 @@ svg.figure{height:190px}
             <div class="tile" onclick="go('my')"><div class="ic">📈</div><div class="t">マイページ</div><div class="s">記録・宿題動画</div></div>
           </div>
           <button class="btn line" onclick="window.open('https://lin.ee/DuCTZFa','_blank')">💬 LINEで相談・連絡する</button>
+          <div class="card" style="margin-top:14px;cursor:pointer" onclick="go('my')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-weight:700;font-size:13.5px">🎫 回数券　<span style="color:var(--gd);font-weight:800;font-size:19px" id="tkHome">3</span> 回のこっています</div>
+              <span style="color:var(--sub);font-size:11px">詳細 ›</span>
+            </div>
+          </div>
         </div>
         <div>
           <div class="card" style="margin-top:0">
@@ -342,6 +356,17 @@ svg.figure{height:190px}
           </div>
           <div class="chief">🗣 <b>主訴：</b>デスクワークで夕方になると肩・首がつらい。猫背が気になる</div>
           <div class="privacy">🔒 本名・生年月日・写真はご本人とオーナーのみ閲覧できます（他の会員には一切公開されません）</div>
+        </div>
+
+        <div class="card">
+          <h3>🎫 回数券</h3>
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <span class="tkBig" id="tkLeft">3</span><span style="font-weight:700">回 のこっています</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--sub)">10回券 ｜ 有効期限 10/31</span>
+          </div>
+          <div class="tkDots" id="tkDots"></div>
+          <table class="evTable" id="tkHist"></table>
+          <p class="finePrint">ご利用のたびに自動で1回消化されます。追加の回数券は店舗・LINEでご購入いただけます（本番版はアプリ内購入にも対応予定）。</p>
         </div>
 
         <div class="card">
@@ -573,6 +598,16 @@ function confirmBooking(){
   setTimeout(()=>go("home"),700);
 }
 
+/* ---------------- 回数券 ---------------- */
+const TICKET={total:10,left:3,exp:"10/31",hist:["8/1 整体×ピラティス60","7/18 ピラティス60","7/4 整体×ピラティス60","6/20 ピラティス60","6/7 整体×ピラティス60","5/24 ピラティス60","5/10 整体×ピラティス60"]};
+function renderTicket(){
+  const used=TICKET.total-TICKET.left;
+  document.getElementById("tkLeft").textContent=TICKET.left;
+  const h=document.getElementById("tkHome");if(h)h.textContent=TICKET.left;
+  document.getElementById("tkDots").innerHTML=Array.from({length:TICKET.total},(_,i)=>`<span class="tkDot ${i<used?'used':''}"></span>`).join("");
+  document.getElementById("tkHist").innerHTML=`<tr><th style="text-align:left">ご利用履歴</th><th>回数</th></tr>`+TICKET.hist.map((x,i)=>`<tr><td style="text-align:left">${x}</td><td>${TICKET.hist.length-i}回目</td></tr>`).join("");
+}
+
 /* ---------------- 疼痛記録 ---------------- */
 const PAIN=[
  {d:"5/10",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:6},
@@ -656,7 +691,7 @@ function lineToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
 }
 
-renderMenus();renderDays();renderSlots();renderWeek();baPlane('sag');renderPain();
+renderMenus();renderDays();renderSlots();renderWeek();baPlane('sag');renderPain();renderTicket();
 </script>
 </body>
 </html>

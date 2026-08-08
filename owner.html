@@ -213,6 +213,14 @@ svg.figure{height:190px}
 .statBox .l{font-size:9.5px;color:var(--sub)}
 .sig{display:inline-block;background:var(--gl);color:var(--gd);border-radius:99px;padding:2px 10px;font-weight:800;font-size:11px}
 .sig.no{background:#fdeceb;color:var(--warn)}
+/* ═══════ v3: 回数券 ═══════ */
+.tkBig{font-size:32px;font-weight:800;color:var(--gd);line-height:1}
+.tkDots{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 4px}
+.tkDot{width:17px;height:17px;border-radius:50%;background:var(--g)}
+.tkDot.used{background:#e3ebe6}
+.tkRow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--gxl)}
+.tkBtn{background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-weight:700;font-family:inherit;cursor:pointer;font-size:12px;white-space:nowrap}
+.tkBtn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g)}
 /* ═══════ v3: 主訴・問題点 ═══════ */
 .chief{background:#fff7e8;border:1px solid #f2dfb6;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.6}
 .probItem{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--gxl);font-size:12.5px;line-height:1.6}
@@ -300,6 +308,12 @@ svg.figure{height:190px}
             <div class="tile" onclick="go('my')"><div class="ic">📈</div><div class="t">マイページ</div><div class="s">記録・宿題動画</div></div>
           </div>
           <button class="btn line" onclick="lineToast('公式LINEのトークを開きます（lin.ee/DuCTZFa）')">💬 LINEで相談・連絡する</button>
+          <div class="card" style="margin-top:14px;cursor:pointer" onclick="go('my')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-weight:700;font-size:13.5px">🎫 回数券　<span style="color:var(--gd);font-weight:800;font-size:19px" id="tkHome">3</span> 回のこっています</div>
+              <span style="color:var(--sub);font-size:11px">詳細 ›</span>
+            </div>
+          </div>
         </div>
         <div>
           <div class="card" style="margin-top:0">
@@ -374,6 +388,17 @@ svg.figure{height:190px}
           </div>
           <div class="chief">🗣 <b>主訴：</b>デスクワークで夕方になると肩・首がつらい。猫背が気になる</div>
           <div class="privacy">🔒 本名・生年月日・写真はご本人とオーナーのみ閲覧できます（他の会員には一切公開されません）</div>
+        </div>
+
+        <div class="card">
+          <h3>🎫 回数券</h3>
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <span class="tkBig" id="tkLeft">3</span><span style="font-weight:700">回 のこっています</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--sub)">10回券 ｜ 有効期限 10/31</span>
+          </div>
+          <div class="tkDots" id="tkDots"></div>
+          <table class="evTable" id="tkHist"></table>
+          <p class="finePrint">ご利用のたびに自動で1回消化されます。追加の回数券は店舗・LINEでご購入いただけます（本番版はアプリ内購入にも対応予定）。</p>
         </div>
 
         <div class="card">
@@ -519,6 +544,18 @@ svg.figure{height:190px}
           <h3>👥 顧客管理（タップで詳細）</h3>
           <div id="custList"></div>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>🎫 回数券の管理（ワンタップ消化）</h3>
+        <p class="notice" style="margin-bottom:6px">「✓ 1回消化」を押すだけで、今日の日付で自動記録されます。押し間違いは「取消」でワンタップ復元。</p>
+        <div id="tkAdmin"></div>
+        <div class="fRow" style="margin-top:12px">
+          <select id="tkNewCust" style="flex:1"></select>
+          <select id="tkNewType"><option>10回券 ¥60,000</option><option>5回券 ¥31,500</option></select>
+          <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
+        </div>
+        <p class="finePrint">消化と同時に会員のマイページ残数が更新され、売上（回数券販売・消化）にも自動反映されます（本番版）。みかんさんの行で押すと、実際に会員画面の残数も変わります。</p>
       </div>
 
       <div class="adminGrid">
@@ -748,6 +785,56 @@ function openCust(i){
   document.getElementById("modal").classList.add("show");
 }
 
+/* ---------------- 回数券 ---------------- */
+const TICKET={total:10,left:3,exp:"10/31",hist:["8/1 整体×ピラティス60","7/18 ピラティス60","7/4 整体×ピラティス60","6/20 ピラティス60","6/7 整体×ピラティス60","5/24 ピラティス60","5/10 整体×ピラティス60"]};
+function renderTicket(){
+  const used=TICKET.total-TICKET.left;
+  document.getElementById("tkLeft").textContent=TICKET.left;
+  const h=document.getElementById("tkHome");if(h)h.textContent=TICKET.left;
+  document.getElementById("tkDots").innerHTML=Array.from({length:TICKET.total},(_,i)=>`<span class="tkDot ${i<used?'used':''}"></span>`).join("");
+  document.getElementById("tkHist").innerHTML=`<tr><th style="text-align:left">ご利用履歴</th><th>回数</th></tr>`+TICKET.hist.map((x,i)=>`<tr><td style="text-align:left">${x}</td><td>${TICKET.hist.length-i}回目</td></tr>`).join("");
+}
+const TK=[
+ {nn:"みかん",left:3,total:10,exp:"10/31",last:"8/1"},
+ {nn:"りく",left:0,total:0,exp:"—",last:"—"},
+ {nn:"はな",left:7,total:10,exp:"12/20",last:"7/30"},
+ {nn:"ゆう",left:2,total:5,exp:"9/15",last:"5/2"},
+];
+function tkToday(){const n=new Date();return (n.getMonth()+1)+"/"+n.getDate()}
+function renderTkAdmin(){
+  document.getElementById("tkAdmin").innerHTML=TK.map((t,i)=>{
+    const info=t.total?`残り <b style="color:var(--gd);font-size:15px">${t.left}</b> / ${t.total}回 ｜ 期限 ${t.exp} ｜ 最終消化 ${t.last}`:`<span style="color:var(--sub)">回数券なし → 下の「発行」からどうぞ</span>`;
+    const btns=t.total?`<button class="tkBtn" onclick="tkUse(${i})">✓ 1回消化</button><button class="tkBtn sub" onclick="tkUndo(${i})">取消</button>`:"";
+    return `<div class="tkRow"><div><div style="font-weight:700;font-size:13px">${t.nn} さん</div><div style="font-size:11px;color:var(--sub)">${info}</div></div><div style="display:flex;gap:6px">${btns}</div></div>`;
+  }).join("");
+}
+function tkUse(i){
+  const t=TK[i];
+  if(t.left<=0){lineToast(`${t.nn}さんの回数券は残り0回です。新しい回数券を発行してください`);return}
+  t.left--;t.last=tkToday();
+  if(t.nn==="みかん"){TICKET.left=t.left;TICKET.hist.unshift(tkToday()+" 本日消化");renderTicket();}
+  renderTkAdmin();
+  lineToast(`${t.nn}さん：本日 ${tkToday()} の1回消化を記録しました（残り${t.left}回）`);
+}
+function tkUndo(i){
+  const t=TK[i];
+  if(t.left>=t.total){lineToast("取り消せる消化がありません");return}
+  t.left++;
+  if(t.nn==="みかん"&&TICKET.hist[0]&&TICKET.hist[0].includes("本日消化")){TICKET.hist.shift();TICKET.left=t.left;renderTicket();}
+  renderTkAdmin();
+  lineToast(`${t.nn}さん：直前の消化を取り消しました（残り${t.left}回）`);
+}
+function tkIssue(){
+  const nn=document.getElementById("tkNewCust").value.replace(" さん","");
+  const type=document.getElementById("tkNewType").value;
+  const t=TK.find(x=>x.nn===nn);
+  const n=new Date();
+  t.total=type.startsWith("10")?10:5;t.left=t.total;t.exp=((n.getMonth()+6)%12+1)+"/"+n.getDate();t.last="—";
+  if(nn==="みかん"){TICKET.total=t.total;TICKET.left=t.left;renderTicket();}
+  renderTkAdmin();
+  lineToast(`${nn}さんに ${type} を発行しました（有効期限6ヶ月）`);
+}
+
 /* ---------------- 疼痛記録 ---------------- */
 const PAIN=[
  {d:"5/10",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:6},
@@ -834,6 +921,7 @@ const EVAL_LOG=[];
 function evInit(){
   document.getElementById("evCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.name}（${c.nn}）</option>`).join("");
   document.getElementById("ytCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.nn} さん</option>`).join("");
+  document.getElementById("tkNewCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.nn} さん</option>`).join("");
   document.getElementById("evCat").innerHTML=Object.keys(EVAL_ITEMS).map(k=>`<option>${k}</option>`).join("");
   evFillItems();
 }
@@ -928,7 +1016,7 @@ function lineToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
 }
 
-renderMenus();renderDays();renderSlots();renderWeek();renderCust();baPlane('sag');evInit();ytInit();statInit();renderPain();
+renderMenus();renderDays();renderSlots();renderWeek();renderCust();baPlane('sag');evInit();ytInit();statInit();renderPain();renderTicket();renderTkAdmin();
 </script>
 </body>
 </html>
