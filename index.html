@@ -362,11 +362,11 @@ svg.figure{height:190px}
           <h3>🎫 回数券</h3>
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
             <span class="tkBig" id="tkLeft">3</span><span style="font-weight:700">回 のこっています</span>
-            <span style="margin-left:auto;font-size:11px;color:var(--sub)">10回券 ｜ 有効期限 10/31</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--sub)">整体×ピラティス 10回券 ｜ 有効期限 10/31</span>
           </div>
           <div class="tkDots" id="tkDots"></div>
           <table class="evTable" id="tkHist"></table>
-          <p class="finePrint">ご利用のたびに自動で1回消化されます。回数券は<b>4回・10回・20回・30回</b>からお選びいただけます。追加のご購入は店舗・LINEにて（本番版はアプリ内購入にも対応予定）。</p>
+          <p class="finePrint">ご利用のたびに自動で1回消化されます。回数券は<b>4回・10回・20回・30回</b>からお選びいただけます。<br>整体×ピラティス60分：4回¥28,800 ／ 10回¥69,000 ／ 20回¥132,000 ／ 30回¥189,000<br>全身整体40分：4回¥20,800 ／ 10回¥50,000 ／ 20回¥96,000 ／ 30回¥138,000<br>追加のご購入は店舗・LINEにて（本番版はアプリ内購入にも対応予定）。</p>
         </div>
 
         <div class="card">
@@ -478,9 +478,9 @@ svg.figure{height:190px}
         <div class="card">
           <h3>🗓 来店履歴</h3>
           <table class="hist">
-            <tr><td>8/1（土）</td><td>整体×ピラティス60分</td><td>¥6,600</td></tr>
-            <tr><td>7/18（土）</td><td>ピラティス60分</td><td>¥6,000</td></tr>
-            <tr><td>7/4（土）</td><td>整体×ピラティス60分</td><td>¥6,600</td></tr>
+            <tr><td>8/1（土）</td><td>整体×ピラティス60分</td><td>🎫 回数券</td></tr>
+            <tr><td>7/18（土）</td><td>整体×ピラティス60分</td><td>🎫 回数券</td></tr>
+            <tr><td>7/4（土）</td><td>全身整体40分</td><td>¥5,500</td></tr>
           </table>
           <button class="btn ghost">すべて見る（12件）</button>
         </div>
@@ -502,18 +502,25 @@ svg.figure{height:190px}
 <script>
 /* ---------------- demo data ---------------- */
 const MENUS=[
- {n:"整体×ピラティス",len:"60分",p:6600},
- {n:"整体",len:"30分",p:4400},
- {n:"パーソナルピラティス",len:"60分",p:6000},
- {n:"【初回体験】整体×ピラティス",len:"60分",p:4400},
+ {n:"整体×ピラティス",len:"60分",p:7700},
+ {n:"【初回】整体×ピラティス（20分カウンセリング付）",len:"60分",p:4400},
+ {n:"全身整体",len:"40分",p:5500},
+ {n:"【初回】全身整体",len:"40分",p:3300},
+ {n:"【インストラクター向け】みっちりピラティス",len:"60分",p:7000},
+ {n:"【初回】みっちりピラティス",len:"60分",p:4400},
+ {n:"【グループ割】みっちりピラティス",len:"60分 ｜ 2人¥6,600・3人¥8,250・4人以上 各¥2,200",p:6600,ps:"各¥2,200〜"},
+ {n:"《フルマラソン完走3ヶ月プラン》ジョギング×ピラティス",len:"60分×計24回 ｜ 週2回＋LINE運動指導つき",p:192000,ps:"¥184,800〜"},
 ];
 const DAYS=[["8/8","金"],["8/9","土"],["8/10","日"],["8/11","火"],["8/12","水"],["8/13","木"],["8/14","金"]];
 const CLOSED_DAY=2; /* 8/10 定休日 */
-const TIMES=["10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
+const TIMES=["9:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+const IIDA_TIMES=["9:00","10:00","11:00","12:00"];
+let IIDA_OPEN={2:true}; /* 飯田シフトが入っている日（デモ：8/10） */
+function isIida(d){return d===CLOSED_DAY&&!!IIDA_OPEN[d]}
 const BLOCKED=[
  {"11:00":"g","14:00":"r"},
  {"10:00":"r","13:00":"r","15:00":"g","16:00":"g"},
- {},
+ {"10:00":"r"},
  {"13:00":"r"},
  {"11:00":"r","15:00":"g"},
  {"10:00":"r","16:00":"r"},
@@ -537,7 +544,14 @@ function go(t){
   window.scrollTo(0,0);
 }
 /* ---------------- booking: shared ---------------- */
-function isBlocked(d,t){ return d===CLOSED_DAY ? "closed" : (BLOCKED[d][t]||null); }
+function isBlocked(d,t){
+  if(d===CLOSED_DAY){
+    if(!IIDA_OPEN[d]) return "closed";
+    return IIDA_TIMES.includes(t)?(BLOCKED[d][t]||null):"na";
+  }
+  if(t==="9:00"||t==="12:00") return "na";
+  return BLOCKED[d][t]||null;
+}
 function pick(d,t){
   selDay=d; selSlot=t;
   renderDays(); renderSlots(); renderWeek(); renderConfirm();
@@ -548,7 +562,7 @@ function renderMenus(){
   document.getElementById("menuList").innerHTML=MENUS.map((m,i)=>
    `<div class="menuOpt ${i===selMenu?'sel':''}" onclick="selMenu=${i};renderMenus();renderConfirm()">
       <div><div class="n">${m.n}</div><div class="len">${m.len}</div></div>
-      <div class="pr">¥${m.p.toLocaleString()}</div></div>`).join("");
+      <div class="pr">${m.ps||"¥"+m.p.toLocaleString()}</div></div>`).join("");
 }
 function renderDays(){
   document.getElementById("dayRow").innerHTML=DAYS.map((d,i)=>
@@ -557,9 +571,11 @@ function renderDays(){
 }
 function renderSlots(){
   const el=document.getElementById("slotGrid");
-  if(selDay===CLOSED_DAY){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です</div>`;return}
-  el.innerHTML=TIMES.map(t=>{
+  if(selDay===CLOSED_DAY&&!IIDA_OPEN[selDay]){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です<br><span style="font-size:10.5px">※スタッフシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span></div>`;return}
+  const head=isIida(selDay)?`<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>`:"";
+  el.innerHTML=head+TIMES.map(t=>{
     const b=isBlocked(selDay,t);
+    if(b==="na") return "";
     if(b) return `<div class="slot ng">×<small>${b==="g"?"予定あり":"予約済み"}</small></div>`;
     return `<button class="slot ${selSlot===t?'sel':''}" onclick="pick(${selDay},'${t}')">${t}</button>`;
   }).join("");
@@ -572,6 +588,7 @@ function renderWeek(){
   html+=TIMES.map(t=>{
     return "<tr><td class='tlabel'>"+t+"</td>"+DAYS.map((d,i)=>{
       const b=isBlocked(i,t);
+      if(b==="na") return `<td><div class="cell closed">—</div></td>`;
       if(b==="closed") return `<td><div class="cell closed">定休</div></td>`;
       if(b) return `<td><div class="cell ng">×<span>${b==="g"?"予定あり":"予約済み"}</span></div></td>`;
       const sel=(selDay===i&&selSlot===t)?"sel":"";
@@ -586,7 +603,7 @@ function renderConfirm(){
   if(!selSlot){c.style.display="none";return}
   const m=MENUS[selMenu],d=DAYS[selDay];
   document.getElementById("confirmText").innerHTML=
-   `<b>${m.n}（${m.len}）</b><br>${d[0]}（${d[1]}）${selSlot}〜<br>料金：¥${m.p.toLocaleString()}（店舗でのお支払い）`;
+   `<b>${m.n}（${m.len}）</b><br>${d[0]}（${d[1]}）${selSlot}〜<br>料金：${m.ps||"¥"+m.p.toLocaleString()}（店舗でのお支払い）${isIida(selDay)?"<br>担当：スタッフ 飯田（日曜シフト 9:00〜13:00）":""}`;
   c.style.display="block";
   c.scrollIntoView({block:"nearest"});
 }
