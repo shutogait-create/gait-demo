@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>gait 会員アプリ（プロトタイプ v2）</title>
+<title>gait 会員アプリ（プロトタイプ v3）</title>
 <style>
 :root{
   --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6;
@@ -181,6 +181,45 @@ svg.figure{height:190px}
 .dt td:last-child{font-weight:600}
 .memo{background:var(--gxl);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px}
 
+/* ═══════ v3: BA 3面 ═══════ */
+.baTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.baTab{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 4px;text-align:center;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--sub)}
+.baTab small{display:block;font-size:9.5px;font-weight:500}
+.baTab.act{background:var(--g);border-color:var(--g);color:#fff}
+.baTab.act small{color:#dff2e9}
+.baCompare{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.baCol{text-align:center}
+.baBadge{display:inline-block;font-size:10px;font-weight:800;border-radius:99px;padding:2px 10px;margin-bottom:6px}
+.baBadge.bef{background:#fff3d6;color:#9a6c00}
+.baBadge.aft{background:var(--gl);color:var(--gd)}
+.baFrame{border:1.5px dashed var(--line);border-radius:12px;background:#fff;height:225px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.stdBox{background:var(--gxl);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:12px;line-height:1.7}
+.stdBox b.t{color:var(--gd);display:block;margin-bottom:4px;font-size:12.5px}
+.stdList{list-style:none;margin-top:6px}
+.stdList li{position:relative;padding:3px 0 3px 18px}
+.stdList li:before{content:"";position:absolute;left:4px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--g)}
+/* ═══════ v3: 評価テーブル・フォーム・統計 ═══════ */
+.evTable{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.evTable th{font-size:10.5px;color:var(--sub);font-weight:600;text-align:left;padding:4px;border-bottom:1px solid var(--line)}
+.evTable td{padding:6px 4px;border-bottom:1px solid var(--gxl)}
+.evTable td:nth-child(n+2),.evTable th:nth-child(n+2){text-align:right}
+.evTable .up{color:var(--gd);font-weight:700}
+.fRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.fRow select,.fRow input,.fRow textarea{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff}
+.fRow select:focus,.fRow input:focus,.fRow textarea:focus{outline:none;border-color:var(--g)}
+.statGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.statBox{background:var(--gxl);border-radius:10px;padding:8px 10px;text-align:center}
+.statBox .v{font-weight:800;color:var(--gd);font-size:15px}
+.statBox .l{font-size:9.5px;color:var(--sub)}
+.sig{display:inline-block;background:var(--gl);color:var(--gd);border-radius:99px;padding:2px 10px;font-weight:800;font-size:11px}
+.sig.no{background:#fdeceb;color:var(--warn)}
+/* ═══════ v3: 主訴・問題点 ═══════ */
+.chief{background:#fff7e8;border:1px solid #f2dfb6;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.6}
+.probItem{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--gxl);font-size:12.5px;line-height:1.6}
+.probItem:last-of-type{border-bottom:none}
+.probN{width:22px;height:22px;border-radius:50%;background:#fff3d6;color:#9a6c00;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+.exChip{display:inline-flex;align-items:center;gap:4px;background:var(--gl);color:var(--gd);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px}
+
 /* ═══════════════ DESKTOP ≥880px ═══════════════ */
 @media(min-width:880px){
   body{font-size:15px}
@@ -218,7 +257,7 @@ svg.figure{height:190px}
   <div class="loginCard">
     <div class="mark">gait</div>
     <h1>gait 会員アプリ</h1>
-    <p class="s">リラクゼーション＆ピラティス gait ｜ 岡山<br><span style="opacity:.7">プロトタイプ v2（デモデータで動作します）</span></p>
+    <p class="s">リラクゼーション＆ピラティス gait ｜ 岡山<br><span style="opacity:.7">プロトタイプ v3（デモデータで動作します）</span></p>
     <div class="field"><label>メールアドレス</label><input type="email" value="sample@example.com"></div>
     <div class="field"><label>パスワード</label><input type="password" value="••••••••"></div>
     <div class="keepbox">🔒 <span><b>一度ログインすれば、次回から自動ログイン。</b><br>ログイン状態は安全に保存され、毎回の入力は不要です。通信はすべて暗号化されています。</span></div>
@@ -328,43 +367,54 @@ svg.figure{height:190px}
               <div class="rk">★ ご来店 12回目 ｜ 会員No. G-0847</div>
             </div>
           </div>
+          <div class="chief">🗣 <b>主訴：</b>デスクワークで夕方になると肩・首がつらい。猫背が気になる</div>
           <div class="privacy">🔒 本名・生年月日・写真はご本人とオーナーのみ閲覧できます（他の会員には一切公開されません）</div>
         </div>
 
         <div class="card">
-          <h3>📸 Before / After（姿勢の変化）</h3>
-          <div class="baWrap">
-            <div class="baImgs">
-              <div class="baImg" id="baBefore">
-                <span class="baLbl" style="left:8px">BEFORE 5/10</span>
-                <svg class="figure" viewBox="0 0 100 200">
-                  <g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round">
-                    <circle cx="57" cy="32" r="12" fill="#e6f0ea"/>
-                    <path d="M55 44 Q 44 70 46 105"/>
-                    <path d="M46 105 L 40 160 L 38 192"/>
-                    <path d="M46 105 L 55 158 L 56 192"/>
-                    <path d="M52 62 Q 68 80 66 98"/>
-                  </g>
-                  <text x="8" y="196" font-size="8" fill="#8fa89b">猫背・骨盤後傾</text>
-                </svg>
-              </div>
-              <div class="baImg" id="baAfter" style="opacity:.5">
-                <span class="baLbl" style="right:8px;background:var(--g)">AFTER 8/1</span>
-                <svg class="figure" viewBox="0 0 100 200">
-                  <g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round">
-                    <circle cx="50" cy="26" r="12" fill="#e6f5ee"/>
-                    <path d="M50 38 L 50 105"/>
-                    <path d="M50 105 L 42 158 L 41 192"/>
-                    <path d="M50 105 L 58 158 L 59 192"/>
-                    <path d="M50 58 L 64 92"/>
-                  </g>
-                  <text x="30" y="196" font-size="8" fill="#2e9e72">姿勢改善 ✓</text>
-                </svg>
-              </div>
-            </div>
-            <input type="range" min="0" max="100" value="50" oninput="baSlide(this.value)">
-            <div class="baDate"><span>◀ Before</span><span>スライダーで比較</span><span>After ▶</span></div>
+          <h3>🎯 目標</h3>
+          <div id="goalView">
+            <p style="font-size:13.5px;font-weight:700" id="goalText">9月の同窓会までに、写真をとる時に気にならない姿勢になる</p>
+            <button class="btn sub" style="margin-top:10px" onclick="goalEdit()">✏️ 目標を編集する（ご自宅からもOK）</button>
           </div>
+          <div id="goalEditBox" style="display:none">
+            <div class="fRow"><textarea id="goalInput" rows="2" style="flex:1"></textarea></div>
+            <button class="btn" onclick="goalSave()">保存する</button>
+          </div>
+          <p class="finePrint">目標はいつでも変更でき、変更するとオーナーにも共有されます。</p>
+        </div>
+
+        <div class="card">
+          <h3>⚠️ いまの問題点と対応エクササイズ</h3>
+          <div class="probItem"><span class="probN">1</span><div><b>胸椎（背中の上部）の伸展可動性の低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 胸椎モビリティ・エクササイズ</span></div></div>
+          <div class="probItem"><span class="probN">2</span><div><b>骨盤後傾と体幹深部筋の筋力低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 骨盤ニュートラルの作り方</span></div></div>
+          <div class="probItem"><span class="probN">3</span><div><b>肩甲骨まわりの安定性低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 肩甲骨セッティング</span></div></div>
+          <p class="finePrint">理学療法士の評価に基づき、優先度の高い3つに絞ってお伝えしています。改善に合わせて更新されます。</p>
+        </div>
+
+        <div class="card">
+          <h3>📸 Before / After（姿勢の変化）</h3>
+          <div class="baTabs">
+            <button class="baTab act" data-p="sag" onclick="baPlane('sag')">🚶 矢状面<small>横向き</small></button>
+            <button class="baTab" data-p="fro" onclick="baPlane('fro')">🧍 前額面<small>正面</small></button>
+            <button class="baTab" data-p="ffd" onclick="baPlane('ffd')">🙇 前屈<small>柔軟性</small></button>
+          </div>
+          <div class="baCompare">
+            <div class="baCol">
+              <span class="baBadge bef">Before 5/10</span>
+              <div class="baFrame" id="baFrameB"></div>
+            </div>
+            <div class="baCol">
+              <span class="baBadge aft">After 8/1</span>
+              <div class="baFrame" id="baFrameA"></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+            <button class="btn sub" onclick="lineToast('Before写真の差し替え（本番版で実装・JPG/PNG対応）')">差し替え</button>
+            <button class="btn" onclick="lineToast('After写真の差し替え（本番版で実装・JPG/PNG対応）')">差し替え</button>
+          </div>
+          <div class="stdBox" id="baStd"></div>
+          <p class="finePrint">📷 実際のアプリでは撮影した写真が入ります（ご本人とオーナーのみ閲覧可・JPG/PNG対応）</p>
         </div>
 
         <div class="card">
@@ -377,11 +427,31 @@ svg.figure{height:190px}
           <div class="bar"><i style="width:85%"></i></div>
           <div class="evalRow"><span>肩甲骨の可動性</span><span class="delta">＋0.8 ▲</span></div>
           <div class="bar"><i style="width:57%"></i></div>
-          <p class="finePrint">初回（5/10）評価との比較。次回評価：9月上旬予定</p>
+          <table class="evTable">
+            <tr><th>評価項目（理学療法評価）</th><th>初回 5/10</th><th>最新 8/1</th><th>変化</th></tr>
+            <tr><td>ROM 肩屈曲（右）</td><td>150°</td><td>170°</td><td class="up">+20°</td></tr>
+            <tr><td>ROM 股関節屈曲（左）</td><td>95°</td><td>110°</td><td class="up">+15°</td></tr>
+            <tr><td>MMT 体幹屈曲</td><td>3</td><td>4</td><td class="up">+1</td></tr>
+            <tr><td>片脚立位時間（右）</td><td>18秒</td><td>42秒</td><td class="up">+24秒</td></tr>
+            <tr><td>片脚立位時間（左）</td><td>15秒</td><td>38秒</td><td class="up">+23秒</td></tr>
+            <tr><td>FFD（指床間距離）</td><td>12cm</td><td>2cm</td><td class="up">−10cm</td></tr>
+          </table>
+          <p class="finePrint">ROM＝関節可動域 ／ MMT＝徒手筋力テスト（0〜5） ／ FFD＝前屈時の指先と床の距離。初回（5/10）との比較。次回評価：9月上旬予定</p>
+        </div>
+
+        <div class="card">
+          <h3>🩺 既往歴・服薬</h3>
+          <table class="dt">
+            <tr><td>既往歴</td><td>特になし（肩こり・猫背のケアで来店）</td></tr>
+            <tr><td>服薬</td><td>なし</td></tr>
+            <tr><td>アレルギー</td><td>なし</td></tr>
+          </table>
+          <p class="privacy">🔒 ご本人とオーナー（理学療法士）のみ閲覧できます。変更はご来店時またはLINEでお知らせください。</p>
         </div>
 
         <div class="card">
           <h3>🎬 あなたの宿題動画</h3>
+          <p class="notice" style="margin-bottom:6px">修斗先生のYouTubeチャンネル（限定公開）から、あなた専用に配信されます</p>
           <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">骨盤ニュートラルの作り方</div><div class="vs">3分 ｜ 毎日1セット ｜ 担当：修斗先生</div></div></div>
           <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">胸椎モビリティ・エクササイズ</div><div class="vs">5分 ｜ 週3回 ｜ NEW 🆕</div></div></div>
         </div>
@@ -419,6 +489,47 @@ svg.figure{height:190px}
           <h3>👥 顧客管理（タップで詳細）</h3>
           <div id="custList"></div>
         </div>
+      </div>
+
+      <div class="adminGrid">
+        <div class="card">
+          <h3>📝 身体評価の入力（理学療法評価）</h3>
+          <div class="fRow">
+            <select id="evCust" style="flex:1"></select>
+          </div>
+          <div class="fRow">
+            <select id="evCat" onchange="evFillItems()" style="flex:1"></select>
+            <select id="evItem" style="flex:1"></select>
+          </div>
+          <div class="fRow">
+            <select id="evSide"><option>右</option><option>左</option><option>両側</option><option>—</option></select>
+            <input id="evVal" type="text" placeholder="値（例：150）" style="flex:1">
+            <button class="btn" style="width:auto;padding:8px 18px" onclick="evAdd()">追加</button>
+          </div>
+          <table class="evTable" id="evLog" style="display:none"></table>
+          <div class="fRow" style="margin-top:10px">
+            <textarea id="evFree" rows="2" style="flex:1;width:100%" placeholder="フリー欄：整形外科的テスト・特記事項（例：SLRテスト陰性、Thomasテスト軽度陽性 など）"></textarea>
+          </div>
+          <button class="btn sub" onclick="lineToast('評価を保存しました ※デモのため実際には保存されません（本番版でデータベースに保存）')">評価を保存する</button>
+        </div>
+        <div class="card">
+          <h3>🎬 宿題動画の管理（YouTube連携）</h3>
+          <p class="notice" style="margin-bottom:8px">修斗さんのYouTubeチャンネルの動画一覧から選んで割り当てます（限定公開OK）</p>
+          <div id="ytList"></div>
+          <div class="fRow" style="margin-top:6px">
+            <select id="ytCust" style="flex:1"></select>
+            <button class="btn" style="width:auto;padding:8px 18px" onclick="ytAssign()">割り当てる</button>
+          </div>
+          <p class="finePrint">本番版ではチャンネルと自動連携し、新しい動画がそのまま一覧に表示されます。割り当てるとLINEで本人に通知されます。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📈 研究用統計（評価データの分析）</h3>
+        <div class="fRow">
+          <select id="statItem" onchange="renderStats()" style="flex:1"></select>
+        </div>
+        <div id="statBody"></div>
       </div>
     </div>
 
@@ -460,10 +571,22 @@ const BLOCKED=[
  {"14:00":"g","17:00":"r"}
 ];
 const CUSTOMERS=[
- {nn:"みかん",name:"佐藤 美和",kana:"サトウ ミワ",tel:"090-1234-5678",dob:"1989/4/12",visits:12,total:74800,last:"8/1",first:"2026/5/10",st:"rep",memo:"デスクワーク由来の肩こり・猫背。胸椎モビリティ改善中。宿題動画の実施率高い。"},
- {nn:"りく",name:"田中 陸",kana:"タナカ リク",tel:"080-2345-6789",dob:"1995/11/3",visits:1,total:4400,last:"8/7",first:"2026/8/7",st:"new",memo:"初回体験。ランニング時の膝痛。次回、身体評価とBefore写真の撮影を予定。"},
- {nn:"はな",name:"山本 花子",kana:"ヤマモト ハナコ",tel:"090-3456-7890",dob:"1958/2/20",visits:24,total:158400,last:"7/30",first:"2025/12/2",st:"rep",memo:"シニア割。腰部脊柱管狭窄症の既往。無理のない範囲で体幹強化を継続。"},
- {nn:"ゆう",name:"高橋 優",kana:"タカハシ ユウ",tel:"070-4567-8901",dob:"1992/7/8",visits:5,total:31800,last:"5/2",first:"2026/2/14",st:"slp",memo:"90日以上来店なし → LINEでフォロークーポン配信候補。"},
+ {nn:"みかん",name:"佐藤 美和",kana:"サトウ ミワ",tel:"090-1234-5678",dob:"1989/4/12",visits:12,total:74800,last:"8/1",first:"2026/5/10",st:"rep",
+  chief:"デスクワークで夕方になると肩・首がつらい。猫背が気になる",goal:"9月の同窓会までに、写真をとる時に気にならない姿勢になる",
+  probs:["胸椎伸展の可動性低下","骨盤後傾・体幹深部筋の筋力低下","肩甲骨の安定性低下"],hx:"特になし",med:"なし",
+  memo:"デスクワーク由来の肩こり・猫背。胸椎モビリティ改善中。宿題動画の実施率高い。"},
+ {nn:"りく",name:"田中 陸",kana:"タナカ リク",tel:"080-2345-6789",dob:"1995/11/3",visits:1,total:4400,last:"8/7",first:"2026/8/7",st:"new",
+  chief:"ランニング中に右膝の外側が痛む",goal:"10月の岡山マラソン（10km）を痛みなく完走する",
+  probs:["ランニング時の骨盤動揺","右股関節外転筋の筋力低下","足関節背屈制限"],hx:"右腸脛靭帯炎の疑い",med:"ロキソプロフェン（頓用）",
+  memo:"初回体験。ランニング時の膝痛。次回、身体評価とBefore写真の撮影を予定。"},
+ {nn:"はな",name:"山本 花子",kana:"ヤマモト ハナコ",tel:"090-3456-7890",dob:"1958/2/20",visits:24,total:158400,last:"7/30",first:"2025/12/2",st:"rep",
+  chief:"長く歩くと腰が重だるくなる。休みながらなら大丈夫",goal:"孫と30分続けてお散歩できるようになる",
+  probs:["体幹持久力の低下","股関節伸展可動域の制限","下肢筋力の低下"],hx:"腰部脊柱管狭窄症（2023）・高血圧",med:"アムロジピン 5mg",
+  memo:"シニア割。腰部脊柱管狭窄症の既往。無理のない範囲で体幹強化を継続。"},
+ {nn:"ゆう",name:"高橋 優",kana:"タカハシ ユウ",tel:"070-4567-8901",dob:"1992/7/8",visits:5,total:31800,last:"5/2",first:"2026/2/14",st:"slp",
+  chief:"肩こりと運動不足の解消（来店時）",goal:"週1回の運動習慣をつくる",
+  probs:["運動習慣の中断","胸椎可動性低下","体幹筋力低下"],hx:"特になし",med:"なし",
+  memo:"90日以上来店なし → LINEでフォロークーポン配信候補。"},
 ];
 const ST={new:["新規","new"],rep:["既存","rep"],slp:["休眠","slp"]};
 
@@ -573,6 +696,10 @@ function openCust(i){
    `<h3>${c.name}（${c.kana}）<span class="tag ${ST[c.st][1]}">${ST[c.st][0]}</span></h3>
     <div style="font-size:11px;color:var(--sub)">アプリ表示名：${c.nn} さん</div>
     <table class="dt">
+      <tr><td>主訴</td><td style="color:#9a6c00">🗣 ${c.chief}</td></tr>
+      <tr><td>目標</td><td>🎯 ${c.goal}</td></tr>
+      <tr><td>既往歴</td><td>${c.hx}</td></tr>
+      <tr><td>服薬</td><td>${c.med}</td></tr>
       <tr><td>電話番号</td><td>${c.tel}</td></tr>
       <tr><td>生年月日</td><td>${c.dob}</td></tr>
       <tr><td>累計利用金額</td><td style="color:var(--gd);font-weight:800">¥${c.total.toLocaleString()}</td></tr>
@@ -580,6 +707,7 @@ function openCust(i){
       <tr><td>初回来店</td><td>${c.first}</td></tr>
       <tr><td>最終来店</td><td>${c.last}</td></tr>
     </table>
+    <div class="memo">⚠️ <b>問題点：</b>${c.probs.map((p,i)=>`${i+1}. ${p}`).join("　")}</div>
     <div class="memo">📝 <b>カルテメモ：</b>${c.memo}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
       <button class="btn sub" onclick="lineToast('BeforeAfter写真・評価・宿題動画の割当て画面（本開発で実装）')">📸 記録・宿題管理</button>
@@ -590,9 +718,140 @@ function openCust(i){
 }
 
 /* ---------------- misc ---------------- */
-function baSlide(v){
-  document.getElementById("baAfter").style.opacity=v/100;
-  document.getElementById("baBefore").style.opacity=1-(v/100)*.75;
+/* ---------------- Before/After 3面 ---------------- */
+const PLANES={
+ sag:{
+  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="58" y1="6" x2="58" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="67" cy="32" r="11" fill="#e6f0ea"/><path d="M64 44 Q 53 70 55 105"/><path d="M55 105 L 49 160 L 47 196"/><path d="M55 105 L 64 158 L 65 196"/><path d="M61 62 Q 77 80 75 98"/></g><polyline points="67,40 59,62 55,105 63,192" fill="none" stroke="#e05a4e" stroke-width="2"/><g fill="#e05a4e"><circle cx="67" cy="40" r="3.2"/><circle cx="59" cy="62" r="3.2"/><circle cx="55" cy="105" r="3.2"/><circle cx="63" cy="192" r="3.2"/></g><text x="8" y="206" font-size="8.5" fill="#8fa89b">猫背・骨盤後傾</text></svg>`,
+  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="58" y1="6" x2="58" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="58" cy="27" r="11" fill="#e6f5ee"/><path d="M58 38 L 58 105"/><path d="M58 105 L 50 158 L 49 196"/><path d="M58 105 L 66 158 L 67 196"/><path d="M58 58 L 72 92"/></g><polyline points="58,38 58,60 58,105 60,192" fill="none" stroke="#2e9e72" stroke-width="2"/><g fill="#2e9e72"><circle cx="58" cy="38" r="3.2"/><circle cx="58" cy="60" r="3.2"/><circle cx="58" cy="105" r="3.2"/><circle cx="60" cy="192" r="3.2"/></g><text x="34" y="206" font-size="8.5" fill="#2e9e72">4点が一直線 ✓</text></svg>`,
+  std:`<b class="t">📏 横向き（矢状面）でみる姿勢の基準</b>理想的な姿勢では、次の4点が地面と垂直に一直線でそろいます。<ul class="stdList"><li><b>1. 耳たぶ</b>（耳垂）</li><li><b>2. 肩の突先</b>（肩峰）</li><li><b>3. 股関節の横</b>（大転子）</li><li><b>4. 外くるぶしの少し前</b>（外果の2〜3cm前方）</li></ul>`
+ },
+ fro:{
+  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="60" y1="6" x2="60" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="63" cy="30" r="11" fill="#e6f0ea"/><path d="M62 42 Q 60 75 59 105"/><path d="M59 105 L 50 158 L 49 196"/><path d="M59 105 L 68 158 L 69 196"/></g><line x1="40" y1="64" x2="84" y2="54" stroke="#e05a4e" stroke-width="3" stroke-linecap="round"/><line x1="44" y1="108" x2="76" y2="103" stroke="#e05a4e" stroke-width="3" stroke-linecap="round"/><text x="10" y="206" font-size="8.5" fill="#8fa89b">肩・骨盤の高さに左右差</text></svg>`,
+  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="60" y1="6" x2="60" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="60" cy="28" r="11" fill="#e6f5ee"/><path d="M60 40 L 60 105"/><path d="M60 105 L 51 158 L 50 196"/><path d="M60 105 L 69 158 L 70 196"/></g><line x1="38" y1="58" x2="82" y2="58" stroke="#2e9e72" stroke-width="3" stroke-linecap="round"/><line x1="44" y1="105" x2="76" y2="105" stroke="#2e9e72" stroke-width="3" stroke-linecap="round"/><text x="26" y="206" font-size="8.5" fill="#2e9e72">左右対称・水平 ✓</text></svg>`,
+  std:`<b class="t">📏 正面（前額面）でみる姿勢の基準</b>正面から見たとき、左右が対称で水平にそろっているかを確認します。<ul class="stdList"><li><b>頭の中心〜おへそ</b>が正中線上に並ぶ</li><li><b>左右の肩の高さ</b>（肩峰）が水平</li><li><b>左右の骨盤の高さ</b>（腸骨稜）が水平</li><li><b>左右の膝・つま先</b>の向きがそろっている</li></ul>`
+ },
+ ffd:{
+  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="14" y1="196" x2="106" y2="196" stroke="#b9c9bf" stroke-width="2"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="88" cy="90" r="10" fill="#e6f0ea"/><path d="M55 100 Q 72 78 84 96"/><path d="M55 100 L 53 148 L 52 196"/><path d="M55 100 L 60 150 L 61 196"/><path d="M80 100 L 84 132"/></g><path d="M84 140 L 84 192" stroke="#e05a4e" stroke-width="2" stroke-dasharray="3 3"/><text x="60" y="170" font-size="9" fill="#e05a4e" font-weight="bold">床まで12cm</text><text x="12" y="206" font-size="8.5" fill="#8fa89b">指先が床に届かない</text></svg>`,
+  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="14" y1="196" x2="106" y2="196" stroke="#b9c9bf" stroke-width="2"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="90" cy="118" r="10" fill="#e6f5ee"/><path d="M55 100 Q 76 92 86 122"/><path d="M55 100 L 53 148 L 52 196"/><path d="M55 100 L 60 150 L 61 196"/><path d="M82 118 L 86 168"/></g><path d="M86 174 L 86 192" stroke="#2e9e72" stroke-width="2" stroke-dasharray="3 3"/><text x="92" y="186" font-size="9" fill="#2e9e72" font-weight="bold">2cm</text><text x="24" y="206" font-size="8.5" fill="#2e9e72">指先がほぼ床に ✓</text></svg>`,
+  std:`<b class="t">📏 前屈（柔軟性）でみる基準</b>膝を伸ばしたまま前屈し、指先と床の距離（FFD：指床間距離）で柔軟性を評価します。<ul class="stdList"><li><b>0cm以下</b>（指先が床に届く）が目安</li><li>距離が縮むほど、太もも裏〜背中の柔軟性が改善しています</li><li>腰痛予防・姿勢改善の指標になります</li></ul>`
+ }
+};
+function baPlane(p){
+  document.querySelectorAll(".baTab").forEach(b=>b.classList.toggle("act",b.dataset.p===p));
+  document.getElementById("baFrameB").innerHTML=PLANES[p].b;
+  document.getElementById("baFrameA").innerHTML=PLANES[p].a;
+  document.getElementById("baStd").innerHTML=PLANES[p].std;
+}
+
+/* ---------------- 目標編集 ---------------- */
+let GOAL="9月の同窓会までに、写真をとる時に気にならない姿勢になる";
+function goalEdit(){
+  document.getElementById("goalView").style.display="none";
+  document.getElementById("goalEditBox").style.display="block";
+  document.getElementById("goalInput").value=GOAL;
+}
+function goalSave(){
+  GOAL=document.getElementById("goalInput").value.trim()||GOAL;
+  document.getElementById("goalText").textContent=GOAL;
+  document.getElementById("goalEditBox").style.display="none";
+  document.getElementById("goalView").style.display="block";
+  lineToast("目標を更新しました。ご自宅からいつでも変更できます ✏️（デモのため保存はされません）");
+}
+
+/* ---------------- 評価入力（オーナー） ---------------- */
+const EVAL_ITEMS={
+ "関節可動域（ROM）":["肩屈曲（基準180°）","肩外転（基準180°）","股関節屈曲（基準125°）","股関節伸展（基準15°）","膝関節屈曲（基準130°）","足関節背屈（基準20°）","体幹回旋（基準40°）"],
+ "MMT（徒手筋力テスト 0〜5）":["体幹屈曲","体幹伸展","股関節外転","膝関節伸展","足関節底屈","肩甲骨内転"],
+ "バランス":["片脚立位時間（秒）","ファンクショナルリーチ（cm）","TUG（秒）"],
+ "柔軟性":["FFD 指床間距離（cm）","SLR角度（°）","踵殿距離（cm）"]
+};
+const EVAL_LOG=[];
+function evInit(){
+  document.getElementById("evCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.name}（${c.nn}）</option>`).join("");
+  document.getElementById("ytCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.nn} さん</option>`).join("");
+  document.getElementById("evCat").innerHTML=Object.keys(EVAL_ITEMS).map(k=>`<option>${k}</option>`).join("");
+  evFillItems();
+}
+function evFillItems(){
+  const c=document.getElementById("evCat").value;
+  document.getElementById("evItem").innerHTML=EVAL_ITEMS[c].map(i=>`<option>${i}</option>`).join("");
+}
+function evAdd(){
+  const v=document.getElementById("evVal").value.trim();
+  if(!v){lineToast("値を入力してください");return}
+  EVAL_LOG.push({c:document.getElementById("evCust").value,i:document.getElementById("evItem").value,s:document.getElementById("evSide").value,v});
+  document.getElementById("evVal").value="";
+  const t=document.getElementById("evLog");
+  t.style.display="table";
+  t.innerHTML=`<tr><th>対象</th><th>項目</th><th>側</th><th>値</th></tr>`+EVAL_LOG.map(r=>
+   `<tr><td>${r.c.split("（")[0]}</td><td style="text-align:left">${r.i}</td><td>${r.s}</td><td><b>${r.v}</b></td></tr>`).join("");
+}
+
+/* ---------------- 宿題動画（YouTube） ---------------- */
+let ytSel=0;
+const YT=[
+ {t:"骨盤ニュートラルの作り方",len:"3:12"},
+ {t:"胸椎モビリティ・エクササイズ",len:"5:04"},
+ {t:"肩甲骨セッティング",len:"4:20"},
+ {t:"片脚バランス練習【初級】",len:"3:45"},
+];
+function ytInit(){
+  document.getElementById("ytList").innerHTML=YT.map((v,i)=>
+   `<div class="vid" onclick="ytSel=${i};ytInit()" style="${i===ytSel?'border-color:var(--g);background:var(--gxl);box-shadow:0 0 0 1px var(--g)':''}">
+      <div class="th">▶</div><div><div class="vt">${v.t}</div><div class="vs">${v.len} ｜ YouTube限定公開</div></div></div>`).join("");
+}
+function ytAssign(){
+  lineToast(`${document.getElementById("ytCust").value}に「${YT[ytSel].t}」を割り当てました（LINEで通知）※デモ`);
+}
+
+/* ---------------- 研究用統計 ---------------- */
+const STUDY={
+ "片脚立位時間（秒）・右":{b:[12,18,25,9,30,15,22,11],a:[28,42,45,20,51,33,40,25],note:"値が大きいほど良い指標です（バランス能力）"},
+ "FFD 指床間距離（cm）":{b:[12,5,18,9,15,20,7,11],a:[2,-1,8,3,6,10,0,4],note:"値が小さいほど良い指標です（柔軟性）"}
+};
+function mean(x){return x.reduce((s,v)=>s+v,0)/x.length}
+function sdev(x){const m=mean(x);return Math.sqrt(x.reduce((s,v)=>s+(v-m)*(v-m),0)/(x.length-1))}
+function lgam(x){const g=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];let y=x,tmp=x+5.5;tmp-=(x+0.5)*Math.log(tmp);let ser=1.000000000190015;for(let j=0;j<6;j++)ser+=g[j]/++y;return -tmp+Math.log(2.5066282746310005*ser/x)}
+function betacf(a,b,x){let c=1,d=1-(a+b)*x/(a+1);if(Math.abs(d)<1e-30)d=1e-30;d=1/d;let h=d;for(let m=1;m<=100;m++){const m2=2*m;let aa=m*(b-m)*x/((a+m2-1)*(a+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;h*=d*c;aa=-(a+m)*(a+b+m)*x/((a+m2)*(a+m2+1));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<3e-7)break}return h}
+function ibeta(a,b,x){if(x<=0)return 0;if(x>=1)return 1;const bt=Math.exp(lgam(a+b)-lgam(a)-lgam(b)+a*Math.log(x)+b*Math.log(1-x));return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b}
+function statInit(){
+  document.getElementById("statItem").innerHTML=Object.keys(STUDY).map(k=>`<option>${k}</option>`).join("");
+  renderStats();
+}
+function renderStats(){
+  const k=document.getElementById("statItem").value,S=STUDY[k];
+  const n=S.b.length,mb=mean(S.b),ma=mean(S.a),sb=sdev(S.b),sa=sdev(S.a);
+  const d=S.a.map((v,i)=>v-S.b[i]),md=mean(d),sdd=sdev(d);
+  const t=md/(sdd/Math.sqrt(n)),df=n-1;
+  const p=ibeta(df/2,0.5,df/(df+t*t));
+  const sig=p<0.05;
+  const max=Math.max(mb+sb,ma+sa,1);
+  const y=v=>105-(Math.max(v,0)/max)*95;
+  const bar=(x,m,s,col)=>`<rect x="${x}" y="${y(m)}" width="64" height="${105-y(m)}" rx="6" fill="${col}"/><line x1="${x+32}" y1="${y(m+s)}" x2="${x+32}" y2="${y(m-s)}" stroke="#5c6b62" stroke-width="2"/><line x1="${x+25}" y1="${y(m+s)}" x2="${x+39}" y2="${y(m+s)}" stroke="#5c6b62" stroke-width="2"/><line x1="${x+25}" y1="${y(m-s)}" x2="${x+39}" y2="${y(m-s)}" stroke="#5c6b62" stroke-width="2"/>`;
+  document.getElementById("statBody").innerHTML=`
+   <div class="statGrid">
+     <div class="statBox"><div class="v">${n}名</div><div class="l">対象（架空データ）</div></div>
+     <div class="statBox"><div class="v">${md>0?"+":""}${md.toFixed(1)}</div><div class="l">平均変化量</div></div>
+     <div class="statBox"><div class="v">${mb.toFixed(1)} ± ${sb.toFixed(1)}</div><div class="l">Before 平均±SD</div></div>
+     <div class="statBox"><div class="v">${ma.toFixed(1)} ± ${sa.toFixed(1)}</div><div class="l">After 平均±SD</div></div>
+   </div>
+   <div style="text-align:center">
+     <svg viewBox="0 0 260 135" style="max-width:320px;width:100%">
+       <line x1="10" y1="105" x2="250" y2="105" stroke="#dfe9e3" stroke-width="2"/>
+       ${bar(50,mb,sb,"#c8ddd2")}${bar(150,ma,sa,"#2e9e72")}
+       <text x="82" y="122" font-size="11" text-anchor="middle" fill="#68796f">Before</text>
+       <text x="182" y="122" font-size="11" text-anchor="middle" fill="#1f7a56" font-weight="bold">After</text>
+     </svg>
+   </div>
+   <div style="text-align:center;margin:6px 0 10px;font-size:13px">対応のあるt検定：t(${df}) = ${t.toFixed(2)}、p ${p<0.001?"&lt; 0.001":"= "+p.toFixed(3)}　<span class="sig ${sig?"":"no"}">${sig?"統計的に有意な変化あり":"有意差なし"}</span></div>
+   <div class="stdBox"><b class="t">📖 この結果の読み方</b>
+     <ul class="stdList">
+       <li><b>SD（標準偏差）</b>＝データのばらつきの大きさ。グラフの縦線（エラーバー）は「平均±SD」の範囲を示します。</li>
+       <li><b>対応のあるt検定</b>＝同じ人のBefore/Afterを比べて、変化が「偶然」で説明できるかを調べる統計手法です。</li>
+       <li><b>p値</b>＝この差が偶然生じる確率。<b>p&lt;0.05</b>（5%未満）なら「偶然とは考えにくい＝統計的に有意な変化」と判断します。</li>
+       <li>${S.note}。※これは架空のデモデータです。本番版では実データから自動計算し、CSV書き出し（統計ソフト用）にも対応予定です。</li>
+     </ul>
+   </div>`;
 }
 let toastTimer;
 function lineToast(msg){
@@ -603,7 +862,7 @@ function lineToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
 }
 
-renderMenus();renderDays();renderSlots();renderWeek();renderCust();
+renderMenus();renderDays();renderSlots();renderWeek();renderCust();baPlane('sag');evInit();ytInit();statInit();
 </script>
 </body>
 </html>
