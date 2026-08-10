@@ -371,34 +371,6 @@ function pnFaceIcon(v){return v<=1?"😊":v<=3?"🙂":v<=6?"😐":v<=8?"😣":"�
 function pnFace(v){document.getElementById("pnNrsV").textContent=v;document.getElementById("pnFaceIc").textContent=pnFaceIcon(v)}
 
 
-/* ============ Googleカレンダー ============ */
-const STUDIO_ADDR = "リラクゼーション＆ピラティス gait（岡山）";
-function gcalStamp(d){
-  return d.getUTCFullYear()
-    + String(d.getUTCMonth()+1).padStart(2,"0")
-    + String(d.getUTCDate()).padStart(2,"0") + "T"
-    + String(d.getUTCHours()).padStart(2,"0")
-    + String(d.getUTCMinutes()).padStart(2,"0") + "00Z";
-}
-function gcalUrl(startsAt, menuName, durationMin, staffName){
-  const st = new Date(startsAt);
-  const en = new Date(st.getTime() + (durationMin||60)*60000);
-  const title = `gait ${menuName||"ご予約"}`;
-  const details = [
-    menuName ? "メニュー：" + menuName : "",
-    staffName ? "担当：" + staffName : "",
-    "予約アプリ：https://app.gait-pilates.com"
-  ].filter(Boolean).join("\n");
-  return "https://calendar.google.com/calendar/render?action=TEMPLATE"
-    + "&text=" + encodeURIComponent(title)
-    + "&dates=" + gcalStamp(st) + "/" + gcalStamp(en)
-    + "&details=" + encodeURIComponent(details)
-    + "&location=" + encodeURIComponent(STUDIO_ADDR);
-}
-function openGcal(startsAt, menuName, durationMin, staffName){
-  window.open(gcalUrl(startsAt, menuName, durationMin, staffName), "_blank");
-}
-
 /* ============ auth ============ */
 function showSignup(){ authErr(); document.getElementById("loginForm").style.display="none"; document.getElementById("signupForm").style.display="block"; }
 function showLogin(){ authErr(); document.getElementById("signupForm").style.display="none"; document.getElementById("loginForm").style.display="block"; }
@@ -469,7 +441,7 @@ async function loadHome(){
   } else {
     document.getElementById("nextBkDate").textContent = fmtTs(bks[0].starts_at) + "〜";
     document.getElementById("nextBkMenu").textContent = (bks[0].menus?.name || "") + " ｜ 変更・キャンセルは下の一覧から";
-    list.innerHTML = bks.map(b=>`<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.menus?.name||"").replace(/'/g,"")}',${b.menus?.duration_min||60})">📅 カレンダー</button><button class="cxBtn" onclick="cancelBk(${b.id})">キャンセル</button></div></div>`).join("");
+    list.innerHTML = bks.map(b=>`<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div><button class="cxBtn" onclick="cancelBk(${b.id})">キャンセル</button></div>`).join("");
   }
   const { data: tks } = await sb.from("tickets").select("left_count").gt("left_count",0).eq("member_id",ME.id);
   document.getElementById("tkHome").textContent = tks && tks.length ? tks.reduce((s,t)=>s+t.left_count,0) : 0;
@@ -560,10 +532,6 @@ async function confirmBooking(){
   btn.disabled = false;
   if(error){ toast("予約できませんでした。枠が埋まった可能性があります"); renderSlots(); return; }
   toast(`【予約確定】${fmtTs(startsAt)}〜 ご来店をお待ちしています 📅`);
-  const mm2 = MENUS.find(x=>x.id===selMenu);
-  if(confirm(`予約が確定しました。\n${fmtTs(startsAt)}〜 ${mm2.name}\n\nGoogleカレンダーに追加しますか？`)){
-    openGcal(startsAt, mm2.name, mm2.duration_min, staffId===2?"飯田":"宗田 修斗");
-  }
   selSlot = null; renderSlots(); loadHome();
   setTimeout(()=>go("home"), 800);
 }
