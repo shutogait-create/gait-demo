@@ -172,6 +172,12 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div id="bkList"><p class="notice">読み込み中…</p></div>
     </div>
 
+    <div class="card" id="inboxCard">
+      <h3>📥 カレンダーから届いた予定（振り分け待ち）</h3>
+      <p class="notice" style="margin-bottom:8px">Googleカレンダーに直接書いた予定のうち、どのお客様か自動で判断できなかったものです。一度お客様を選んで「以後も自動」にすると、次回から自動で予約に取り込まれます。</p>
+      <div id="inboxList"><p class="notice">読み込み中…</p></div>
+    </div>
+
     <div class="card">
       <h3>👥 顧客一覧（タップで詳細・編集）</h3>
       <div id="custList"><p class="notice">読み込み中…</p></div>
@@ -356,11 +362,63 @@ async function enterApp(){
   }
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
-  await loadCusts(); loadBookings(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
+  await loadCusts(); loadBookings(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
+}
+
+/* ============ カレンダー取り込みの振り分け ============ */
+let INBOX=[];
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function loadInbox(){
+  const { data, error } = await sb.from("gcal_inbox").select("*").eq("status","pending").order("starts_at",{ascending:false}).limit(400);
+  const box = document.getElementById("inboxList");
+  if(error){ box.innerHTML = '<p class="notice">読み込めませんでした：'+esc(error.message)+'</p>'; return; }
+  INBOX = data||[];
+  if(!INBOX.length){ box.innerHTML = '<p class="notice">振り分け待ちの予定はありません 🎉</p>'; return; }
+  // 同じタイトルごとにまとめる
+  const g = {};
+  INBOX.forEach(r=>{ (g[r.summary] = g[r.summary] || []).push(r); });
+  const opts = CUSTS.filter(c=>c.role!=="owner").map(c=>`<option value="${c.id}">${esc(c.nickname||"")}${c.full_name?"（"+esc(c.full_name)+"）":""}</option>`).join("");
+  box.innerHTML = Object.keys(g).sort((a,b)=>g[b].length-g[a].length).map((name,i)=>{
+    const rows = g[name];
+    const dates = rows.slice(0,3).map(r=>fmtTs(r.starts_at)).join("・") + (rows.length>3? ` ほか${rows.length-3}件`:"");
+    return `<div class="bkRow" style="display:block">
+      <div class="d">${esc(name)} <span style="font-weight:500;color:var(--sub);font-size:11px">${rows.length}件</span></div>
+      <div class="m" style="margin-bottom:6px">${dates}</div>
+      <div class="fRow" style="gap:6px;flex-wrap:wrap">
+        <select id="ibSel${i}" style="flex:1;min-width:170px">${opts}</select>
+        <button class="btn" style="width:auto;padding:8px 12px;font-size:12px" onclick="inboxAssign(${i},false)">このお客様に割り当て</button>
+        <button class="btn sub" style="width:auto;padding:8px 12px;font-size:12px" onclick="inboxAssign(${i},true)">＋以後も自動</button>
+        <button class="cxBtn" onclick="inboxIgnore(${i},false)">今回は無視</button>
+        <button class="cxBtn" onclick="inboxIgnore(${i},true)">この名前は今後も無視</button>
+      </div>
+    </div>`;
+  }).join("");
+  window.__ibGroups = Object.keys(g).sort((a,b)=>g[b].length-g[a].length).map(k=>g[k]);
+}
+async function inboxAssign(i, learn){
+  const rows = window.__ibGroups[i]; if(!rows) return;
+  const pid = document.getElementById("ibSel"+i).value;
+  if(!pid){ toast("お客様を選んでください"); return; }
+  for(let k=0;k<rows.length;k++){
+    const { error } = await sb.rpc("gcal_assign", { p_inbox_id: rows[k].id, p_profile_id: pid, p_menu_id: null,
+      p_learn: (learn && k===0), p_pattern: (learn && k===0) ? rows[0].summary.replace(/[（(【\[].*$/,"").replace(/(さん|様)$/,"").trim() : null });
+    if(error){ toast("失敗：" + error.message); return; }
+  }
+  toast(rows.length + "件を予約として取り込みました" + (learn ? "／今後は自動で判定します" : ""));
+  await loadInbox(); loadBookings();
+}
+async function inboxIgnore(i, learn){
+  const rows = window.__ibGroups[i]; if(!rows) return;
+  for(let k=0;k<rows.length;k++){
+    await sb.rpc("gcal_ignore", { p_inbox_id: rows[k].id, p_learn: (learn && k===0),
+      p_pattern: (learn && k===0) ? rows[0].summary.replace(/[（(【\[].*$/,"").trim() : null });
+  }
+  toast(learn ? "この名前は今後取り込まないようにしました" : "取り込み対象から外しました");
+  await loadInbox();
 }
 
 async function loadCusts(){
-  const { data } = await sb.from("profiles").select("*").order("created_at");
+  const { data } = await sb.from("profiles").select("*").order("last_visit_at",{ascending:false,nullsFirst:false}).order("created_at");
   CUSTS = data || [];
   const opts = CUSTS.map(c=>`<option value="${c.id}">${c.nickname||"（名前未設定）"}${c.full_name?"（"+c.full_name+"）":""}</option>`).join("");
   ["tkNewCust","payCust","evCust","prCust","ytCust"].forEach(id=>{ document.getElementById(id).innerHTML = opts || "<option value=''>会員がまだいません</option>"; });
@@ -370,7 +428,7 @@ async function loadCusts(){
   document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>{
     const tag = c.role==="owner" ? '<span class="tagPill own">オーナー</span>'
               : (c.is_offline ? '<span class="tagPill off">アプリ未登録</span>' : '<span class="tagPill app">アプリ登録済</span>');
-    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span>${tag}</div><div class="m">${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}${c.tel? " ｜ "+c.tel : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
+    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span>${tag}</div><div class="m">${c.visits_offset? "来店"+c.visits_offset+"回 ｜ " : ""}${c.last_visit_at? "前回"+c.last_visit_at+" ｜ " : ""}${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}${c.tel? " ｜ "+c.tel : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
   }).join("")
     : '<p class="notice">まだ顧客がいません。下のフォームから追加するか、お客様がアプリから会員登録すると表示されます。</p>';
 }
@@ -436,10 +494,10 @@ async function custSave(){
 }
 
 async function loadBookings(){
-  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, profiles(nickname, full_name), menus(name), staff(name)")
-    .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(30);
+  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, profiles(nickname, full_name), menus(name), staff(name)")
+    .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(60);
   document.getElementById("bkList").innerHTML = (data&&data.length) ? data.map(b=>
-    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname||""} さん</div><div class="m">${b.menus?.name||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div></div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
+    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname ? b.profiles.nickname+" さん" : (b.title||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}</div><div class="m">${b.menus?.name||b.title||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div></div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
     : '<p class="notice">今後の予約はまだありません</p>';
 }
 async function ownerCancel(id){
