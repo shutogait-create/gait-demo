@@ -117,6 +117,10 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .bkRow .d{font-weight:700;font-size:13px}
 .bkRow .m{font-size:11px;color:var(--sub)}
 .calBtn{background:#fff;color:#4285f4;border:1.5px solid #c6d9f7;border-radius:10px;padding:7px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.tagPill{display:inline-block;font-size:9.5px;border-radius:99px;padding:1px 8px;font-weight:700;margin-left:6px;vertical-align:1px}
+.tagPill.own{background:#233329;color:#fff}
+.tagPill.off{background:#fff3d6;color:#9a6c00}
+.tagPill.app{background:var(--gl);color:var(--gd)}
 .cxBtn{background:#fff;color:var(--warn);border:1.5px solid #f0c8c4;border-radius:10px;padding:7px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .dt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
 .dt td{padding:8px 4px;border-bottom:1px solid var(--gxl)}
@@ -171,6 +175,24 @@ nav.bottom button.act .ic{filter:none;opacity:1}
     <div class="card">
       <h3>👥 顧客一覧（タップで詳細・編集）</h3>
       <div id="custList"><p class="notice">読み込み中…</p></div>
+      <div style="margin-top:14px;border-top:1px solid var(--gxl);padding-top:12px">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:8px">＋ 顧客を追加（アプリ未登録の既存のお客様・ホットペッパーからの移行用）</p>
+        <div class="fRow">
+          <input id="ncNick" placeholder="ニックネーム（必須・アプリ表示名）" style="flex:1">
+          <input id="ncName" placeholder="本名" style="flex:1">
+        </div>
+        <div class="fRow">
+          <input id="ncKana" placeholder="カナ" style="flex:1">
+          <input id="ncTel" placeholder="電話番号" style="flex:1">
+          <input id="ncDob" type="date" style="width:150px">
+        </div>
+        <div class="fRow">
+          <input id="ncChief" placeholder="主訴（任意）" style="flex:1">
+          <input id="ncMemo" placeholder="カルテメモ（任意）" style="flex:1">
+        </div>
+        <button class="btn" onclick="custAdd()">この内容で顧客を追加する</button>
+        <p class="finePrint">追加した顧客にも、予約の代理登録・回数券・カルテ・評価がすべて使えます。あとでご本人がアプリに会員登録された場合は、電話番号で照合して統合できます。</p>
+      </div>
     </div>
 
     <div class="card" id="custDetail" style="display:none">
@@ -338,17 +360,41 @@ async function enterApp(){
 }
 
 async function loadCusts(){
-  const { data } = await sb.from("profiles").select("*").neq("role","owner").order("created_at");
+  const { data } = await sb.from("profiles").select("*").order("created_at");
   CUSTS = data || [];
   const opts = CUSTS.map(c=>`<option value="${c.id}">${c.nickname||"（名前未設定）"}${c.full_name?"（"+c.full_name+"）":""}</option>`).join("");
   ["tkNewCust","payCust","evCust","prCust","ytCust"].forEach(id=>{ document.getElementById(id).innerHTML = opts || "<option value=''>会員がまだいません</option>"; });
   const { data: cats } = await sb.from("categories").select("*").order("id");
   CATS = cats||[];
   document.getElementById("payCat").innerHTML = CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
-  document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>
-    `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span></div><div class="m">${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`).join("")
-    : '<p class="notice">まだ会員登録がありません。アプリ（app.gait-pilates.com）から登録された方がここに表示されます。</p>';
+  document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>{
+    const tag = c.role==="owner" ? '<span class="tagPill own">オーナー</span>'
+              : (c.is_offline ? '<span class="tagPill off">アプリ未登録</span>' : '<span class="tagPill app">アプリ登録済</span>');
+    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span>${tag}</div><div class="m">${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}${c.tel? " ｜ "+c.tel : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
+  }).join("")
+    : '<p class="notice">まだ顧客がいません。下のフォームから追加するか、お客様がアプリから会員登録すると表示されます。</p>';
 }
+async function custAdd(){
+  const nick = document.getElementById("ncNick").value.trim();
+  if(!nick){ toast("ニックネームを入力してください"); return; }
+  const row = {
+    nickname: nick,
+    full_name: document.getElementById("ncName").value.trim() || null,
+    kana: document.getElementById("ncKana").value.trim() || null,
+    tel: document.getElementById("ncTel").value.trim() || null,
+    dob: document.getElementById("ncDob").value || null,
+    chief_complaint: document.getElementById("ncChief").value.trim() || null,
+    memo: document.getElementById("ncMemo").value.trim() || null,
+    is_offline: true,
+    role: "member"
+  };
+  const { error } = await sb.from("profiles").insert(row);
+  if(error){ toast("追加できませんでした：" + error.message); return; }
+  ["ncNick","ncName","ncKana","ncTel","ncDob","ncChief","ncMemo"].forEach(id=>document.getElementById(id).value="");
+  toast(`${nick} さんを顧客に追加しました`);
+  await loadCusts();
+}
+
 async function openCust(id){
   CUR = CUSTS.find(c=>c.id===id); if(!CUR) return;
   document.getElementById("custDetail").style.display="block";
