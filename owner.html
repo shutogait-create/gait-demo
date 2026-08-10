@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>gait 会員アプリ（プロトタイプ v3）</title>
+<title>gait オーナー管理</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6;
@@ -11,21 +12,14 @@
   --warn:#c0392b; --line-green:#06c755; --gold:#e6a817;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-
 body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.7}
-.demoChip{font-size:9.5px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:2px 9px;letter-spacing:.06em;font-weight:600;white-space:nowrap}
-
-/* ═══════ header ═══════ */
 .appbar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;gap:12px}
 .logo{font-weight:800;font-size:17px;letter-spacing:.06em;line-height:1.2;white-space:nowrap}
 .logo small{font-weight:600;font-size:9px;display:block;opacity:.85;letter-spacing:.18em}
 .deskNav{display:none;gap:4px;flex:1;justify-content:center}
 .deskNav button{background:none;border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:600;padding:8px 18px;border-radius:99px;cursor:pointer;opacity:.8}
 .deskNav button.act{background:rgba(255,255,255,.2);opacity:1;font-weight:800}
-.adminSwitch{font-size:11px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:99px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
-.adminSwitch.on{background:#fff;color:var(--gd);font-weight:700}
-
-/* ═══════ layout ═══════ */
+.logoutBtn{font-size:11px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:99px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
 main{padding:16px 16px 96px;max-width:1100px;margin:0 auto;width:100%}
 .screen{display:none}
 .screen.act{display:block;animation:fade .1s}
@@ -34,30 +28,26 @@ main{padding:16px 16px 96px;max-width:1100px;margin:0 auto;width:100%}
 .card h3{font-size:14px;color:var(--gd);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .btn{display:block;width:100%;background:var(--g);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
 .btn:active{background:var(--gd)}
+.btn:disabled{opacity:.5}
 .btn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g)}
 .btn.line{background:var(--line-green)}
 .btn.ghost{background:none;color:var(--sub);font-weight:500;font-size:12.5px;padding:6px}
-
-/* ═══════ mobile bottom nav ═══════ */
 nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
 nav.bottom button{flex:1;background:none;border:none;padding:9px 0 7px;font-size:10.5px;color:var(--sub);cursor:pointer;font-family:inherit}
 nav.bottom button .ic{font-size:20px;display:block;margin-bottom:1px;filter:grayscale(1);opacity:.55}
 nav.bottom button.act{color:var(--gd);font-weight:700}
 nav.bottom button.act .ic{filter:none;opacity:1}
-
-/* ═══════ login ═══════ */
 #scrLogin{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--gxl),var(--bg))}
-.loginCard{width:100%;max-width:420px;padding:40px 28px;text-align:center;background:#fff;border-radius:22px;border:1px solid var(--line);margin:20px;box-shadow:0 12px 40px rgba(31,122,86,.12)}
+.loginCard{width:100%;max-width:420px;padding:36px 28px;text-align:center;background:#fff;border-radius:22px;border:1px solid var(--line);margin:20px;box-shadow:0 12px 40px rgba(31,122,86,.12)}
 .loginCard .mark{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;font-weight:800;font-size:25px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
 .loginCard h1{font-size:20px;margin-bottom:2px}
-.loginCard p.s{color:var(--sub);font-size:12px;margin-bottom:22px}
+.loginCard p.s{color:var(--sub);font-size:12px;margin-bottom:18px}
 .field{text-align:left;margin-bottom:12px}
 .field label{font-size:11.5px;font-weight:700;color:var(--sub)}
-.field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-top:3px}
+.field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-top:3px;font-family:inherit}
 .field input:focus{outline:none;border-color:var(--g)}
 .keepbox{display:flex;gap:8px;align-items:flex-start;background:var(--gl);border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--gd);text-align:left;margin:14px 0}
-
-/* ═══════ home ═══════ */
+.errBox{background:#fdeceb;color:var(--warn);border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:10px;display:none;text-align:left}
 .hero{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:16px;color:#fff;padding:18px;margin-bottom:14px}
 .hero .hi{font-size:12px;opacity:.85}
 .hero .nm{font-size:19px;font-weight:800;margin-bottom:10px}
@@ -70,25 +60,14 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .tile .t{font-size:12px;font-weight:700;margin-top:4px}
 .tile .s{font-size:10px;color:var(--sub)}
 .notice{font-size:12.5px;color:var(--sub);padding:2px 4px}
-.notice b{color:var(--ink)}
-
-/* ═══════ booking (shared) ═══════ */
 .stepLbl{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .stepLbl .n{width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
 .stepLbl b{font-size:14px;color:var(--gd)}
-.menuOpt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff}
+.menuOpt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;gap:8px}
 .menuOpt.sel{border-color:var(--g);background:var(--gxl);box-shadow:0 0 0 1px var(--g)}
 .menuOpt .n{font-weight:700;font-size:13.5px}
 .menuOpt .len{font-size:11px;color:var(--sub)}
 .menuOpt .pr{font-weight:800;color:var(--gd);font-size:14px;white-space:nowrap}
-.legend{display:flex;gap:14px;font-size:11px;color:var(--sub);margin:8px 0 2px;flex-wrap:wrap}
-.legend span{display:inline-flex;align-items:center;gap:4px}
-.lg{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--line);background:#fff}
-.lg.ok{border-color:var(--g);background:var(--gxl)}
-.lg.ng{background:#eef1ef;border-color:#e4eae6}
-.syncNote{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--sub);margin-top:10px;line-height:1.6}
-
-/* mobile picker */
 .dayRow{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
 .dayBtn{flex:none;width:52px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:7px 0;text-align:center;cursor:pointer;font-family:inherit}
 .dayBtn .w{font-size:10px;color:var(--sub)}
@@ -100,105 +79,20 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .slot.ng{background:#eef1ef;color:#b6c2ba;border-color:#e4eae6;cursor:default}
 .slot.ng small{display:block;font-size:8.5px;font-weight:500}
 .slot.sel{background:var(--g);border-color:var(--g);color:#fff}
-
-/* desktop week grid */
-.weekWrap{display:none;overflow-x:auto}
-table.week{width:100%;border-collapse:separate;border-spacing:5px;table-layout:fixed}
-table.week th{font-size:12px;color:var(--sub);font-weight:600;padding:4px 0;text-align:center}
-table.week th b{display:block;font-size:16px;color:var(--ink)}
-table.week th.today b{color:var(--gd)}
-table.week td{padding:0}
-table.week td:first-child,table.week th:first-child{width:56px}
-table.week .tlabel{font-size:12px;color:var(--sub);text-align:right;padding-right:8px;font-weight:600}
-.cell{display:flex;align-items:center;justify-content:center;height:44px;border-radius:9px;border:1.5px solid var(--g);background:var(--gxl);color:var(--gd);font-weight:800;font-size:15px;cursor:pointer;width:100%;font-family:inherit;transition:none}
-.cell:hover{transform:scale(1.05);background:var(--gl)}
-.cell.ng{border-color:#e4eae6;background:#eef1ef;color:#b9c5bd;cursor:default;font-weight:600;font-size:10px;flex-direction:column;line-height:1.3}
-.cell.ng:hover{transform:none;background:#eef1ef}
-.cell.sel{background:var(--g);color:#fff;border-color:var(--g);box-shadow:0 4px 12px rgba(46,158,114,.4)}
-.cell.closed{background:none;border:none;color:#c4cfc8;font-size:10px;cursor:default}
-.cell.closed:hover{transform:none;background:none}
-
 .confirmBox{background:var(--gxl);border:1.5px solid var(--g);border-radius:12px;padding:13px;margin:12px 0;font-size:13px}
 .confirmBox b{color:var(--gd)}
 .finePrint{font-size:10.5px;color:var(--sub);margin-top:8px}
-
-/* ═══════ toast ═══════ */
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;width:88%;max-width:390px;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px 14px;display:none;z-index:80;border-left:5px solid var(--line-green)}
 #toast.show{display:flex;gap:10px;animation:fade .12s}
 #toast .lic{width:34px;height:34px;border-radius:9px;background:var(--line-green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex:none}
 #toast .tt{font-size:11px;color:var(--sub)}
 #toast .tm{font-size:12.5px;font-weight:700}
-
-/* ═══════ mypage ═══════ */
 .profRow{display:flex;align-items:center;gap:12px;margin-bottom:4px}
 .avatar{width:52px;height:52px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
 .profRow .nn{font-weight:800;font-size:16px}
 .profRow .rk{font-size:11px;color:var(--gold);font-weight:700}
 .privacy{font-size:10.5px;color:var(--sub);display:flex;align-items:flex-start;gap:5px;margin-top:6px;line-height:1.6}
-.baWrap{position:relative;border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--line)}
-.baImgs{position:relative;height:210px}
-.baImg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.baLbl{position:absolute;top:8px;font-size:10px;font-weight:800;color:#fff;background:rgba(28,43,36,.55);border-radius:99px;padding:2px 10px}
-.baWrap input[type=range]{width:100%;margin:0;accent-color:var(--g)}
-.baDate{display:flex;justify-content:space-between;font-size:10.5px;color:var(--sub);padding:6px 10px 10px}
-svg.figure{height:190px}
-.evalRow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:8px 0 3px}
-.bar{height:8px;border-radius:99px;background:var(--gl);overflow:hidden}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--g),var(--gd));border-radius:99px}
-.delta{color:var(--gd);font-weight:700;font-size:11px}
-.vid{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;cursor:pointer;background:#fff}
-.vid .th{width:74px;height:48px;border-radius:8px;background:linear-gradient(135deg,#28313c,#3d5247);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex:none}
-.vid .vt{font-weight:700;font-size:12.5px}
-.vid .vs{font-size:10.5px;color:var(--sub)}
-.hist{font-size:12.5px;width:100%}
-.hist tr td{padding:7px 4px;border-bottom:1px solid var(--gxl)}
-.hist td:last-child{text-align:right;color:var(--sub)}
-
-/* ═══════ admin ═══════ */
-.adminBanner{background:#233329;color:#fff;border-radius:14px;padding:12px 14px;font-size:12px;margin-bottom:14px;display:flex;gap:8px;align-items:center;line-height:1.6}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 6px;text-align:center}
-.kpi .v{font-size:17px;font-weight:800;color:var(--gd)}
-.kpi .l{font-size:9.5px;color:var(--sub)}
-.cust{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--gxl);cursor:pointer}
-.cust:hover{background:var(--gxl)}
-.cust .cn{font-weight:700;font-size:13.5px}
-.cust .ci{font-size:10.5px;color:var(--sub)}
-.cust .cr{text-align:right}
-.cust .amt{font-weight:800;color:var(--gd);font-size:13.5px}
-.tag{display:inline-block;font-size:9.5px;border-radius:99px;padding:1px 8px;font-weight:700;margin-left:5px;vertical-align:1px}
-.tag.new{background:#fff3d6;color:#9a6c00}.tag.rep{background:var(--gl);color:var(--gd)}.tag.slp{background:#fdeceb;color:var(--warn)}
-
-/* modal */
-#modal{position:fixed;inset:0;background:rgba(20,30,25,.45);z-index:90;display:none;align-items:flex-end;justify-content:center}
-#modal.show{display:flex}
-#modal .sheet{background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px 34px;max-height:82vh;overflow-y:auto;animation:up .14s}
-@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
-.sheet h3{color:var(--gd);font-size:16px;margin-bottom:4px}
-.dt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
-.dt td{padding:8px 4px;border-bottom:1px solid var(--gxl)}
-.dt td:first-child{color:var(--sub);width:36%}
-.dt td:last-child{font-weight:600}
-.memo{background:var(--gxl);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px}
-
-/* ═══════ v3: BA 3面 ═══════ */
-.baTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.baTab{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 4px;text-align:center;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--sub)}
-.baTab small{display:block;font-size:9.5px;font-weight:500}
-.baTab.act{background:var(--g);border-color:var(--g);color:#fff}
-.baTab.act small{color:#dff2e9}
-.baCompare{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.baCol{text-align:center}
-.baBadge{display:inline-block;font-size:10px;font-weight:800;border-radius:99px;padding:2px 10px;margin-bottom:6px}
-.baBadge.bef{background:#fff3d6;color:#9a6c00}
-.baBadge.aft{background:var(--gl);color:var(--gd)}
-.baFrame{border:1.5px dashed var(--line);border-radius:12px;background:#fff;height:225px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.stdBox{background:var(--gxl);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:12px;line-height:1.7}
-.stdBox b.t{color:var(--gd);display:block;margin-bottom:4px;font-size:12.5px}
-.stdList{list-style:none;margin-top:6px}
-.stdList li{position:relative;padding:3px 0 3px 18px}
-.stdList li:before{content:"";position:absolute;left:4px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--g)}
-/* ═══════ v3: 評価テーブル・フォーム・統計 ═══════ */
+.chief{background:#fff7e8;border:1px solid #f2dfb6;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.6}
 .evTable{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 .evTable th{font-size:10.5px;color:var(--sub);font-weight:600;text-align:left;padding:4px;border-bottom:1px solid var(--line)}
 .evTable td{padding:6px 4px;border-bottom:1px solid var(--gxl)}
@@ -207,865 +101,442 @@ svg.figure{height:190px}
 .fRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .fRow select,.fRow input,.fRow textarea{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff}
 .fRow select:focus,.fRow input:focus,.fRow textarea:focus{outline:none;border-color:var(--g)}
-.statGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
-.statBox{background:var(--gxl);border-radius:10px;padding:8px 10px;text-align:center}
-.statBox .v{font-weight:800;color:var(--gd);font-size:15px}
-.statBox .l{font-size:9.5px;color:var(--sub)}
-.sig{display:inline-block;background:var(--gl);color:var(--gd);border-radius:99px;padding:2px 10px;font-weight:800;font-size:11px}
-.sig.no{background:#fdeceb;color:var(--warn)}
-/* ═══════ v3: 回数券 ═══════ */
 .tkBig{font-size:32px;font-weight:800;color:var(--gd);line-height:1}
 .tkDots{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 4px}
 .tkDot{width:17px;height:17px;border-radius:50%;background:var(--g)}
 .tkDot.used{background:#e3ebe6}
-.tkRow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--gxl)}
-.tkBtn{background:var(--g);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-weight:700;font-family:inherit;cursor:pointer;font-size:12px;white-space:nowrap}
-.tkBtn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g)}
-/* ═══════ v3: 主訴・問題点 ═══════ */
-.chief{background:#fff7e8;border:1px solid #f2dfb6;border-radius:10px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.6}
 .probItem{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--gxl);font-size:12.5px;line-height:1.6}
 .probItem:last-of-type{border-bottom:none}
 .probN{width:22px;height:22px;border-radius:50%;background:#fff3d6;color:#9a6c00;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
 .exChip{display:inline-flex;align-items:center;gap:4px;background:var(--gl);color:var(--gd);border-radius:99px;padding:3px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px}
-
-/* ═══════════════ DESKTOP ≥880px ═══════════════ */
+.vid{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;cursor:pointer;background:#fff}
+.vid .th{width:74px;height:48px;border-radius:8px;background:linear-gradient(135deg,#28313c,#3d5247);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;flex:none}
+.vid .vt{font-weight:700;font-size:12.5px}
+.vid .vs{font-size:10.5px;color:var(--sub)}
+.bkRow{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--gxl);gap:8px}
+.bkRow .d{font-weight:700;font-size:13px}
+.bkRow .m{font-size:11px;color:var(--sub)}
+.calBtn{background:#fff;color:#4285f4;border:1.5px solid #c6d9f7;border-radius:10px;padding:7px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.cxBtn{background:#fff;color:var(--warn);border:1.5px solid #f0c8c4;border-radius:10px;padding:7px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.dt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.dt td{padding:8px 4px;border-bottom:1px solid var(--gxl)}
+.dt td:first-child{color:var(--sub);width:36%}
+.dt td:last-child{font-weight:600}
 @media(min-width:880px){
   body{font-size:15px}
   .appbar{padding:14px 32px}
   .deskNav{display:flex}
   nav.bottom{display:none}
   main{padding:28px 32px 80px}
-  /* booking: 2 columns */
   .bookGrid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
-  .bookLeft{position:sticky;top:86px}
-  .weekWrap{display:block}
-  .mobilePick{display:none}
-  /* home: 2 columns */
   .homeGrid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;align-items:start}
-  .hero{padding:26px}
-  .hero .nm{font-size:23px}
-  .nextBk .d{font-size:19px}
-  /* mypage: 2 columns */
   .myGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
   .myGrid .span2{grid-column:1/-1}
-  /* admin */
-  .adminGrid{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;align-items:start}
-  .kpis{grid-template-columns:repeat(3,1fr);max-width:560px}
-  .kpi .v{font-size:22px}
-  /* modal centered */
-  #modal{align-items:center}
-  #modal .sheet{border-radius:22px;max-width:520px;animation:fade .1s}
   #toast{bottom:40px}
 }
 </style>
 </head>
 <body>
-<!-- ══════════ LOGIN ══════════ -->
 <div id="scrLogin">
   <div class="loginCard">
     <div class="mark">gait</div>
-    <h1>gait 会員アプリ</h1>
-    <p class="s">リラクゼーション＆ピラティス gait ｜ 岡山<br><span style="opacity:.7">プロトタイプ v3（デモデータで動作します）</span></p>
-    <div class="field"><label>メールアドレス</label><input type="email" value="sample@example.com"></div>
-    <div class="field"><label>パスワード</label><input type="password" value="••••••••"></div>
-    <div class="keepbox">🔒 <span><b>一度ログインすれば、次回から自動ログイン。</b><br>ログイン状態は安全に保存され、毎回の入力は不要です。通信はすべて暗号化されています。</span></div>
-    <button class="btn" onclick="login()">ログイン</button>
-    <button class="btn ghost" onclick="login()">はじめての方（新規会員登録）→ ニックネームで登録できます</button>
+    <h1>gait オーナー管理</h1>
+    <p class="s">リラクゼーション＆ピラティス gait ｜ オーナー・スタッフ専用</p>
+    <div class="errBox" id="authErr"></div>
+    <div class="field"><label>メールアドレス</label><input type="email" id="liEmail" autocomplete="email"></div>
+    <div class="field"><label>パスワード</label><input type="password" id="liPw" autocomplete="current-password"></div>
+    <button class="btn" id="liBtn" onclick="doLogin()">ログイン</button>
+    <p class="finePrint" style="margin-top:12px">このページはオーナー権限のあるアカウントのみ利用できます</p>
   </div>
 </div>
 
-<!-- ══════════ APP ══════════ -->
 <div id="scrApp" style="display:none">
   <div class="appbar">
     <div style="display:flex;align-items:center;gap:8px">
-      <div class="logo">gait<small>PILATES × SEITAI</small></div>
-      <span class="demoChip">デモ</span>
+      <div class="logo">gait<small>OWNER CONSOLE</small></div>
     </div>
-    <div class="deskNav">
-      <button class="act" data-t="home" onclick="go('home')">🏠 ホーム</button>
-      <button data-t="book" onclick="go('book')">📅 予約</button>
-      <button data-t="my" onclick="go('my')">🌿 マイページ</button>
-    </div>
-    <button class="adminSwitch" id="admBtn" onclick="toggleAdmin()">👤 オーナー画面へ</button>
+    <button class="logoutBtn" onclick="doLogout()">ログアウト</button>
   </div>
   <main>
-
-    <!-- ─── HOME ─── -->
-    <div class="screen act" id="tab-home">
-      <div class="homeGrid">
-        <div>
-          <div class="hero">
-            <div class="hi">こんにちは 🌿</div>
-            <div class="nm">みかん さん <span style="font-size:10px;font-weight:500;opacity:.8">（ニックネーム表示）</span></div>
-            <div class="nextBk">
-              <div style="font-size:10px;opacity:.85">次回のご予約</div>
-              <div class="d">8月12日（水）11:00〜</div>
-              <div class="m">整体×ピラティス 60分 ｜ 変更・キャンセルは予約画面から</div>
-            </div>
-          </div>
-          <div class="grid2">
-            <div class="tile" onclick="go('book')"><div class="ic">📅</div><div class="t">予約する</div><div class="s">空き枠から選択</div></div>
-            <div class="tile" onclick="go('my')"><div class="ic">📈</div><div class="t">マイページ</div><div class="s">記録・宿題動画</div></div>
-          </div>
-          <button class="btn line" onclick="lineToast('公式LINEのトークを開きます（lin.ee/DuCTZFa）')">💬 LINEで相談・連絡する</button>
-          <div class="card" style="margin-top:14px;cursor:pointer" onclick="go('my')">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div style="font-weight:700;font-size:13.5px">🎫 回数券　<span style="color:var(--gd);font-weight:800;font-size:19px" id="tkHome">3</span> 回のこっています</div>
-              <span style="color:var(--sub);font-size:11px">詳細 ›</span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card" style="margin-top:0">
-            <h3>📢 お知らせ</h3>
-            <p class="notice"><b>8/20</b> かけっこ教室 追加開催決定！</p>
-            <p class="notice"><b>誕生月特典</b> お誕生月の方に特別クーポンをLINEでお届けしています 🎂</p>
-          </div>
-          <div class="card">
-            <h3>🎬 今週の宿題</h3>
-            <p class="notice">「胸椎モビリティ・エクササイズ」が届いています。マイページからどうぞ 🆕</p>
-          </div>
-          <div class="card">
-            <h3>⭐ 応援のお願い</h3>
-            <p class="notice">改善を実感されたら、Googleマップの口コミで感想をシェアしていただけると、とても励みになります 🙏</p>
-            <button class="btn" style="margin-top:10px;background:#4285f4" onclick="window.open('https://www.google.com/maps/search/?api=1&query=%E3%83%AA%E3%83%A9%E3%82%AF%E3%82%BC%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%EF%BC%86%E3%83%94%E3%83%A9%E3%83%86%E3%82%A3%E3%82%B9gait%20%E5%B2%A1%E5%B1%B1','_blank')">📍 Googleマップで口コミを書く</button>
-          </div>
-        </div>
-      </div>
+    <div class="card" style="background:#233329;color:#fff;border:none">
+      <div style="font-size:12px;line-height:1.6">🔐 <b>オーナー専用画面</b> — お客様側からこの画面・データは一切見えません（RLS保護）</div>
     </div>
 
-    <!-- ─── BOOK ─── -->
-    <div class="screen" id="tab-book">
-      <div class="bookGrid">
-        <div class="bookLeft">
-          <div class="card" style="margin-top:0">
-            <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
-            <div id="menuList"></div>
-          </div>
-        </div>
-        <div>
-          <div class="card" style="margin-top:0">
-            <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
-
-            <!-- desktop: week grid -->
-            <div class="weekWrap">
-              <div class="legend">
-                <span><span class="lg ok"></span> 予約できます</span>
-                <span><span class="lg ng"></span> 予約できません（予定あり）</span>
-              </div>
-              <table class="week" id="weekTable"></table>
-            </div>
-
-            <!-- mobile: day row + slots -->
-            <div class="mobilePick">
-              <div class="dayRow" id="dayRow"></div>
-              <div class="slotGrid" id="slotGrid"></div>
-            </div>
-
-            <div class="syncNote">🔄 空き状況はオーナーのGoogleカレンダー・他のご予約とリアルタイムで連動しています。埋まっている枠は選択できないため、ダブルブッキングは起こりません。</div>
-          </div>
-
-          <div class="card" id="confirmCard" style="display:none">
-            <div class="stepLbl"><span class="n">3</span><b>内容を確認して予約</b></div>
-            <div class="confirmBox" id="confirmText"></div>
-            <button class="btn" onclick="confirmBooking()">この内容で予約を確定する</button>
-            <p class="finePrint">予約と同時にオーナーのGoogleカレンダーへ自動登録され、公式LINEに確認メッセージと前日リマインドが届きます。お支払いは店舗にて。キャンセル・変更もこのアプリから行えます。</p>
-          </div>
-        </div>
-      </div>
+    <div class="card">
+      <h3>📅 今後の予約</h3>
+      <p class="notice" style="margin-bottom:6px">各予約の「📅 カレンダー」でGoogleカレンダー（shutogait@gmail.com）に登録できます</p>
+      <div id="bkList"><p class="notice">読み込み中…</p></div>
     </div>
 
-    <!-- ─── MYPAGE ─── -->
-    <div class="screen" id="tab-my">
-      <div class="myGrid">
-        <div class="card span2" style="margin-top:0">
-          <div class="profRow">
-            <div class="avatar">🍊</div>
-            <div>
-              <div class="nn">みかん さん</div>
-              <div class="rk">★ ご来店 12回目 ｜ 会員No. G-0847</div>
-            </div>
-          </div>
-          <div class="chief">🗣 <b>主訴：</b>デスクワークで夕方になると肩・首がつらい。猫背が気になる</div>
-          <div class="privacy">🔒 本名・生年月日・写真はご本人とオーナーのみ閲覧できます（他の会員には一切公開されません）</div>
-        </div>
-
-        <div class="card">
-          <h3>🎫 回数券</h3>
-          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-            <span class="tkBig" id="tkLeft">3</span><span style="font-weight:700">回 のこっています</span>
-            <span style="margin-left:auto;font-size:11px;color:var(--sub)">整体×ピラティス 10回券 ｜ 有効期限 10/31</span>
-          </div>
-          <div class="tkDots" id="tkDots"></div>
-          <table class="evTable" id="tkHist"></table>
-          <p class="finePrint">ご利用のたびに自動で1回消化されます。回数券は<b>4回・10回・20回・30回</b>からお選びいただけます。<br>整体×ピラティス60分：4回¥28,800 ／ 10回¥69,000 ／ 20回¥132,000 ／ 30回¥189,000<br>全身整体40分：4回¥20,800 ／ 10回¥50,000 ／ 20回¥96,000 ／ 30回¥138,000<br>追加のご購入は店舗・LINEにて（本番版はアプリ内購入にも対応予定）。</p>
-        </div>
-
-        <div class="card">
-          <h3>🎯 目標</h3>
-          <div id="goalView">
-            <p style="font-size:13.5px;font-weight:700" id="goalText">9月の同窓会までに、写真をとる時に気にならない姿勢になる</p>
-            <button class="btn sub" style="margin-top:10px" onclick="goalEdit()">✏️ 目標を編集する（ご自宅からもOK）</button>
-          </div>
-          <div id="goalEditBox" style="display:none">
-            <div class="fRow"><textarea id="goalInput" rows="2" style="flex:1"></textarea></div>
-            <button class="btn" onclick="goalSave()">保存する</button>
-          </div>
-          <p class="finePrint">目標はいつでも変更でき、変更するとオーナーにも共有されます。</p>
-        </div>
-
-        <div class="card">
-          <h3>⚠️ いまの問題点と対応エクササイズ</h3>
-          <div class="probItem"><span class="probN">1</span><div><b>胸椎（背中の上部）の伸展可動性の低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 胸椎モビリティ・エクササイズ</span></div></div>
-          <div class="probItem"><span class="probN">2</span><div><b>骨盤後傾と体幹深部筋の筋力低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 骨盤ニュートラルの作り方</span></div></div>
-          <div class="probItem"><span class="probN">3</span><div><b>肩甲骨まわりの安定性低下</b><br><span class="exChip" onclick="lineToast('動画を再生します（YouTube限定公開）')">▶ 肩甲骨セッティング</span></div></div>
-          <p class="finePrint">理学療法士の評価に基づき、優先度の高い3つに絞ってお伝えしています。改善に合わせて更新されます。</p>
-        </div>
-
-        <div class="card">
-          <h3>🤕 疼痛（痛み）の記録</h3>
-          <p class="notice" style="margin-bottom:4px"><b>肩・首</b> の痛み（NRS）の推移 — 施術と宿題エクササイズで改善中</p>
-          <svg id="painChart" viewBox="0 0 300 120" style="width:100%"></svg>
-          <table class="evTable" id="painLog"></table>
-          <div style="margin-top:14px;border-top:1px solid var(--gxl);padding-top:12px">
-            <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:8px">＋ 今日の痛みを記録する（ご自宅からOK）</p>
-            <div class="fRow">
-              <select id="pnSite" style="flex:1"><option>肩・首</option><option>腰</option><option>膝（右）</option><option>膝（左）</option><option>股関節</option><option>その他（メモへ）</option></select>
-              <select id="pnTime"><option>朝</option><option>日中</option><option selected>夕方</option><option>夜・就寝時</option></select>
-            </div>
-            <div class="fRow">
-              <select id="pnTrig" style="flex:1"><option>長時間のデスクワーク後</option><option>歩行時（荷重時）</option><option>物を持ち上げる時</option><option>立ち上がり・起き上がり</option><option>運動後</option><option>安静時・常に</option></select>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px">
-              <input type="range" id="pnNrs" min="0" max="10" value="2" oninput="pnFace(this.value)" style="flex:1;accent-color:var(--g)">
-              <span id="pnFaceIc" style="font-size:22px">🙂</span>
-              <b style="font-size:15px;color:var(--gd)"><span id="pnNrsV">2</span>/10</b>
-            </div>
-            <div class="fRow"><input id="pnMemo" placeholder="メモ（任意：どんな動きで痛むか など）" style="flex:1"></div>
-            <button class="btn sub" onclick="painAdd()">記録する</button>
-          </div>
-          <div class="stdBox" style="margin-top:12px"><b class="t">📖 NRSとは？</b>痛みを<b>0（痛みなし）〜10（想像できる最大の痛み）</b>の11段階で表す世界標準の指標です。数値で記録できるため研究・統計にそのまま使えます。お子さまにはフェイススケール（顔マーク）表示に対応します。</div>
-        </div>
-
-        <div class="card">
-          <h3>📸 Before / After（姿勢の変化）</h3>
-          <div class="baTabs">
-            <button class="baTab act" data-p="sag" onclick="baPlane('sag')">🚶 矢状面<small>横向き</small></button>
-            <button class="baTab" data-p="fro" onclick="baPlane('fro')">🧍 前額面<small>正面</small></button>
-            <button class="baTab" data-p="ffd" onclick="baPlane('ffd')">🙇 前屈<small>柔軟性</small></button>
-          </div>
-          <div class="baCompare">
-            <div class="baCol">
-              <span class="baBadge bef">Before 5/10</span>
-              <div class="baFrame" id="baFrameB"></div>
-            </div>
-            <div class="baCol">
-              <span class="baBadge aft">After 8/1</span>
-              <div class="baFrame" id="baFrameA"></div>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-            <button class="btn sub" onclick="lineToast('Before写真の差し替え（本番版で実装・JPG/PNG対応）')">差し替え</button>
-            <button class="btn" onclick="lineToast('After写真の差し替え（本番版で実装・JPG/PNG対応）')">差し替え</button>
-          </div>
-          <div class="stdBox" id="baStd"></div>
-          <p class="finePrint">📷 実際のアプリでは撮影した写真が入ります（ご本人とオーナーのみ閲覧可・JPG/PNG対応）</p>
-        </div>
-
-        <div class="card">
-          <h3>📊 身体評価（理学療法士による評価）</h3>
-          <div class="evalRow"><span>姿勢アライメント</span><span class="delta">＋2.1 ▲</span></div>
-          <div class="bar"><i style="width:78%"></i></div>
-          <div class="evalRow"><span>体幹の安定性</span><span class="delta">＋1.4 ▲</span></div>
-          <div class="bar"><i style="width:64%"></i></div>
-          <div class="evalRow"><span>柔軟性（前屈）</span><span class="delta">＋3.0 ▲</span></div>
-          <div class="bar"><i style="width:85%"></i></div>
-          <div class="evalRow"><span>肩甲骨の可動性</span><span class="delta">＋0.8 ▲</span></div>
-          <div class="bar"><i style="width:57%"></i></div>
-          <table class="evTable">
-            <tr><th>評価項目（理学療法評価）</th><th>初回 5/10</th><th>最新 8/1</th><th>変化</th></tr>
-            <tr><td>ROM 肩屈曲（右）</td><td>150°</td><td>170°</td><td class="up">+20°</td></tr>
-            <tr><td>ROM 股関節屈曲（左）</td><td>95°</td><td>110°</td><td class="up">+15°</td></tr>
-            <tr><td>MMT 体幹屈曲</td><td>3</td><td>4</td><td class="up">+1</td></tr>
-            <tr><td>片脚立位時間（右）</td><td>18秒</td><td>42秒</td><td class="up">+24秒</td></tr>
-            <tr><td>片脚立位時間（左）</td><td>15秒</td><td>38秒</td><td class="up">+23秒</td></tr>
-            <tr><td>FFD（指床間距離）</td><td>12cm</td><td>2cm</td><td class="up">−10cm</td></tr>
-          </table>
-          <p class="finePrint">ROM＝関節可動域 ／ MMT＝徒手筋力テスト（0〜5） ／ FFD＝前屈時の指先と床の距離。初回（5/10）との比較。次回評価：9月上旬予定</p>
-        </div>
-
-        <div class="card">
-          <h3>🩺 既往歴・服薬</h3>
-          <table class="dt">
-            <tr><td>既往歴</td><td>特になし（肩こり・猫背のケアで来店）</td></tr>
-            <tr><td>服薬</td><td>なし</td></tr>
-            <tr><td>アレルギー</td><td>なし</td></tr>
-          </table>
-          <p class="privacy">🔒 ご本人とオーナー（理学療法士）のみ閲覧できます。変更はご来店時またはLINEでお知らせください。</p>
-        </div>
-
-        <div class="card">
-          <h3>🎬 あなたの宿題動画</h3>
-          <p class="notice" style="margin-bottom:6px">修斗先生のYouTubeチャンネル（限定公開）から、あなた専用に配信されます</p>
-          <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">骨盤ニュートラルの作り方</div><div class="vs">3分 ｜ 毎日1セット ｜ 担当：修斗先生</div></div></div>
-          <div class="vid" onclick="lineToast('動画を再生します（YouTube限定公開）')"><div class="th">▶</div><div><div class="vt">胸椎モビリティ・エクササイズ</div><div class="vs">5分 ｜ 週3回 ｜ NEW 🆕</div></div></div>
-        </div>
-
-        <div class="card">
-          <h3>🗓 来店履歴</h3>
-          <table class="hist">
-            <tr><td>8/1（土）</td><td>整体×ピラティス60分</td><td>🎫 回数券</td></tr>
-            <tr><td>7/18（土）</td><td>整体×ピラティス60分</td><td>🎫 回数券</td></tr>
-            <tr><td>7/4（土）</td><td>全身整体40分</td><td>¥5,500</td></tr>
-          </table>
-          <button class="btn ghost">すべて見る（12件）</button>
-        </div>
-      </div>
+    <div class="card">
+      <h3>👥 顧客一覧（タップで詳細・編集）</h3>
+      <div id="custList"><p class="notice">読み込み中…</p></div>
     </div>
 
-    <!-- ─── ADMIN ─── -->
-    <div class="screen" id="tab-admin">
-      <div class="adminBanner">🔐 <span><b>オーナー専用画面</b>（修斗さんのみアクセス可・2段階認証）— お客様側からこの画面は一切見えません</span></div>
-      <div class="kpis">
-        <div class="kpi"><div class="v">¥412,500</div><div class="l">今月売上</div></div>
-        <div class="kpi"><div class="v">68</div><div class="l">今月来店数</div></div>
-        <div class="kpi"><div class="v">9</div><div class="l">今月新規</div></div>
+    <div class="card" id="custDetail" style="display:none">
+      <h3>📝 カルテ：<span id="cdName"></span></h3>
+      <div class="fRow"><label style="width:100%;font-size:11px;color:var(--sub)">主訴<textarea id="cdChief" rows="2" style="width:100%"></textarea></label></div>
+      <div class="fRow"><label style="width:100%;font-size:11px;color:var(--sub)">目標<textarea id="cdGoal" rows="2" style="width:100%"></textarea></label></div>
+      <div class="fRow">
+        <label style="flex:1;font-size:11px;color:var(--sub)">既往歴<input id="cdHx" style="width:100%"></label>
+        <label style="flex:1;font-size:11px;color:var(--sub)">服薬<input id="cdMed" style="width:100%"></label>
       </div>
-      <div class="adminGrid">
-        <div class="card" style="margin-top:0">
-          <h3>📅 本日の予約（Googleカレンダー連動）</h3>
-          <table class="hist">
-            <tr><td><b>10:00</b></td><td>みかん さん ｜ 整体×ピラティス60</td><td>既存</td></tr>
-            <tr><td><b>13:00</b></td><td>りく さん ｜ 全身整体40</td><td>新規</td></tr>
-            <tr><td><b>15:00</b></td><td style="color:var(--sub)">（Googleカレンダー：キッズ教室）</td><td>—</td></tr>
-          </table>
-        </div>
-        <div class="card" style="margin-top:0">
-          <h3>👥 顧客管理（タップで詳細）</h3>
-          <div id="custList"></div>
-        </div>
+      <div class="fRow"><label style="width:100%;font-size:11px;color:var(--sub)">カルテメモ<textarea id="cdMemo" rows="2" style="width:100%"></textarea></label></div>
+      <div class="fRow">
+        <label style="flex:1;font-size:11px;color:var(--sub)">本名<input id="cdFullName" style="width:100%"></label>
+        <label style="flex:1;font-size:11px;color:var(--sub)">電話<input id="cdTel" style="width:100%"></label>
       </div>
-
-      <div class="card">
-        <h3>🎫 回数券の管理（ワンタップ消化）</h3>
-        <p class="notice" style="margin-bottom:6px">「✓ 1回消化」を押すだけで、今日の日付で自動記録されます。押し間違いは「取消」でワンタップ復元。</p>
-        <div id="tkAdmin"></div>
-        <div class="fRow" style="margin-top:12px">
-          <select id="tkNewCust" style="flex:1"></select>
-          <select id="tkNewKind"><option>整体×ピラティス</option><option>全身整体</option></select>
-          <select id="tkNewType"><option>4回</option><option>10回</option><option>20回</option><option>30回</option></select>
-          <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
-        </div>
-        <p class="finePrint">消化と同時に会員のマイページ残数が更新され、売上（回数券販売・消化）にも自動反映されます（本番版）。みかんさんの行で押すと、実際に会員画面の残数も変わります。</p>
-      </div>
-
-      <div class="card">
-        <h3>👥 スタッフシフト管理（飯田さん・日曜 9:00〜13:00）</h3>
-        <p class="notice" style="margin-bottom:6px">不定期出社のスタッフは、出られる日曜をワンタップでONにするだけ。ONの日だけ、お客様の予約画面に飯田さんの枠（9:00〜13:00）が自動で表示されます。</p>
-        <div id="iidaList"></div>
-        <p class="finePrint">8/10をON/OFFすると、実際に予約画面の空き枠が切り替わります（お試しください）。本番版では飯田さんご本人のスマホからもON/OFFでき、飯田さん宛の予約が入るとLINEで通知。Googleカレンダー連動にも対応します。</p>
-      </div>
-
-      <div class="adminGrid">
-        <div class="card">
-          <h3>📝 身体評価の入力（理学療法評価）</h3>
-          <div class="fRow">
-            <select id="evCust" style="flex:1"></select>
-          </div>
-          <div class="fRow">
-            <select id="evCat" onchange="evFillItems()" style="flex:1"></select>
-            <select id="evItem" style="flex:1"></select>
-          </div>
-          <div class="fRow">
-            <select id="evSide"><option>右</option><option>左</option><option>両側</option><option>—</option></select>
-            <input id="evVal" type="text" placeholder="値（例：150）" style="flex:1">
-            <button class="btn" style="width:auto;padding:8px 18px" onclick="evAdd()">追加</button>
-          </div>
-          <table class="evTable" id="evLog" style="display:none"></table>
-          <div class="fRow" style="margin-top:10px">
-            <textarea id="evFree" rows="2" style="flex:1;width:100%" placeholder="フリー欄：整形外科的テスト・特記事項（例：SLRテスト陰性、Thomasテスト軽度陽性 など）"></textarea>
-          </div>
-          <button class="btn sub" onclick="lineToast('評価を保存しました ※デモのため実際には保存されません（本番版でデータベースに保存）')">評価を保存する</button>
-        </div>
-        <div class="card">
-          <h3>🎬 宿題動画の管理（YouTube連携）</h3>
-          <p class="notice" style="margin-bottom:8px">修斗さんのYouTubeチャンネルの動画一覧から選んで割り当てます（限定公開OK）</p>
-          <div id="ytList"></div>
-          <div class="fRow" style="margin-top:6px">
-            <select id="ytCust" style="flex:1"></select>
-            <button class="btn" style="width:auto;padding:8px 18px" onclick="ytAssign()">割り当てる</button>
-          </div>
-          <p class="finePrint">本番版ではチャンネルと自動連携し、新しい動画がそのまま一覧に表示されます。割り当てるとLINEで本人に通知されます。</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>📈 研究用統計（評価データの分析）</h3>
-        <div class="fRow">
-          <select id="statItem" onchange="renderStats()" style="flex:1"></select>
-        </div>
-        <div id="statBody"></div>
-      </div>
+      <button class="btn" onclick="custSave()">カルテを保存する</button>
+      <div id="cdExtra" style="margin-top:12px"></div>
+      <button class="btn ghost" onclick="document.getElementById('custDetail').style.display='none'">閉じる</button>
     </div>
 
+    <div class="card">
+      <h3>🎫 回数券の管理（ワンタップ消化）</h3>
+      <div id="tkAdmin"><p class="notice">読み込み中…</p></div>
+      <div class="fRow" style="margin-top:12px">
+        <select id="tkNewCust" style="flex:1"></select>
+        <select id="tkNewKind"><option>整体×ピラティス</option><option>全身整体</option></select>
+        <select id="tkNewType"><option>4回</option><option>10回</option><option>20回</option><option>30回</option></select>
+        <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
+      </div>
+      <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）</p>
+    </div>
+
+    <div class="card">
+      <h3>👥 スタッフシフト（飯田さん・日曜 9:00〜13:00）</h3>
+      <p class="notice" style="margin-bottom:6px">ONにした日曜だけ、お客様の予約画面に9:00〜13:00の枠が表示されます。</p>
+      <div id="iidaList"></div>
+    </div>
+
+    <div class="card">
+      <h3>💰 支払いを記録する（手数料自動計算）</h3>
+      <div class="fRow">
+        <select id="payCust" style="flex:1"></select>
+        <input id="payAmount" type="number" placeholder="金額（円）" style="width:130px">
+      </div>
+      <div class="fRow">
+        <select id="payMethod" style="flex:1">
+          <option value="cash">現金（手数料0%）</option>
+          <option value="airpay_card">クレジットカード AirPay（3.24%）</option>
+          <option value="paypay">PayPay（1.98%）</option>
+          <option value="bank">銀行振込（0%）</option>
+          <option value="paypay_send">PayPay送金（0%）</option>
+        </select>
+        <select id="payCat" style="flex:1"></select>
+      </div>
+      <button class="btn sub" onclick="payAdd()">記録する</button>
+      <div id="paySummary" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>📝 身体評価の入力（理学療法評価）</h3>
+      <div class="fRow"><select id="evCust" style="flex:1"></select></div>
+      <div class="fRow">
+        <select id="evCat" onchange="evFillItems()" style="flex:1"></select>
+        <select id="evItem" style="flex:1"></select>
+      </div>
+      <div class="fRow">
+        <select id="evSide"><option>右</option><option>左</option><option>両側</option><option>—</option></select>
+        <input id="evVal" type="text" placeholder="値（例：150）" style="flex:1">
+        <input id="evUnit" type="text" placeholder="単位" style="width:70px">
+        <button class="btn" style="width:auto;padding:8px 18px" onclick="evAdd()">保存</button>
+      </div>
+      <div class="fRow"><textarea id="evFree" rows="2" style="flex:1;width:100%" placeholder="フリー欄：整形外科的テスト・特記事項（例：SLRテスト陰性 など）"></textarea></div>
+      <div id="evRecent"></div>
+    </div>
+
+    <div class="card">
+      <h3>⚠️ 問題点（3つ）と対応エクササイズ</h3>
+      <div class="fRow"><select id="prCust" style="flex:1"></select><select id="prOrd"><option>1</option><option>2</option><option>3</option></select></div>
+      <div class="fRow"><input id="prContent" placeholder="問題点（例：胸椎伸展の可動性低下）" style="flex:1"></div>
+      <div class="fRow"><input id="prVideo" placeholder="対応動画タイトル（任意・新規登録されます）" style="flex:1"><button class="btn" style="width:auto;padding:8px 18px" onclick="prSave()">保存</button></div>
+    </div>
+
+    <div class="card">
+      <h3>🎬 宿題動画の割り当て（YouTube）</h3>
+      <div class="fRow"><select id="ytCust" style="flex:1"></select></div>
+      <div class="fRow">
+        <input id="ytTitle" placeholder="動画タイトル" style="flex:1">
+        <input id="ytId" placeholder="YouTube動画ID（youtu.be/の後ろ）" style="width:170px">
+      </div>
+      <div class="fRow"><input id="ytFreq" placeholder="頻度メモ（例：毎日1セット）" style="flex:1"><button class="btn" style="width:auto;padding:8px 18px" onclick="ytAssign()">割り当て</button></div>
+    </div>
   </main>
-
-  <nav class="bottom" id="navUser">
-    <button class="act" data-t="home" onclick="go('home')"><span class="ic">🏠</span>ホーム</button>
-    <button data-t="book" onclick="go('book')"><span class="ic">📅</span>予約</button>
-    <button data-t="my" onclick="go('my')"><span class="ic">🌿</span>マイページ</button>
-  </nav>
 </div>
 
-<!-- toast -->
-<div id="toast"><div class="lic">LINE</div><div><div class="tt">gait 公式LINE</div><div class="tm" id="toastMsg"></div></div></div>
-
-<!-- customer modal -->
-<div id="modal" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="sheet" id="sheetBody"></div>
-</div>
-
+<div id="toast"><div class="lic">gait</div><div><div class="tt">gait オーナー管理</div><div class="tm" id="toastMsg"></div></div></div>
 <script>
-/* ---------------- demo data ---------------- */
-const MENUS=[
- {n:"整体×ピラティス",len:"60分",p:7700},
- {n:"【初回】整体×ピラティス（20分カウンセリング付）",len:"60分",p:4400},
- {n:"全身整体",len:"40分",p:5500},
- {n:"【初回】全身整体",len:"40分",p:3300},
- {n:"【インストラクター向け】みっちりピラティス",len:"60分",p:7000},
- {n:"【初回】みっちりピラティス",len:"60分",p:4400},
- {n:"【グループ割】みっちりピラティス",len:"60分 ｜ 2人¥6,600・3人¥8,250・4人以上 各¥2,200",p:6600,ps:"各¥2,200〜"},
- {n:"《フルマラソン完走3ヶ月プラン》ジョギング×ピラティス",len:"60分×計24回 ｜ 週2回＋LINE運動指導つき",p:192000,ps:"¥184,800〜"},
-];
-const DAYS=[["8/8","金"],["8/9","土"],["8/10","日"],["8/11","火"],["8/12","水"],["8/13","木"],["8/14","金"]];
-const CLOSED_DAY=2; /* 8/10 定休日 */
-const TIMES=["9:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
-const IIDA_TIMES=["9:00","10:00","11:00","12:00"];
-let IIDA_OPEN={2:true}; /* 飯田シフトが入っている日（デモ：8/10） */
-function isIida(d){return d===CLOSED_DAY&&!!IIDA_OPEN[d]}
-const BLOCKED=[
- {"11:00":"g","14:00":"r"},
- {"10:00":"r","13:00":"r","15:00":"g","16:00":"g"},
- {"10:00":"r"},
- {"13:00":"r"},
- {"11:00":"r","15:00":"g"},
- {"10:00":"r","16:00":"r"},
- {"14:00":"g","17:00":"r"}
-];
-const CUSTOMERS=[
- {nn:"みかん",name:"佐藤 美和",kana:"サトウ ミワ",tel:"090-1234-5678",dob:"1989/4/12",visits:12,total:74800,last:"8/1",first:"2026/5/10",st:"rep",
-  chief:"デスクワークで夕方になると肩・首がつらい。猫背が気になる",goal:"9月の同窓会までに、写真をとる時に気にならない姿勢になる",
-  probs:["胸椎伸展の可動性低下","骨盤後傾・体幹深部筋の筋力低下","肩甲骨の安定性低下"],hx:"特になし",med:"なし",pain:"肩・首 NRS 2/10（夕方・デスクワーク後）初回6→2",
-  memo:"デスクワーク由来の肩こり・猫背。胸椎モビリティ改善中。宿題動画の実施率高い。"},
- {nn:"りく",name:"田中 陸",kana:"タナカ リク",tel:"080-2345-6789",dob:"1995/11/3",visits:1,total:4400,last:"8/7",first:"2026/8/7",st:"new",
-  chief:"ランニング中に右膝の外側が痛む",goal:"10月の岡山マラソン（10km）を痛みなく完走する",
-  probs:["ランニング時の骨盤動揺","右股関節外転筋の筋力低下","足関節背屈制限"],hx:"右腸脛靭帯炎の疑い",med:"ロキソプロフェン（頓用）",pain:"右膝外側 NRS 5/10（歩行・ランニングの荷重時）",
-  memo:"初回体験。ランニング時の膝痛。次回、身体評価とBefore写真の撮影を予定。"},
- {nn:"はな",name:"山本 花子",kana:"ヤマモト ハナコ",tel:"090-3456-7890",dob:"1958/2/20",visits:24,total:158400,last:"7/30",first:"2025/12/2",st:"rep",
-  chief:"長く歩くと腰が重だるくなる。休みながらなら大丈夫",goal:"孫と30分続けてお散歩できるようになる",
-  probs:["体幹持久力の低下","股関節伸展可動域の制限","下肢筋力の低下"],hx:"腰部脊柱管狭窄症（2023）・高血圧",med:"アムロジピン 5mg",pain:"腰 NRS 3/10（歩行時・休憩で軽減）",
-  memo:"シニア割。腰部脊柱管狭窄症の既往。無理のない範囲で体幹強化を継続。"},
- {nn:"ゆう",name:"高橋 優",kana:"タカハシ ユウ",tel:"070-4567-8901",dob:"1992/7/8",visits:5,total:31800,last:"5/2",first:"2026/2/14",st:"slp",
-  chief:"肩こりと運動不足の解消（来店時）",goal:"週1回の運動習慣をつくる",
-  probs:["運動習慣の中断","胸椎可動性低下","体幹筋力低下"],hx:"特になし",med:"なし",pain:"肩 NRS 4/10（夕方・デスクワーク後）※最終来店時",
-  memo:"90日以上来店なし → LINEでフォロークーポン配信候補。"},
-];
-const ST={new:["新規","new"],rep:["既存","rep"],slp:["休眠","slp"]};
+const SB_URL = "https://pizzhyvqptkhigwwhorp.supabase.co";
+const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+let ME=null, CUSTS=[], CATS=[], CUR=null;
+const FEE = { cash:0, airpay_card:0.0324, paypay:0.0198, bank:0, paypay_send:0 };
+const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
+const EVAL_ITEMS = {
+ "関節可動域（ROM）":["肩屈曲","肩外転","股関節屈曲","股関節伸展","膝関節屈曲","足関節背屈","体幹回旋"],
+ "MMT（徒手筋力テスト 0〜5）":["体幹屈曲","体幹伸展","股関節外転","膝関節伸展","足関節底屈","肩甲骨内転"],
+ "バランス":["片脚立位時間","ファンクショナルリーチ","TUG"],
+ "柔軟性":["FFD 指床間距離","SLR角度","踵殿距離"]
+};
+const WD=["日","月","火","水","木","金","土"];
+let toastTimer;
+function toast(m){const t=document.getElementById("toast");document.getElementById("toastMsg").textContent=m;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600)}
+function authErr(m){const e=document.getElementById("authErr");e.style.display=m?"block":"none";e.textContent=m||""}
+function fmtTs(ts){const d=new Date(ts);return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
+function jstDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 
-/* ---------------- state ---------------- */
-let selMenu=0, selDay=0, selSlot=null;
 
-/* ---------------- login ---------------- */
-function login(){
+/* ============ Googleカレンダー ============ */
+const STUDIO_ADDR = "リラクゼーション＆ピラティス gait（岡山）";
+function gcalStamp(d){
+  return d.getUTCFullYear()
+    + String(d.getUTCMonth()+1).padStart(2,"0")
+    + String(d.getUTCDate()).padStart(2,"0") + "T"
+    + String(d.getUTCHours()).padStart(2,"0")
+    + String(d.getUTCMinutes()).padStart(2,"0") + "00Z";
+}
+function gcalUrl(startsAt, menuName, durationMin, staffName){
+  const st = new Date(startsAt);
+  const en = new Date(st.getTime() + (durationMin||60)*60000);
+  const title = `gait ${menuName||"ご予約"}`;
+  const details = [
+    menuName ? "メニュー：" + menuName : "",
+    staffName ? "担当：" + staffName : "",
+    "予約アプリ：https://app.gait-pilates.com"
+  ].filter(Boolean).join("\n");
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE"
+    + "&text=" + encodeURIComponent(title)
+    + "&dates=" + gcalStamp(st) + "/" + gcalStamp(en)
+    + "&details=" + encodeURIComponent(details)
+    + "&location=" + encodeURIComponent(STUDIO_ADDR);
+}
+function openGcal(startsAt, menuName, durationMin, staffName){
+  window.open(gcalUrl(startsAt, menuName, durationMin, staffName), "_blank");
+}
+
+async function doLogin(){
+  authErr();
+  const { error } = await sb.auth.signInWithPassword({ email: document.getElementById("liEmail").value.trim(), password: document.getElementById("liPw").value });
+  if(error){ authErr("ログインできませんでした"); return; }
+  await enterApp();
+}
+async function doLogout(){ await sb.auth.signOut(); location.reload(); }
+
+async function enterApp(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  ME = user;
+  const { data: prof } = await sb.from("profiles").select("role").eq("id", user.id).single();
+  if(!prof || prof.role !== "owner"){
+    authErr("このアカウントにはオーナー権限がありません。会員アプリをご利用ください。");
+    await sb.auth.signOut(); return;
+  }
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
-  lineToast("ログインしました。次回から自動ログインされます 🔒");
+  await loadCusts(); loadBookings(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
 }
 
-/* ---------------- nav ---------------- */
-function go(t){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));
-  document.getElementById("tab-"+t).classList.add("act");
-  document.querySelectorAll("#navUser button, .deskNav button").forEach(b=>b.classList.toggle("act",b.dataset.t===t));
-  window.scrollTo(0,0);
+async function loadCusts(){
+  const { data } = await sb.from("profiles").select("*").neq("role","owner").order("created_at");
+  CUSTS = data || [];
+  const opts = CUSTS.map(c=>`<option value="${c.id}">${c.nickname||"（名前未設定）"}${c.full_name?"（"+c.full_name+"）":""}</option>`).join("");
+  ["tkNewCust","payCust","evCust","prCust","ytCust"].forEach(id=>{ document.getElementById(id).innerHTML = opts || "<option value=''>会員がまだいません</option>"; });
+  const { data: cats } = await sb.from("categories").select("*").order("id");
+  CATS = cats||[];
+  document.getElementById("payCat").innerHTML = CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>
+    `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span></div><div class="m">${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`).join("")
+    : '<p class="notice">まだ会員登録がありません。アプリ（app.gait-pilates.com）から登録された方がここに表示されます。</p>';
 }
-let admin=false;
-function toggleAdmin(){
-  admin=!admin;
-  const b=document.getElementById("admBtn");
-  b.classList.toggle("on",admin);
-  b.textContent=admin?"← 会員画面に戻る":"👤 オーナー画面へ";
-  document.getElementById("navUser").style.display=admin?"none":"flex";
-  document.querySelector(".deskNav").style.visibility=admin?"hidden":"visible";
-  if(admin){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));document.getElementById("tab-admin").classList.add("act");}
-  else go("home");
-  window.scrollTo(0,0);
+async function openCust(id){
+  CUR = CUSTS.find(c=>c.id===id); if(!CUR) return;
+  document.getElementById("custDetail").style.display="block";
+  document.getElementById("cdName").textContent = (CUR.nickname||"") + (CUR.full_name?"（"+CUR.full_name+"）":"");
+  document.getElementById("cdChief").value = CUR.chief_complaint||"";
+  document.getElementById("cdGoal").value = CUR.goal||"";
+  document.getElementById("cdHx").value = CUR.history||"";
+  document.getElementById("cdMed").value = CUR.medication||"";
+  document.getElementById("cdMemo").value = CUR.memo||"";
+  document.getElementById("cdFullName").value = CUR.full_name||"";
+  document.getElementById("cdTel").value = CUR.tel||"";
+  const [pains, assess, probs] = await Promise.all([
+    sb.from("pain_logs").select("*").eq("member_id", id).order("date",{ascending:false}).limit(5),
+    sb.from("assessments").select("*").eq("member_id", id).order("date",{ascending:false}).limit(8),
+    sb.from("problems").select("ord, content").eq("member_id", id).order("ord")
+  ]);
+  let ex = "";
+  if(probs.data?.length) ex += "<div class='chief'>⚠️ <b>問題点：</b>" + probs.data.map(p=>p.ord+". "+p.content).join("　") + "</div>";
+  if(pains.data?.length) ex += "<div class='chief' style='margin-top:8px'>🤕 <b>疼痛（最新）：</b>" + pains.data.map(p=>`${p.date.slice(5)} ${p.site} NRS${p.nrs}`).join(" ／ ") + "</div>";
+  if(assess.data?.length) ex += '<table class="evTable"><tr><th>日付</th><th style="text-align:left">評価</th><th>値</th></tr>' + assess.data.map(a=>`<tr><td>${a.date.slice(5)}</td><td style="text-align:left">${a.item}${a.side&&a.side!=="—"?"（"+a.side+"）":""}</td><td><b>${a.value??""}</b>${a.unit||""}</td></tr>`).join("") + "</table>";
+  document.getElementById("cdExtra").innerHTML = ex;
+  document.getElementById("custDetail").scrollIntoView({behavior:"smooth"});
+}
+async function custSave(){
+  if(!CUR) return;
+  const upd = {
+    chief_complaint: document.getElementById("cdChief").value || null,
+    goal: document.getElementById("cdGoal").value || null,
+    history: document.getElementById("cdHx").value || null,
+    medication: document.getElementById("cdMed").value || null,
+    memo: document.getElementById("cdMemo").value || null,
+    full_name: document.getElementById("cdFullName").value || null,
+    tel: document.getElementById("cdTel").value || null
+  };
+  const { error } = await sb.from("profiles").update(upd).eq("id", CUR.id);
+  if(error){ toast("保存できませんでした"); return; }
+  toast("カルテを保存しました");
+  await loadCusts();
 }
 
-/* ---------------- booking: shared ---------------- */
-function isBlocked(d,t){
-  if(d===CLOSED_DAY){
-    if(!IIDA_OPEN[d]) return "closed";
-    return IIDA_TIMES.includes(t)?(BLOCKED[d][t]||null):"na";
-  }
-  if(t==="9:00"||t==="12:00") return "na";
-  return BLOCKED[d][t]||null;
+async function loadBookings(){
+  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, profiles(nickname, full_name), menus(name), staff(name)")
+    .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(30);
+  document.getElementById("bkList").innerHTML = (data&&data.length) ? data.map(b=>
+    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname||""} さん</div><div class="m">${b.menus?.name||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div></div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
+    : '<p class="notice">今後の予約はまだありません</p>';
 }
-function pick(d,t){
-  selDay=d; selSlot=t;
-  renderDays(); renderSlots(); renderWeek(); renderConfirm();
+async function ownerCancel(id){
+  if(!confirm("この予約を取り消しますか？")) return;
+  await sb.from("bookings").update({status:"cancelled"}).eq("id", id);
+  toast("予約を取り消しました"); loadBookings();
 }
 
-/* mobile picker */
-function renderMenus(){
-  document.getElementById("menuList").innerHTML=MENUS.map((m,i)=>
-   `<div class="menuOpt ${i===selMenu?'sel':''}" onclick="selMenu=${i};renderMenus();renderConfirm()">
-      <div><div class="n">${m.n}</div><div class="len">${m.len}</div></div>
-      <div class="pr">${m.ps||"¥"+m.p.toLocaleString()}</div></div>`).join("");
+async function loadTickets(){
+  const { data } = await sb.from("tickets").select("*, profiles(nickname)").gt("left_count",-1).order("issued_at",{ascending:false}).limit(30);
+  document.getElementById("tkAdmin").innerHTML = (data&&data.length) ? data.filter(t=>t.left_count>0||true).map(t=>
+    `<div class="bkRow"><div><div class="d">${t.profiles?.nickname||""} さん</div><div class="m">${t.kind} ｜ 残り <b style="color:var(--gd)">${t.left_count}</b>/${t.total}回 ｜ 期限 ${t.expires_at||"—"}</div></div>
+     <div style="display:flex;gap:6px">${t.left_count>0?`<button class="btn" style="width:auto;padding:8px 12px;font-size:12px" onclick="tkUse(${t.id},${t.left_count})">✓ 1回消化</button>`:""}<button class="cxBtn" onclick="tkUndo(${t.id},${t.left_count},${t.total})">取消</button></div></div>`).join("")
+    : '<p class="notice">発行済みの回数券はありません</p>';
 }
-function renderDays(){
-  document.getElementById("dayRow").innerHTML=DAYS.map((d,i)=>
-   `<button class="dayBtn ${i===selDay?'sel':''}" onclick="selDay=${i};selSlot=null;renderDays();renderSlots();renderConfirm()">
-      <div class="w">${d[1]}</div><div class="dd">${d[0].split("/")[1]}</div></button>`).join("");
+async function tkUse(id, left){
+  const { error } = await sb.from("tickets").update({ left_count: left-1 }).eq("id", id);
+  if(error){ toast("記録できませんでした"); return; }
+  await sb.from("ticket_uses").insert({ ticket_id: id });
+  toast(`本日の1回消化を記録しました（残り${left-1}回）`); loadTickets();
 }
-function renderSlots(){
-  const el=document.getElementById("slotGrid");
-  if(selDay===CLOSED_DAY&&!IIDA_OPEN[selDay]){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です<br><span style="font-size:10.5px">※スタッフシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span></div>`;return}
-  const head=isIida(selDay)?`<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>`:"";
-  el.innerHTML=head+TIMES.map(t=>{
-    const b=isBlocked(selDay,t);
-    if(b==="na") return "";
-    if(b) return `<div class="slot ng">×<small>${b==="g"?"予定あり":"予約済み"}</small></div>`;
-    return `<button class="slot ${selSlot===t?'sel':''}" onclick="pick(${selDay},'${t}')">${t}</button>`;
+async function tkUndo(id, left, total){
+  if(left>=total){ toast("取り消せる消化がありません"); return; }
+  const { data: uses } = await sb.from("ticket_uses").select("id").eq("ticket_id", id).eq("undone", false).order("id",{ascending:false}).limit(1);
+  if(uses && uses.length) await sb.from("ticket_uses").update({undone:true}).eq("id", uses[0].id);
+  await sb.from("tickets").update({ left_count: left+1 }).eq("id", id);
+  toast(`直前の消化を取り消しました（残り${left+1}回）`); loadTickets();
+}
+async function tkIssue(){
+  const memberId = document.getElementById("tkNewCust").value;
+  if(!memberId){ toast("会員がいません"); return; }
+  const kind = document.getElementById("tkNewKind").value;
+  const total = parseInt(document.getElementById("tkNewType").value);
+  const price = TK_PRICE[kind][total];
+  const exp = new Date(); exp.setMonth(exp.getMonth()+6);
+  const { error } = await sb.from("tickets").insert({ member_id: memberId, kind, total, left_count: total, price, expires_at: jstDate(exp) });
+  if(error){ toast("発行できませんでした"); return; }
+  toast(`${kind} ${total}回券（¥${price.toLocaleString()}）を発行しました`); loadTickets();
+}
+
+async function loadShifts(){
+  const sundays = [];
+  const d = new Date();
+  while(sundays.length < 6){ if(d.getDay()===0) sundays.push(jstDate(new Date(d))); d.setDate(d.getDate()+1); }
+  const { data } = await sb.from("staff_shifts").select("date, open").eq("staff_id",2).in("date", sundays);
+  const on = {}; (data||[]).forEach(s=>on[s.date]=s.open);
+  document.getElementById("iidaList").innerHTML = sundays.map(ds=>{
+    const dd = new Date(ds+"T00:00:00");
+    const isOn = !!on[ds];
+    return `<div class="bkRow"><div class="d">${dd.getMonth()+1}/${dd.getDate()}（日）9:00〜13:00</div>
+      <button class="btn ${isOn?"":"sub"}" style="width:auto;padding:8px 14px;font-size:12px" onclick="shiftToggle('${ds}',${isOn})">${isOn?"✓ 出勤（予約受付中）":"OFF（タップでON）"}</button></div>`;
   }).join("");
 }
-
-/* desktop week grid */
-function renderWeek(){
-  let html="<tr><th></th>"+DAYS.map((d,i)=>
-    `<th class="${i===0?'today':''}">${d[1]}<b>${d[0].split("/")[1]}</b></th>`).join("")+"</tr>";
-  html+=TIMES.map(t=>{
-    return "<tr><td class='tlabel'>"+t+"</td>"+DAYS.map((d,i)=>{
-      const b=isBlocked(i,t);
-      if(b==="na") return `<td><div class="cell closed">—</div></td>`;
-      if(b==="closed") return `<td><div class="cell closed">定休</div></td>`;
-      if(b) return `<td><div class="cell ng">×<span>${b==="g"?"予定あり":"予約済み"}</span></div></td>`;
-      const sel=(selDay===i&&selSlot===t)?"sel":"";
-      return `<td><button class="cell ${sel}" onclick="pick(${i},'${t}')" title="${d[0]}（${d[1]}）${t}〜">${sel?"✓":"○"}</button></td>`;
-    }).join("")+"</tr>";
-  }).join("");
-  document.getElementById("weekTable").innerHTML=html;
+async function shiftToggle(ds, isOn){
+  const { error } = await sb.from("staff_shifts").upsert({ staff_id:2, date: ds, open: !isOn }, { onConflict: "staff_id,date" });
+  if(error){ toast("切り替えできませんでした"); return; }
+  toast(`${ds.slice(5).replace("-","/")}（日）の飯田さんシフトを${!isOn?"ON":"OFF"}にしました`);
+  loadShifts();
 }
 
-function renderConfirm(){
-  const c=document.getElementById("confirmCard");
-  if(!selSlot){c.style.display="none";return}
-  const m=MENUS[selMenu],d=DAYS[selDay];
-  document.getElementById("confirmText").innerHTML=
-   `<b>${m.n}（${m.len}）</b><br>${d[0]}（${d[1]}）${selSlot}〜<br>料金：${m.ps||"¥"+m.p.toLocaleString()}（店舗でのお支払い）${isIida(selDay)?"<br>担当：スタッフ 飯田（日曜シフト 9:00〜13:00）":""}`;
-  c.style.display="block";
-  c.scrollIntoView({block:"nearest"});
+async function payAdd(){
+  const memberId = document.getElementById("payCust").value || null;
+  const amount = parseInt(document.getElementById("payAmount").value);
+  if(!amount){ toast("金額を入力してください"); return; }
+  const method = document.getElementById("payMethod").value;
+  const feeRate = FEE[method];
+  const feeAmount = Math.round(amount * feeRate);
+  const { error } = await sb.from("payments").insert({ member_id: memberId, amount, method, fee_rate: feeRate, fee_amount: feeAmount, category_id: +document.getElementById("payCat").value });
+  if(error){ toast("記録できませんでした"); return; }
+  document.getElementById("payAmount").value = "";
+  toast(`¥${amount.toLocaleString()} を記録（手数料 ¥${feeAmount.toLocaleString()}・実質 ¥${(amount-feeAmount).toLocaleString()}）`);
+  loadPaySummary();
 }
-function confirmBooking(){
-  const d=DAYS[selDay];
-  BLOCKED[selDay][selSlot]="r";
-  lineToast(`【予約確定】${d[0]}（${d[1]}）${selSlot}〜 ${MENUS[selMenu].n}。前日にリマインドをお送りします 📅`);
-  selSlot=null;renderSlots();renderWeek();renderConfirm();
-  setTimeout(()=>go("home"),700);
-}
-
-/* ---------------- admin ---------------- */
-function renderCust(){
-  document.getElementById("custList").innerHTML=CUSTOMERS.map((c,i)=>
-   `<div class="cust" onclick="openCust(${i})">
-      <div><div class="cn">${c.name} <span style="font-weight:500;color:var(--sub);font-size:11px">(${c.nn})</span><span class="tag ${ST[c.st][1]}">${ST[c.st][0]}</span></div>
-        <div class="ci">来店 ${c.visits}回 ｜ 最終 ${c.last}</div></div>
-      <div class="cr"><div class="amt">¥${c.total.toLocaleString()}</div><div class="ci">累計</div></div></div>`).join("");
-}
-function openCust(i){
-  const c=CUSTOMERS[i];
-  document.getElementById("sheetBody").innerHTML=
-   `<h3>${c.name}（${c.kana}）<span class="tag ${ST[c.st][1]}">${ST[c.st][0]}</span></h3>
-    <div style="font-size:11px;color:var(--sub)">アプリ表示名：${c.nn} さん</div>
-    <table class="dt">
-      <tr><td>主訴</td><td style="color:#9a6c00">🗣 ${c.chief}</td></tr>
-      <tr><td>疼痛（最新）</td><td>${c.pain}</td></tr>
-      <tr><td>目標</td><td>🎯 ${c.goal}</td></tr>
-      <tr><td>既往歴</td><td>${c.hx}</td></tr>
-      <tr><td>服薬</td><td>${c.med}</td></tr>
-      <tr><td>電話番号</td><td>${c.tel}</td></tr>
-      <tr><td>生年月日</td><td>${c.dob}</td></tr>
-      <tr><td>累計利用金額</td><td style="color:var(--gd);font-weight:800">¥${c.total.toLocaleString()}</td></tr>
-      <tr><td>来店回数</td><td>${c.visits}回（平均単価 ¥${Math.round(c.total/c.visits).toLocaleString()}）</td></tr>
-      <tr><td>初回来店</td><td>${c.first}</td></tr>
-      <tr><td>最終来店</td><td>${c.last}</td></tr>
-    </table>
-    <div class="memo">⚠️ <b>問題点：</b>${c.probs.map((p,i)=>`${i+1}. ${p}`).join("　")}</div>
-    <div class="memo">📝 <b>カルテメモ：</b>${c.memo}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
-      <button class="btn sub" onclick="lineToast('BeforeAfter写真・評価・宿題動画の割当て画面（本開発で実装）')">📸 記録・宿題管理</button>
-      <button class="btn line" onclick="lineToast('${c.nn}さんへのLINE個別トークを開きます')">💬 LINE連絡</button>
-    </div>
-    <button class="btn ghost" onclick="document.getElementById('modal').classList.remove('show')">閉じる</button>`;
-  document.getElementById("modal").classList.add("show");
+async function loadPaySummary(){
+  const first = new Date(); first.setDate(1);
+  const { data } = await sb.from("payments").select("amount, fee_amount, category_id").gte("paid_at", jstDate(first));
+  if(!data || !data.length){ document.getElementById("paySummary").innerHTML = '<p class="notice">今月の記録はまだありません</p>'; return; }
+  const gross = data.reduce((s,p)=>s+p.amount,0), fee = data.reduce((s,p)=>s+p.fee_amount,0);
+  const byCat = {};
+  data.forEach(p=>{ const c = CATS.find(x=>x.id===p.category_id); const n = c?c.name:"その他"; byCat[n]=(byCat[n]||0)+p.amount; });
+  document.getElementById("paySummary").innerHTML =
+    `<div class="chief" style="background:var(--gxl);border-color:var(--line)">📈 <b>今月：</b>売上 ¥${gross.toLocaleString()} ／ 手数料 ¥${fee.toLocaleString()} ／ 実質 <b style="color:var(--gd)">¥${(gross-fee).toLocaleString()}</b><br>` +
+    Object.entries(byCat).map(([n,v])=>{const c=CATS.find(x=>x.name===n);return `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px"><span style="width:9px;height:9px;border-radius:50%;background:${c?.color||'#999'};display:inline-block"></span>${n} ¥${v.toLocaleString()}</span>`}).join("") + "</div>";
 }
 
-/* ---------------- 回数券 ---------------- */
-const TICKET={total:10,left:3,exp:"10/31",hist:["8/1 整体×ピラティス60","7/18 ピラティス60","7/4 整体×ピラティス60","6/20 ピラティス60","6/7 整体×ピラティス60","5/24 ピラティス60","5/10 整体×ピラティス60"]};
-function renderTicket(){
-  const used=TICKET.total-TICKET.left;
-  document.getElementById("tkLeft").textContent=TICKET.left;
-  const h=document.getElementById("tkHome");if(h)h.textContent=TICKET.left;
-  document.getElementById("tkDots").innerHTML=Array.from({length:TICKET.total},(_,i)=>`<span class="tkDot ${i<used?'used':''}"></span>`).join("");
-  document.getElementById("tkHist").innerHTML=`<tr><th style="text-align:left">ご利用履歴</th><th>回数</th></tr>`+TICKET.hist.map((x,i)=>`<tr><td style="text-align:left">${x}</td><td>${TICKET.hist.length-i}回目</td></tr>`).join("");
-}
-const TK=[
- {nn:"みかん",kind:"整体×ピラティス",left:3,total:10,exp:"10/31",last:"8/1"},
- {nn:"りく",kind:"",left:0,total:0,exp:"—",last:"—"},
- {nn:"はな",kind:"全身整体",left:7,total:10,exp:"12/20",last:"7/30"},
- {nn:"ゆう",kind:"整体×ピラティス",left:2,total:4,exp:"9/15",last:"5/2"},
-];
-const TK_PRICE={"整体×ピラティス":{4:28800,10:69000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
-function tkToday(){const n=new Date();return (n.getMonth()+1)+"/"+n.getDate()}
-function renderTkAdmin(){
-  document.getElementById("tkAdmin").innerHTML=TK.map((t,i)=>{
-    const info=t.total?`${t.kind} ｜ 残り <b style="color:var(--gd);font-size:15px">${t.left}</b> / ${t.total}回 ｜ 期限 ${t.exp} ｜ 最終消化 ${t.last}`:`<span style="color:var(--sub)">回数券なし → 下の「発行」からどうぞ</span>`;
-    const btns=t.total?`<button class="tkBtn" onclick="tkUse(${i})">✓ 1回消化</button><button class="tkBtn sub" onclick="tkUndo(${i})">取消</button>`:"";
-    return `<div class="tkRow"><div><div style="font-weight:700;font-size:13px">${t.nn} さん</div><div style="font-size:11px;color:var(--sub)">${info}</div></div><div style="display:flex;gap:6px">${btns}</div></div>`;
-  }).join("");
-}
-function tkUse(i){
-  const t=TK[i];
-  if(t.left<=0){lineToast(`${t.nn}さんの回数券は残り0回です。新しい回数券を発行してください`);return}
-  t.left--;t.last=tkToday();
-  if(t.nn==="みかん"){TICKET.left=t.left;TICKET.hist.unshift(tkToday()+" 本日消化");renderTicket();}
-  renderTkAdmin();
-  lineToast(`${t.nn}さん：本日 ${tkToday()} の1回消化を記録しました（残り${t.left}回）`);
-}
-function tkUndo(i){
-  const t=TK[i];
-  if(t.left>=t.total){lineToast("取り消せる消化がありません");return}
-  t.left++;
-  if(t.nn==="みかん"&&TICKET.hist[0]&&TICKET.hist[0].includes("本日消化")){TICKET.hist.shift();TICKET.left=t.left;renderTicket();}
-  renderTkAdmin();
-  lineToast(`${t.nn}さん：直前の消化を取り消しました（残り${t.left}回）`);
-}
-function tkIssue(){
-  const nn=document.getElementById("tkNewCust").value.replace(" さん","");
-  const kind=document.getElementById("tkNewKind").value;
-  const total=parseInt(document.getElementById("tkNewType").value);
-  const price=TK_PRICE[kind][total];
-  const t=TK.find(x=>x.nn===nn);
-  const n=new Date();
-  t.kind=kind;t.total=total;t.left=total;t.exp=((n.getMonth()+6)%12+1)+"/"+n.getDate();t.last="—";
-  if(nn==="みかん"){TICKET.total=total;TICKET.left=total;renderTicket();}
-  renderTkAdmin();
-  lineToast(`${nn}さんに ${kind} ${total}回券（¥${price.toLocaleString()}）を発行しました（有効期限6ヶ月）`);
-}
-
-/* ---------------- スタッフシフト（飯田） ---------------- */
-const IIDA_DAYS=[{i:2,d:"8/10（日）"},{i:-1,d:"8/17（日）",on:false},{i:-2,d:"8/24（日）",on:false}];
-function renderIida(){
-  document.getElementById("iidaList").innerHTML=IIDA_DAYS.map((s,k)=>{
-    const on=s.i===2?!!IIDA_OPEN[2]:!!s.on;
-    return `<div class="tkRow"><div style="font-weight:700;font-size:13px">${s.d} 9:00〜13:00</div><button class="tkBtn ${on?'':'sub'}" onclick="iidaToggle(${k})">${on?"✓ 出勤（予約受付中）":"OFF（タップでON）"}</button></div>`;
-  }).join("");
-}
-function iidaToggle(k){
-  const s=IIDA_DAYS[k];
-  if(s.i===2){
-    if(IIDA_OPEN[2])delete IIDA_OPEN[2];else IIDA_OPEN[2]=true;
-    selSlot=null;renderSlots();renderWeek();renderConfirm();
-    lineToast(`8/10（日）の飯田さんシフトを${IIDA_OPEN[2]?"ONにしました。予約画面に9:00〜13:00の枠が表示されます":"OFFにしました。8/10は定休日表示に戻ります"}`);
-  }else{
-    s.on=!s.on;
-    lineToast(`${s.d}の飯田さんシフトを${s.on?"ON":"OFF"}にしました（デモ）`);
-  }
-  renderIida();
-}
-
-/* ---------------- 疼痛記録 ---------------- */
-const PAIN=[
- {d:"5/10",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:6},
- {d:"6/7",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:5},
- {d:"7/4",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:3},
- {d:"8/1",site:"肩・首",time:"夕方",trig:"長時間のデスクワーク後",v:2},
-];
-function pnFaceIcon(v){return v<=1?"😊":v<=3?"🙂":v<=6?"😐":v<=8?"😣":"😖"}
-function pnFace(v){document.getElementById("pnNrsV").textContent=v;document.getElementById("pnFaceIc").textContent=pnFaceIcon(v)}
-function renderPain(){
-  const W=300,H=120,L=26,R=12,T=14,B=26,n=PAIN.length;
-  const x=i=>L+i*((W-L-R)/Math.max(n-1,1));
-  const y=v=>T+(10-v)/10*(H-T-B);
-  const pts=PAIN.map((p,i)=>`${x(i)},${y(p.v)}`).join(" ");
-  document.getElementById("painChart").innerHTML=
-   `<line x1="${L}" y1="${y(0)}" x2="${W-R}" y2="${y(0)}" stroke="#dfe9e3" stroke-width="1.5"/>
-    <line x1="${L}" y1="${y(5)}" x2="${W-R}" y2="${y(5)}" stroke="#eef3f0" stroke-width="1"/>
-    <line x1="${L}" y1="${y(10)}" x2="${W-R}" y2="${y(10)}" stroke="#eef3f0" stroke-width="1"/>
-    <text x="${L-5}" y="${y(0)+3}" font-size="8" fill="#68796f" text-anchor="end">0</text>
-    <text x="${L-5}" y="${y(5)+3}" font-size="8" fill="#68796f" text-anchor="end">5</text>
-    <text x="${L-5}" y="${y(10)+3}" font-size="8" fill="#68796f" text-anchor="end">10</text>
-    <polyline points="${pts}" fill="none" stroke="#2e9e72" stroke-width="2.5"/>`+
-    PAIN.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.v)}" r="3.5" fill="#2e9e72"/><text x="${x(i)}" y="${y(p.v)-8}" font-size="9" text-anchor="middle" fill="#1f7a56" font-weight="bold">${p.v}</text><text x="${x(i)}" y="${H-8}" font-size="8.5" text-anchor="middle" fill="#68796f">${p.d}</text>`).join("");
-  document.getElementById("painLog").innerHTML=
-   `<tr><th>日付</th><th style="text-align:left">部位（時間帯）</th><th style="text-align:left">タイミング</th><th>NRS</th></tr>`+
-   PAIN.slice().reverse().map(p=>`<tr><td>${p.d}</td><td style="text-align:left">${p.site}（${p.time}）</td><td style="text-align:left">${p.trig}</td><td><b>${pnFaceIcon(p.v)} ${p.v}</b>/10</td></tr>`).join("");
-}
-function painAdd(){
-  const now=new Date(),d=(now.getMonth()+1)+"/"+now.getDate();
-  PAIN.push({d,site:document.getElementById("pnSite").value,time:document.getElementById("pnTime").value,trig:document.getElementById("pnTrig").value,v:+document.getElementById("pnNrs").value});
-  renderPain();
-  lineToast("痛みを記録しました。オーナーにも共有されます 🤝（デモのため保存はされません）");
-}
-
-/* ---------------- misc ---------------- */
-/* ---------------- Before/After 3面 ---------------- */
-const PLANES={
- sag:{
-  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="58" y1="6" x2="58" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="67" cy="32" r="11" fill="#e6f0ea"/><path d="M64 44 Q 53 70 55 105"/><path d="M55 105 L 49 160 L 47 196"/><path d="M55 105 L 64 158 L 65 196"/><path d="M61 62 Q 77 80 75 98"/></g><polyline points="67,40 59,62 55,105 63,192" fill="none" stroke="#e05a4e" stroke-width="2"/><g fill="#e05a4e"><circle cx="67" cy="40" r="3.2"/><circle cx="59" cy="62" r="3.2"/><circle cx="55" cy="105" r="3.2"/><circle cx="63" cy="192" r="3.2"/></g><text x="8" y="206" font-size="8.5" fill="#8fa89b">猫背・骨盤後傾</text></svg>`,
-  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="58" y1="6" x2="58" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="58" cy="27" r="11" fill="#e6f5ee"/><path d="M58 38 L 58 105"/><path d="M58 105 L 50 158 L 49 196"/><path d="M58 105 L 66 158 L 67 196"/><path d="M58 58 L 72 92"/></g><polyline points="58,38 58,60 58,105 60,192" fill="none" stroke="#2e9e72" stroke-width="2"/><g fill="#2e9e72"><circle cx="58" cy="38" r="3.2"/><circle cx="58" cy="60" r="3.2"/><circle cx="58" cy="105" r="3.2"/><circle cx="60" cy="192" r="3.2"/></g><text x="34" y="206" font-size="8.5" fill="#2e9e72">4点が一直線 ✓</text></svg>`,
-  std:`<b class="t">📏 横向き（矢状面）でみる姿勢の基準</b>理想的な姿勢では、次の4点が地面と垂直に一直線でそろいます。<ul class="stdList"><li><b>1. 耳たぶ</b>（耳垂）</li><li><b>2. 肩の突先</b>（肩峰）</li><li><b>3. 股関節の横</b>（大転子）</li><li><b>4. 外くるぶしの少し前</b>（外果の2〜3cm前方）</li></ul>`
- },
- fro:{
-  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="60" y1="6" x2="60" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="63" cy="30" r="11" fill="#e6f0ea"/><path d="M62 42 Q 60 75 59 105"/><path d="M59 105 L 50 158 L 49 196"/><path d="M59 105 L 68 158 L 69 196"/></g><line x1="40" y1="64" x2="84" y2="54" stroke="#e05a4e" stroke-width="3" stroke-linecap="round"/><line x1="44" y1="108" x2="76" y2="103" stroke="#e05a4e" stroke-width="3" stroke-linecap="round"/><text x="10" y="206" font-size="8.5" fill="#8fa89b">肩・骨盤の高さに左右差</text></svg>`,
-  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="60" y1="6" x2="60" y2="204" stroke="#b9c9bf" stroke-width="2" stroke-dasharray="5 4"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="60" cy="28" r="11" fill="#e6f5ee"/><path d="M60 40 L 60 105"/><path d="M60 105 L 51 158 L 50 196"/><path d="M60 105 L 69 158 L 70 196"/></g><line x1="38" y1="58" x2="82" y2="58" stroke="#2e9e72" stroke-width="3" stroke-linecap="round"/><line x1="44" y1="105" x2="76" y2="105" stroke="#2e9e72" stroke-width="3" stroke-linecap="round"/><text x="26" y="206" font-size="8.5" fill="#2e9e72">左右対称・水平 ✓</text></svg>`,
-  std:`<b class="t">📏 正面（前額面）でみる姿勢の基準</b>正面から見たとき、左右が対称で水平にそろっているかを確認します。<ul class="stdList"><li><b>頭の中心〜おへそ</b>が正中線上に並ぶ</li><li><b>左右の肩の高さ</b>（肩峰）が水平</li><li><b>左右の骨盤の高さ</b>（腸骨稜）が水平</li><li><b>左右の膝・つま先</b>の向きがそろっている</li></ul>`
- },
- ffd:{
-  b:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="14" y1="196" x2="106" y2="196" stroke="#b9c9bf" stroke-width="2"/><g stroke="#8fa89b" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="88" cy="90" r="10" fill="#e6f0ea"/><path d="M55 100 Q 72 78 84 96"/><path d="M55 100 L 53 148 L 52 196"/><path d="M55 100 L 60 150 L 61 196"/><path d="M80 100 L 84 132"/></g><path d="M84 140 L 84 192" stroke="#e05a4e" stroke-width="2" stroke-dasharray="3 3"/><text x="60" y="170" font-size="9" fill="#e05a4e" font-weight="bold">床まで12cm</text><text x="12" y="206" font-size="8.5" fill="#8fa89b">指先が床に届かない</text></svg>`,
-  a:`<svg viewBox="0 0 120 210" style="height:205px"><line x1="14" y1="196" x2="106" y2="196" stroke="#b9c9bf" stroke-width="2"/><g stroke="#2e9e72" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="90" cy="118" r="10" fill="#e6f5ee"/><path d="M55 100 Q 76 92 86 122"/><path d="M55 100 L 53 148 L 52 196"/><path d="M55 100 L 60 150 L 61 196"/><path d="M82 118 L 86 168"/></g><path d="M86 174 L 86 192" stroke="#2e9e72" stroke-width="2" stroke-dasharray="3 3"/><text x="92" y="186" font-size="9" fill="#2e9e72" font-weight="bold">2cm</text><text x="24" y="206" font-size="8.5" fill="#2e9e72">指先がほぼ床に ✓</text></svg>`,
-  std:`<b class="t">📏 前屈（柔軟性）でみる基準</b>膝を伸ばしたまま前屈し、指先と床の距離（FFD：指床間距離）で柔軟性を評価します。<ul class="stdList"><li><b>0cm以下</b>（指先が床に届く）が目安</li><li>距離が縮むほど、太もも裏〜背中の柔軟性が改善しています</li><li>腰痛予防・姿勢改善の指標になります</li></ul>`
- }
-};
-function baPlane(p){
-  document.querySelectorAll(".baTab").forEach(b=>b.classList.toggle("act",b.dataset.p===p));
-  document.getElementById("baFrameB").innerHTML=PLANES[p].b;
-  document.getElementById("baFrameA").innerHTML=PLANES[p].a;
-  document.getElementById("baStd").innerHTML=PLANES[p].std;
-}
-
-/* ---------------- 目標編集 ---------------- */
-let GOAL="9月の同窓会までに、写真をとる時に気にならない姿勢になる";
-function goalEdit(){
-  document.getElementById("goalView").style.display="none";
-  document.getElementById("goalEditBox").style.display="block";
-  document.getElementById("goalInput").value=GOAL;
-}
-function goalSave(){
-  GOAL=document.getElementById("goalInput").value.trim()||GOAL;
-  document.getElementById("goalText").textContent=GOAL;
-  document.getElementById("goalEditBox").style.display="none";
-  document.getElementById("goalView").style.display="block";
-  lineToast("目標を更新しました。ご自宅からいつでも変更できます ✏️（デモのため保存はされません）");
-}
-
-/* ---------------- 評価入力（オーナー） ---------------- */
-const EVAL_ITEMS={
- "関節可動域（ROM）":["肩屈曲（基準180°）","肩外転（基準180°）","股関節屈曲（基準125°）","股関節伸展（基準15°）","膝関節屈曲（基準130°）","足関節背屈（基準20°）","体幹回旋（基準40°）"],
- "MMT（徒手筋力テスト 0〜5）":["体幹屈曲","体幹伸展","股関節外転","膝関節伸展","足関節底屈","肩甲骨内転"],
- "バランス":["片脚立位時間（秒）","ファンクショナルリーチ（cm）","TUG（秒）"],
- "柔軟性":["FFD 指床間距離（cm）","SLR角度（°）","踵殿距離（cm）"]
-};
-const EVAL_LOG=[];
 function evInit(){
-  document.getElementById("evCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.name}（${c.nn}）</option>`).join("");
-  document.getElementById("ytCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.nn} さん</option>`).join("");
-  document.getElementById("tkNewCust").innerHTML=CUSTOMERS.map(c=>`<option>${c.nn} さん</option>`).join("");
-  document.getElementById("evCat").innerHTML=Object.keys(EVAL_ITEMS).map(k=>`<option>${k}</option>`).join("");
+  document.getElementById("evCat").innerHTML = Object.keys(EVAL_ITEMS).map(k=>`<option>${k}</option>`).join("");
   evFillItems();
 }
 function evFillItems(){
-  const c=document.getElementById("evCat").value;
-  document.getElementById("evItem").innerHTML=EVAL_ITEMS[c].map(i=>`<option>${i}</option>`).join("");
+  const c = document.getElementById("evCat").value;
+  document.getElementById("evItem").innerHTML = EVAL_ITEMS[c].map(i=>`<option>${i}</option>`).join("");
 }
-function evAdd(){
-  const v=document.getElementById("evVal").value.trim();
-  if(!v){lineToast("値を入力してください");return}
-  EVAL_LOG.push({c:document.getElementById("evCust").value,i:document.getElementById("evItem").value,s:document.getElementById("evSide").value,v});
-  document.getElementById("evVal").value="";
-  const t=document.getElementById("evLog");
-  t.style.display="table";
-  t.innerHTML=`<tr><th>対象</th><th>項目</th><th>側</th><th>値</th></tr>`+EVAL_LOG.map(r=>
-   `<tr><td>${r.c.split("（")[0]}</td><td style="text-align:left">${r.i}</td><td>${r.s}</td><td><b>${r.v}</b></td></tr>`).join("");
+async function evAdd(){
+  const memberId = document.getElementById("evCust").value;
+  const v = document.getElementById("evVal").value.trim();
+  if(!memberId || !v){ toast("会員と値を確認してください"); return; }
+  const { error } = await sb.from("assessments").insert({
+    member_id: memberId,
+    category: document.getElementById("evCat").value,
+    item: document.getElementById("evItem").value,
+    side: document.getElementById("evSide").value,
+    value: parseFloat(v) || null,
+    unit: document.getElementById("evUnit").value || null,
+    free_note: document.getElementById("evFree").value || null
+  });
+  if(error){ toast("保存できませんでした"); return; }
+  document.getElementById("evVal").value = "";
+  toast("評価を保存しました。会員のマイページに反映されます");
 }
-
-/* ---------------- 宿題動画（YouTube） ---------------- */
-let ytSel=0;
-const YT=[
- {t:"骨盤ニュートラルの作り方",len:"3:12"},
- {t:"胸椎モビリティ・エクササイズ",len:"5:04"},
- {t:"肩甲骨セッティング",len:"4:20"},
- {t:"片脚バランス練習【初級】",len:"3:45"},
-];
-function ytInit(){
-  document.getElementById("ytList").innerHTML=YT.map((v,i)=>
-   `<div class="vid" onclick="ytSel=${i};ytInit()" style="${i===ytSel?'border-color:var(--g);background:var(--gxl);box-shadow:0 0 0 1px var(--g)':''}">
-      <div class="th">▶</div><div><div class="vt">${v.t}</div><div class="vs">${v.len} ｜ YouTube限定公開</div></div></div>`).join("");
+async function prSave(){
+  const memberId = document.getElementById("prCust").value;
+  const content = document.getElementById("prContent").value.trim();
+  if(!memberId || !content){ toast("会員と問題点を入力してください"); return; }
+  let videoId = null;
+  const vt = document.getElementById("prVideo").value.trim();
+  if(vt){
+    const { data: v } = await sb.from("videos").insert({ title: vt }).select().single();
+    videoId = v?.id || null;
+  }
+  const ord = +document.getElementById("prOrd").value;
+  await sb.from("problems").delete().eq("member_id", memberId).eq("ord", ord);
+  const { error } = await sb.from("problems").insert({ member_id: memberId, ord, content, video_id: videoId });
+  if(error){ toast("保存できませんでした"); return; }
+  document.getElementById("prContent").value=""; document.getElementById("prVideo").value="";
+  toast(`問題点${ord}を保存しました`);
 }
-function ytAssign(){
-  lineToast(`${document.getElementById("ytCust").value}に「${YT[ytSel].t}」を割り当てました（LINEで通知）※デモ`);
-}
-
-/* ---------------- 研究用統計 ---------------- */
-const STUDY={
- "疼痛 NRS（0〜10）":{b:[6,7,5,8,6,4,7,5],a:[2,3,1,4,2,1,3,2],note:"値が小さいほど良い指標です（痛みの強さ）"},
- "片脚立位時間（秒）・右":{b:[12,18,25,9,30,15,22,11],a:[28,42,45,20,51,33,40,25],note:"値が大きいほど良い指標です（バランス能力）"},
- "FFD 指床間距離（cm）":{b:[12,5,18,9,15,20,7,11],a:[2,-1,8,3,6,10,0,4],note:"値が小さいほど良い指標です（柔軟性）"}
-};
-function mean(x){return x.reduce((s,v)=>s+v,0)/x.length}
-function sdev(x){const m=mean(x);return Math.sqrt(x.reduce((s,v)=>s+(v-m)*(v-m),0)/(x.length-1))}
-function lgam(x){const g=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];let y=x,tmp=x+5.5;tmp-=(x+0.5)*Math.log(tmp);let ser=1.000000000190015;for(let j=0;j<6;j++)ser+=g[j]/++y;return -tmp+Math.log(2.5066282746310005*ser/x)}
-function betacf(a,b,x){let c=1,d=1-(a+b)*x/(a+1);if(Math.abs(d)<1e-30)d=1e-30;d=1/d;let h=d;for(let m=1;m<=100;m++){const m2=2*m;let aa=m*(b-m)*x/((a+m2-1)*(a+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;h*=d*c;aa=-(a+m)*(a+b+m)*x/((a+m2)*(a+m2+1));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<3e-7)break}return h}
-function ibeta(a,b,x){if(x<=0)return 0;if(x>=1)return 1;const bt=Math.exp(lgam(a+b)-lgam(a)-lgam(b)+a*Math.log(x)+b*Math.log(1-x));return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b}
-function statInit(){
-  document.getElementById("statItem").innerHTML=Object.keys(STUDY).map(k=>`<option>${k}</option>`).join("");
-  renderStats();
-}
-function renderStats(){
-  const k=document.getElementById("statItem").value,S=STUDY[k];
-  const n=S.b.length,mb=mean(S.b),ma=mean(S.a),sb=sdev(S.b),sa=sdev(S.a);
-  const d=S.a.map((v,i)=>v-S.b[i]),md=mean(d),sdd=sdev(d);
-  const t=md/(sdd/Math.sqrt(n)),df=n-1;
-  const p=ibeta(df/2,0.5,df/(df+t*t));
-  const sig=p<0.05;
-  const max=Math.max(mb+sb,ma+sa,1);
-  const y=v=>105-(Math.max(v,0)/max)*95;
-  const bar=(x,m,s,col)=>`<rect x="${x}" y="${y(m)}" width="64" height="${105-y(m)}" rx="6" fill="${col}"/><line x1="${x+32}" y1="${y(m+s)}" x2="${x+32}" y2="${y(m-s)}" stroke="#5c6b62" stroke-width="2"/><line x1="${x+25}" y1="${y(m+s)}" x2="${x+39}" y2="${y(m+s)}" stroke="#5c6b62" stroke-width="2"/><line x1="${x+25}" y1="${y(m-s)}" x2="${x+39}" y2="${y(m-s)}" stroke="#5c6b62" stroke-width="2"/>`;
-  document.getElementById("statBody").innerHTML=`
-   <div class="statGrid">
-     <div class="statBox"><div class="v">${n}名</div><div class="l">対象（架空データ）</div></div>
-     <div class="statBox"><div class="v">${md>0?"+":""}${md.toFixed(1)}</div><div class="l">平均変化量</div></div>
-     <div class="statBox"><div class="v">${mb.toFixed(1)} ± ${sb.toFixed(1)}</div><div class="l">Before 平均±SD</div></div>
-     <div class="statBox"><div class="v">${ma.toFixed(1)} ± ${sa.toFixed(1)}</div><div class="l">After 平均±SD</div></div>
-   </div>
-   <div style="text-align:center">
-     <svg viewBox="0 0 260 135" style="max-width:320px;width:100%">
-       <line x1="10" y1="105" x2="250" y2="105" stroke="#dfe9e3" stroke-width="2"/>
-       ${bar(50,mb,sb,"#c8ddd2")}${bar(150,ma,sa,"#2e9e72")}
-       <text x="82" y="122" font-size="11" text-anchor="middle" fill="#68796f">Before</text>
-       <text x="182" y="122" font-size="11" text-anchor="middle" fill="#1f7a56" font-weight="bold">After</text>
-     </svg>
-   </div>
-   <div style="text-align:center;margin:6px 0 10px;font-size:13px">対応のあるt検定：t(${df}) = ${t.toFixed(2)}、p ${p<0.001?"&lt; 0.001":"= "+p.toFixed(3)}　<span class="sig ${sig?"":"no"}">${sig?"統計的に有意な変化あり":"有意差なし"}</span></div>
-   <div class="stdBox"><b class="t">📖 この結果の読み方</b>
-     <ul class="stdList">
-       <li><b>SD（標準偏差）</b>＝データのばらつきの大きさ。グラフの縦線（エラーバー）は「平均±SD」の範囲を示します。</li>
-       <li><b>対応のあるt検定</b>＝同じ人のBefore/Afterを比べて、変化が「偶然」で説明できるかを調べる統計手法です。</li>
-       <li><b>p値</b>＝この差が偶然生じる確率。<b>p&lt;0.05</b>（5%未満）なら「偶然とは考えにくい＝統計的に有意な変化」と判断します。</li>
-       <li>${S.note}。※これは架空のデモデータです。本番版では実データから自動計算し、CSV書き出し（統計ソフト用）にも対応予定です。</li>
-     </ul>
-   </div>`;
-}
-let toastTimer;
-function lineToast(msg){
-  document.getElementById("toastMsg").textContent=msg;
-  const t=document.getElementById("toast");
-  t.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
+async function ytAssign(){
+  const memberId = document.getElementById("ytCust").value;
+  const title = document.getElementById("ytTitle").value.trim();
+  if(!memberId || !title){ toast("会員と動画タイトルを入力してください"); return; }
+  const { data: v, error: ve } = await sb.from("videos").insert({ title, youtube_id: document.getElementById("ytId").value.trim() || null }).select().single();
+  if(ve){ toast("動画を登録できませんでした"); return; }
+  const { error } = await sb.from("video_assignments").insert({ member_id: memberId, video_id: v.id, frequency_note: document.getElementById("ytFreq").value || null });
+  if(error){ toast("割り当てできませんでした"); return; }
+  document.getElementById("ytTitle").value=""; document.getElementById("ytId").value=""; document.getElementById("ytFreq").value="";
+  toast("宿題動画を割り当てました。会員のマイページに表示されます");
 }
 
-renderMenus();renderDays();renderSlots();renderWeek();renderCust();baPlane('sag');evInit();ytInit();statInit();renderPain();renderTicket();renderTkAdmin();renderIida();
+(async ()=>{
+  const { data: { session } } = await sb.auth.getSession();
+  if(session) await enterApp();
+})();
 </script>
 </body>
 </html>
