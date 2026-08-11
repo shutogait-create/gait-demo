@@ -45,6 +45,13 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
 .dot{width:13px;height:13px;border-radius:50%;background:var(--g)}
 .dot.used{background:#dfe9e3}
+.chk{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--sub);margin:2px 0 13px;cursor:pointer;line-height:1.6}
+.chk input{width:17px;height:17px;accent-color:var(--g);flex:none;margin-top:1px}
+.spin{width:26px;height:26px;border:3px solid var(--gl);border-top-color:var(--g);border-radius:50%;
+      margin:0 auto;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.memo{text-align:center;font-size:11.5px;color:var(--sub);margin-top:14px;line-height:1.9}
+.memo a{color:var(--sub);text-decoration:underline;cursor:pointer}
 footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;line-height:1.9}
 </style>
 </head>
@@ -55,7 +62,14 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
 </div>
 
 <main>
-  <div id="form">
+  <div id="boot" style="display:none">
+    <div class="card" style="text-align:center;padding:44px 18px">
+      <div class="spin"></div>
+      <p class="notice" style="margin-top:14px">ご予約を確認しています…</p>
+    </div>
+  </div>
+
+  <div id="form" style="display:none">
     <div class="card">
       <h2>ご予約・回数券の確認</h2>
       <p class="notice" style="margin-bottom:14px">
@@ -71,7 +85,11 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
         <label>生年月日</label>
         <input id="dob" type="date">
       </div>
+      <label class="chk"><input type="checkbox" id="remember" checked><span>この端末に記憶して、次回から入力なしで表示する</span></label>
       <button class="btn" id="btn" onclick="lookup()">確認する</button>
+      <p class="notice" style="margin-top:9px;font-size:11.5px">
+        ご家族と共用の端末や、他の方に貸すことがある端末では、チェックを外してください。
+      </p>
     </div>
     <div class="card">
       <h2>会員の方へ</h2>
@@ -98,6 +116,10 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
 
     <button class="btn" onclick="location.href='/'">予約アプリを開く</button>
     <button class="btn sub" onclick="reset()">別の方を確認する</button>
+    <p class="memo" id="memo" style="display:none">
+      この端末では入力なしで確認できるようにしています。<br>
+      <a onclick="forget()">この端末の記憶を消す</a>
+    </p>
   </div>
 </main>
 
@@ -118,26 +140,59 @@ function fmtTs(ts){
 }
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function showErr(m){const e=document.getElementById("err");e.style.display=m?"block":"none";e.textContent=m||""}
-function reset(){
+// ── この端末を覚えておく仕組み ──────────────────────────
+// 2回目以降は入力なしで開けるように、端末の中だけに情報を残します。
+// サーバーには送りません。「記憶を消す」でいつでも消せます。
+const MEM = "gait_me_v1";
+function memGet(){ try{ return JSON.parse(localStorage.getItem(MEM) || "null"); }catch(e){ return null; } }
+function memSet(v){ try{ localStorage.setItem(MEM, JSON.stringify(v)); }catch(e){} }
+function memDel(){ try{ localStorage.removeItem(MEM); }catch(e){} }
+
+function showForm(){
+  document.getElementById("boot").style.display="none";
   document.getElementById("result").style.display="none";
   document.getElementById("form").style.display="block";
+}
+function reset(){
+  memDel();
   document.getElementById("tel").value=""; document.getElementById("dob").value=""; showErr("");
+  showForm();
+}
+function forget(){
+  memDel();
+  document.getElementById("tel").value=""; document.getElementById("dob").value="";
+  showForm();
+  showErr("この端末の記憶を消しました。次回からは入力が必要になります。");
 }
 
-async function lookup(){
+async function lookup(auto){
   showErr("");
-  const tel = document.getElementById("tel").value.replace(/[^0-9]/g,"");
-  const dob = document.getElementById("dob").value;
-  if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
-  if(!dob){ showErr("生年月日を入力してください"); return; }
+  let tel, dob;
+  if(auto){
+    tel = auto.tel; dob = auto.dob;
+  }else{
+    tel = document.getElementById("tel").value.replace(/[^0-9]/g,"");
+    dob = document.getElementById("dob").value;
+    if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
+    if(!dob){ showErr("生年月日を入力してください"); return; }
+  }
 
   const btn = document.getElementById("btn");
-  btn.disabled = true; btn.textContent = "確認しています…";
+  if(!auto){ btn.disabled = true; btn.textContent = "確認しています…"; }
   const { data, error } = await sb.rpc("guest_lookup", { p_tel: tel, p_dob: dob });
-  btn.disabled = false; btn.textContent = "確認する";
+  if(!auto){ btn.disabled = false; btn.textContent = "確認する"; }
 
-  if(error){ showErr("うまく確認できませんでした。時間をおいてお試しください。"); return; }
+  if(error){
+    if(auto){ showForm(); }
+    showErr("うまく確認できませんでした。時間をおいてお試しください。");
+    return;
+  }
   if(!data || !data.ok){
+    if(auto){
+      memDel(); showForm();
+      showErr("ご登録の内容が変わったようです。お手数ですが、もう一度ご入力ください。");
+      return;
+    }
     showErr("該当する情報が見つかりませんでした。電話番号と生年月日をご確認ください。お心当たりのない場合は、スタジオまでお問い合わせください。");
     return;
   }
@@ -162,6 +217,10 @@ async function lookup(){
       }).join("")
     : '<p class="notice">有効な回数券はありません。</p>';
 
+  if(!auto && document.getElementById("remember").checked){ memSet({ tel: tel, dob: dob }); }
+  document.getElementById("memo").style.display = memGet() ? "block" : "none";
+
+  document.getElementById("boot").style.display="none";
   document.getElementById("form").style.display="none";
   document.getElementById("result").style.display="block";
   window.scrollTo(0,0);
@@ -169,6 +228,17 @@ async function lookup(){
 
 document.getElementById("tel").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("dob").focus(); });
 document.getElementById("dob").addEventListener("keydown", e=>{ if(e.key==="Enter") lookup(); });
+
+// 記憶があれば、開いた瞬間に自動で表示する
+(function(){
+  const m = memGet();
+  if(m && m.tel && m.dob){
+    document.getElementById("boot").style.display="block";
+    lookup(m);
+  }else{
+    showForm();
+  }
+})();
 </script>
 </body>
 </html>
