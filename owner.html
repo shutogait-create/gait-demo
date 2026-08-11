@@ -225,7 +225,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div class="fRow" style="margin-top:12px">
         <select id="tkNewCust" style="flex:1"></select>
         <select id="tkNewKind"><option>整体×ピラティス</option><option>全身整体</option></select>
-        <select id="tkNewType"><option>4回</option><option>10回</option><option>20回</option><option>30回</option></select>
+        <select id="tkNewType"><option>4回</option><option>10回</option><option>12回</option><option>20回</option><option>30回</option></select>
         <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
       </div>
       <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）</p>
@@ -300,7 +300,7 @@ const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 let ME=null, CUSTS=[], CATS=[], CUR=null;
 const FEE = { cash:0, airpay_card:0.0324, paypay:0.0198, bank:0, paypay_send:0 };
-const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
+const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,12:88000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
 const EVAL_ITEMS = {
  "関節可動域（ROM）":["肩屈曲","肩外転","股関節屈曲","股関節伸展","膝関節屈曲","足関節背屈","体幹回旋"],
  "MMT（徒手筋力テスト 0〜5）":["体幹屈曲","体幹伸展","股関節外転","膝関節伸展","足関節底屈","肩甲骨内転"],
@@ -420,6 +420,9 @@ async function inboxIgnore(i, learn){
 async function loadCusts(){
   const { data } = await sb.from("profiles").select("*").order("last_visit_at",{ascending:false,nullsFirst:false}).order("created_at");
   CUSTS = data || [];
+  const { data: vv } = await sb.from("v_customer_visits").select("id,total_visits,last_visit_at");
+  const VM = {}; (vv||[]).forEach(v=>VM[v.id]=v);
+  CUSTS.forEach(c=>{ const v=VM[c.id]; if(v){ c.visits_offset = v.total_visits; if(v.last_visit_at) c.last_visit_at = v.last_visit_at; } });
   const opts = CUSTS.map(c=>`<option value="${c.id}">${c.nickname||"（名前未設定）"}${c.full_name?"（"+c.full_name+"）":""}</option>`).join("");
   ["tkNewCust","payCust","evCust","prCust","ytCust"].forEach(id=>{ document.getElementById(id).innerHTML = opts || "<option value=''>会員がまだいません</option>"; });
   const { data: cats } = await sb.from("categories").select("*").order("id");
@@ -532,6 +535,7 @@ async function tkIssue(){
   const kind = document.getElementById("tkNewKind").value;
   const total = parseInt(document.getElementById("tkNewType").value);
   const price = TK_PRICE[kind][total];
+  if(price === undefined){ toast(`${kind} に ${total}回券の設定がありません`); return; }
   const exp = new Date(); exp.setMonth(exp.getMonth()+6);
   const { error } = await sb.from("tickets").insert({ member_id: memberId, kind, total, left_count: total, price, expires_at: jstDate(exp) });
   if(error){ toast("発行できませんでした"); return; }
