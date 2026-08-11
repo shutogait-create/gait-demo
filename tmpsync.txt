@@ -1,0 +1,225 @@
+/**
+ * gait 予約アプリ ⇔ Googleカレンダー 双方向同期
+ *
+ *  ① アプリで予約が入る → カレンダーに登録＋メール通知   （doPost：Supabaseのトリガーから呼ばれる）
+ *  ② カレンダーに直接書いた予定 → アプリの予約として取り込み（syncCalendarToApp：15分ごとに自動実行）
+ *
+ * 実行アカウント：shutogait@gmail.com
+ * デプロイ：ウェブアプリ（実行＝自分／アクセスできるユーザー＝全員）
+ *
+ * ▼ 初回セットアップ（このファイルを貼り替えたあと）
+ *   1. 上のメニューから setupTriggers を選んで「実行」→ 権限を許可
+ *      （これで15分ごとの自動取り込みが始まります）
+ *   2. 過去分も取り込みたいときは backfill2024 を1回だけ「実行」
+ *   3. デプロイ → デプロイを管理 → 編集（鉛筆）→ バージョン「新バージョン」→ デプロイ
+ *      ※ URLは変わりません。Supabase側の設定はそのままでOKです
+ */
+
+// ============================================================
+// 設定
+// ============================================================
+var SHARED_SECRET = '__SHARED_SECRET__';          // Supabase側の gcal_ingest と一致させること
+var NOTIFY_EMAIL  = 'shutogait@gmail.com';
+var CALENDAR_ID   = 'shutogait@gmail.com';
+var STUDIO        = 'リラクゼーション＆ピラティス gait（岡山）';
+
+var SB_URL = 'https://pizzhyvqptkhigwwhorp.supabase.co';
+var SB_KEY = 'sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg';  // 公開キー（誰に見られても安全なもの）
+
+var SYNC_BACK_DAYS    = 14;   // 何日前まで見に行くか
+var SYNC_FORWARD_DAYS = 60;   // 何日先まで見に行くか
+var APP_MARKER        = 'gait-app:';  // アプリが作った予定の目印（二重取り込み防止）
+
+
+// ============================================================
+// ① アプリ → カレンダー（既存の動き）
+// ============================================================
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+    if (body.secret !== SHARED_SECRET) {
+      return ContentService.createTextOutput('forbidden');
+    }
+
+    var title    = body.title    || 'gait ご予約';
+    var start    = new Date(body.start);
+    var minutes  = Number(body.duration_min) || 60;
+    var end      = new Date(start.getTime() + minutes * 60000);
+    var customer = body.customer || '';
+    var menu     = body.menu     || '';
+    var staff    = body.staff    || '';
+    var channel  = body.channel  || 'app';
+    var action   = body.action   || 'created';
+    var bookingId= body.booking_id || '';
+
+    var cal = CalendarApp.getCalendarById(CALENDAR_ID);
+    var desc = [
+      '顧客：' + customer,
+      'メニュー：' + menu,
+      '担当：' + staff,
+      '経路：' + channel,
+      '',
+      APP_MARKER + 'booking:' + bookingId,   // ← この行があるとカレンダー→アプリ取り込みの対象外になります
+      'オーナー管理：https://app.gait-pilates.com/owner.html'
+    ].join('\n');
+
+    if (action === 'cancelled') {
+      var evs = cal.getEvents(new Date(start.getTime() - 60000), new Date(end.getTime() + 60000));
+      for (var i = 0; i < evs.length; i++) {
+        if (evs[i].getTitle().indexOf(customer) >= 0) { evs[i].deleteEvent(); break; }
+      }
+      MailApp.sendEmail(NOTIFY_EMAIL,
+        '【gait】予約キャンセル ' + fmt(start),
+        '予約がキャンセルされました。\n\n' + fmt(start) + '\n' + desc);
+      return ContentService.createTextOutput('cancelled');
+    }
+
+    cal.createEvent(title, start, end, { description: desc, location: STUDIO });
+
+    MailApp.sendEmail(NOTIFY_EMAIL,
+      '【gait】新規予約 ' + fmt(start) + ' ' + customer + ' さん',
+      '新しい予約が入りました。\n\n' +
+      '日時：' + fmt(start) + '〜（' + minutes + '分）\n' + desc +
+      '\n\nGoogleカレンダーにも登録しました。');
+
+    return ContentService.createTextOutput('ok');
+
+  } catch (err) {
+    MailApp.sendEmail(NOTIFY_EMAIL, '【gait】連携エラー', String(err) + '\n\n' + (e && e.postData ? e.postData.contents : ''));
+    return ContentService.createTextOutput('error');
+  }
+}
+
+
+// ============================================================
+// ② カレンダー → アプリ（新規）
+// ============================================================
+
+/** 15分ごとに自動実行される本体 */
+function syncCalendarToApp() {
+  var now  = new Date();
+  var from = new Date(now.getTime() - SYNC_BACK_DAYS    * 86400000);
+  var to   = new Date(now.getTime() + SYNC_FORWARD_DAYS * 86400000);
+  var res  = syncWindow(from, to);
+  console.log('sync ' + fmtDay(from) + '〜' + fmtDay(to) + ' → ' + JSON.stringify(res));
+  return res;
+}
+
+/** 指定した期間のカレンダーをアプリに取り込む */
+function syncWindow(from, to) {
+  var cal    = CalendarApp.getCalendarById(CALENDAR_ID);
+  var events = cal.getEvents(from, to);
+  var payload = [];
+
+  for (var i = 0; i < events.length; i++) {
+    var ev = events[i];
+    if (ev.isAllDayEvent()) continue;              // 終日予定（誕生日・記念日など）は対象外
+    var s = ev.getStartTime(), t = ev.getEndTime();
+    payload.push({
+      id: ev.getId(),
+      summary: ev.getTitle() || '',
+      start: s.toISOString(),
+      end:   t ? t.toISOString() : null,
+      duration_min: t ? Math.round((t.getTime() - s.getTime()) / 60000) : null,
+      description: (ev.getDescription() || '').slice(0, 500)
+    });
+  }
+
+  var body = {
+    p_secret: SHARED_SECRET,
+    p_window_start: from.toISOString(),
+    p_window_end:   to.toISOString(),
+    p_events: payload
+  };
+
+  var r = UrlFetchApp.fetch(SB_URL + '/rest/v1/rpc/gcal_ingest', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  });
+
+  var txt = r.getContentText();
+  if (r.getResponseCode() >= 300) {
+    throw new Error('gcal_ingest failed ' + r.getResponseCode() + ' ' + txt);
+  }
+  return { sent: payload.length, result: txt };
+}
+
+/** 過去分の一括取り込み（1回だけ手動実行）。2024年1月〜今日までを1ヶ月ずつ処理します */
+function backfill2024() { backfillFrom(2024, 1); }
+
+/** 2025年8月から取り込みたいときはこちら */
+function backfill2025Aug() { backfillFrom(2025, 8); }
+
+function backfillFrom(year, month) {
+  var cur = new Date(year, month - 1, 1);
+  var end = new Date();
+  var log = [];
+  while (cur < end) {
+    var next = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    try {
+      var res = syncWindow(cur, next);
+      log.push(fmtDay(cur) + ' → ' + res.result);
+    } catch (err) {
+      log.push(fmtDay(cur) + ' → ERROR ' + String(err));
+    }
+    Utilities.sleep(1000);
+    cur = next;
+  }
+  console.log(log.join('\n'));
+  MailApp.sendEmail(NOTIFY_EMAIL, '【gait】カレンダー一括取り込み 完了', log.join('\n'));
+}
+
+
+// ============================================================
+// トリガー設定
+// ============================================================
+
+/** 一度だけ実行してください。15分ごとの自動取り込みが始まります */
+function setupTriggers() {
+  var ts = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < ts.length; i++) {
+    if (ts[i].getHandlerFunction() === 'syncCalendarToApp') ScriptApp.deleteTrigger(ts[i]);
+  }
+  ScriptApp.newTrigger('syncCalendarToApp').timeBased().everyMinutes(15).create();
+  console.log('15分ごとの自動同期を設定しました');
+}
+
+/** 自動同期を止めたいとき */
+function removeTriggers() {
+  var ts = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < ts.length; i++) ScriptApp.deleteTrigger(ts[i]);
+  console.log('すべてのトリガーを削除しました');
+}
+
+
+// ============================================================
+// 補助
+// ============================================================
+function fmt(d)    { return Utilities.formatDate(d, 'Asia/Tokyo', 'M月d日(E) HH:mm'); }
+function fmtDay(d) { return Utilities.formatDate(d, 'Asia/Tokyo', 'yyyy/MM/dd'); }
+
+/** 動作テスト用：アプリ→カレンダーの経路を確認します */
+function testRun() {
+  var start = new Date(Date.now() + 24 * 3600 * 1000);
+  doPost({ postData: { contents: JSON.stringify({
+    secret: SHARED_SECRET,
+    title: 'gait 整体×ピラティス（テスト）',
+    start: start.toISOString(),
+    duration_min: 60,
+    customer: 'テスト太郎',
+    menu: '整体×ピラティス 60分',
+    staff: '宗田 修斗',
+    channel: 'app'
+  })}});
+}
+
+/** 動作テスト用：カレンダー→アプリの経路を確認します（今日1日分だけ送ります） */
+function testSyncToday() {
+  var d = new Date();
+  var from = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var to   = new Date(from.getTime() + 86400000);
+  console.log(JSON.stringify(syncWindow(from, to)));
+}
