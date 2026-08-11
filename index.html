@@ -578,8 +578,8 @@ async function loadMypage(){
   document.getElementById("goalText").textContent = PROFILE.goal || "未設定（「編集する」から入力できます）";
   document.getElementById("myHx").textContent = PROFILE.history || "—";
   document.getElementById("myMed").textContent = PROFILE.medication || "—";
-  const { count } = await sb.from("bookings").select("id", { count: "exact", head: true }).eq("member_id", ME.id).eq("status","done");
-  document.getElementById("myVisits").textContent = "★ ご来店 " + (count||0) + "回";
+  const { data: vv } = await sb.from("v_customer_visits").select("total_visits").eq("id", ME.id).maybeSingle();
+  document.getElementById("myVisits").textContent = "★ ご来店 " + ((vv && vv.total_visits) || 0) + "回";
   // 回数券
   const { data: tks } = await sb.from("tickets").select("*").eq("member_id", ME.id).gt("left_count", 0).order("issued_at", {ascending:false});
   const tb = document.getElementById("tkBody");
