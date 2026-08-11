@@ -429,7 +429,7 @@ async function enterApp(){
   document.getElementById("scrApp").style.display = "block";
   document.getElementById("homeNick").textContent = PROFILE.nickname || "会員";
   document.getElementById("myNick").textContent = PROFILE.nickname || "会員";
-  loadHome(); loadBookingMaster(); loadMypage(); loadLine();
+  loadHome(); loadBookingMaster(); loadMypage(); loadLine(); goFromHash();
 }
 
 /* ============ nav ============ */
@@ -437,8 +437,15 @@ function go(t){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));
   document.getElementById("tab-"+t).classList.add("act");
   document.querySelectorAll("#navUser button, .deskNav button").forEach(b=>b.classList.toggle("act",b.dataset.t===t));
+  if(location.hash.replace("#","")!==t) history.replaceState(null,"","#"+t);
   window.scrollTo(0,0);
 }
+// LINEのリッチメニューなどから #book / #my で直接開けるようにする
+function goFromHash(){
+  const t=(location.hash||"").replace("#","");
+  if(["home","book","my"].indexOf(t)>=0 && document.getElementById("tab-"+t)) go(t);
+}
+window.addEventListener("hashchange", goFromHash);
 
 /* ============ home / bookings ============ */
 async function loadHome(){
