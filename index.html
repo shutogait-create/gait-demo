@@ -535,7 +535,10 @@ async function loadBookingMaster(){
   renderMenus();
   const today = new Date();
   const until = new Date(today.getTime() + 15*86400000);
-  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
+  const { data: hol } = await sb.from("holidays").select("d, name").gte("d", jstDate(today)).lte("d", jstDate(until));
+  HOLIDAYS = {}; (hol||[]).forEach(h=>{ HOLIDAYS[h.d] = h.name; });
+
+  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to, skip_holidays").order("id");
   STAFFDB = (stf || []).filter(x => x.work_days);
   renderDays();
 }
@@ -551,6 +554,7 @@ function renderMenus(){
 }
 const hhmm = t => String(t||"").slice(0,5);
 function worksOn(st, ds){
+  if(st.skip_holidays && HOLIDAYS[ds]) return false;   // 祝日はお休み
   const dow = new Date(ds+"T00:00:00").getDay();
   return String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
 }
@@ -565,7 +569,7 @@ function renderDays(){
     const d = new Date(Date.now()+i*86400000);
     const ds = jstDate(d);
     html += `<button class="dayBtn ${selDate===ds?'sel':''}" onclick="selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()">
-      <div class="w">${WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
+      <div class="w">${HOLIDAYS[ds] ? "祝" : WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
   }
   row.innerHTML = html;
 }
@@ -576,7 +580,9 @@ async function renderSlots(){
   const onDuty = staffOnDate(selDate);
   const iida = onDuty.length === 1 && onDuty[0].id === 2;
   if(!onDuty.length){
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日はお休みです。別の日をお選びください。</div>';
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">'
+      + (HOLIDAYS[selDate] ? ('この日は祝日（' + HOLIDAYS[selDate] + '）のためお休みです。別の日をお選びください。')
+                           : 'この日はお休みです。別の日をお選びください。') + '</div>';
     return;
   }
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';

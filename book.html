@@ -228,6 +228,7 @@ let MENUS = [];
 let selMenu = null, selDate = null, selSlot = null;
 let MOVE = null;   // 日時変更モードのとき、変更する予約の情報が入る
 let STAFFDB = [];  // 担当と勤務パターン（曜日・時間帯）
+let HOLIDAYS = {}; // 祝日（YYYY-MM-DD → 名称）
 let selStaff = 0;  // 0=フリー（指名なし） / 1=宗田 修斗 / 2=飯田 隼人
 
 const STAFF_META = {
@@ -236,6 +237,7 @@ const STAFF_META = {
 };
 const hhmm = t => String(t||"").slice(0,5);
 function worksOn(st, ds){
+  if(st.skip_holidays && HOLIDAYS[ds]) return false;   // 祝日はお休み
   const dow = new Date(ds+"T00:00:00").getDay();
   return String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
 }
@@ -300,7 +302,11 @@ async function load(){
   selMenu = MENUS[0].id;
   renderMenus();
 
-  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
+  const today = jstDate(new Date()), until = jstDate(new Date(Date.now()+40*86400000));
+  const { data: hol } = await sb.from("holidays").select("d, name").gte("d", today).lte("d", until);
+  HOLIDAYS = {}; (hol||[]).forEach(h=>{ HOLIDAYS[h.d] = h.name; });
+
+  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to, skip_holidays").order("id");
   STAFFDB = (stf || []).filter(x => x.work_days);
   const hs = (location.hash.match(/staff=(\d)/)||[])[1];
   if(hs !== undefined) selStaff = Number(hs);
@@ -337,7 +343,7 @@ function renderDays(){
     const ok = staffWorks(ds);
     html += `<button class="dayBtn ${selDate===ds?'sel':''} ${ok?'':'off'}" ${ok?"":"disabled"}
       onclick="${ok?`selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()`:""}">
-      <div class="w">${WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
+      <div class="w">${HOLIDAYS[ds] ? "祝" : WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
   }
   document.getElementById("dayRow").innerHTML = html;
 }
@@ -350,8 +356,9 @@ async function renderSlots(){
   const iida = onDuty.length === 1 && onDuty[0].id === 2;
   if(!staffWorks(selDate)){
     el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">' +
-      (selStaff ? 'この日は担当がお休みです。別の日をお選びください。'
-                : 'この日はお休みです。別の日をお選びください。') + '</div>';
+      (HOLIDAYS[selDate] ? ('この日は祝日（' + HOLIDAYS[selDate] + '）のためお休みです。別の日をお選びください。')
+       : selStaff ? 'この日は担当がお休みです。別の日をお選びください。'
+                  : 'この日はお休みです。別の日をお選びください。') + '</div>';
     return;
   }
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
@@ -500,7 +507,8 @@ const MOVE_ERR = {
   closed_new: "ご予約の受付は前日23:59までです。翌日以降の日時をお選びください。",
   closed_old: "当日のご変更は承れません。お手数ですが、お電話か公式LINEでご連絡ください。",
   denied: "ご本人の確認ができませんでした。予約の確認ページからやり直してください。",
-  notfound: "このご予約は見つかりませんでした。すでに変更・キャンセルされている可能性があります。"
+  notfound: "このご予約は見つかりませんでした。すでに変更・キャンセルされている可能性があります。",
+  staff_off: "この日はご指名の担当がお休みです。別の日をお選びください。"
 };
 
 async function submitBooking(){
