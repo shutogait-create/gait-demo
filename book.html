@@ -351,7 +351,7 @@ async function initMove(){
 
   let bk = null;
   const { data } = await sb.from("bookings")
-    .select("id, starts_at, menu_id").eq("id", id).eq("status","confirmed").maybeSingle();
+    .select("id, starts_at, menu_id, title").eq("id", id).eq("status","confirmed").maybeSingle();
   if(data) bk = data;
   if(!bk && raw && raw.tel){
     const { data: g } = await sb.rpc("guest_lookup",
@@ -369,12 +369,13 @@ async function initMove(){
            tel: raw && raw.tel, dob: raw && raw.dob, name: raw && raw.name };
   if(bk.menu_id) selMenu = bk.menu_id;
 
-  const m = MENUS.find(x => x.id === selMenu);
+  const m = bk.menu_id ? MENUS.find(x => x.id === bk.menu_id) : null;
+  const label = m ? m.name : (bk.menu || bk.title || "ご予約");
   const d = new Date(bk.starts_at);
   document.getElementById("moveBanner").style.display = "block";
   document.getElementById("moveInfo").innerHTML =
     `いまのご予約：<b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}〜</b><br>` +
-    `${m ? esc(m.name) : ""}<br><span style="font-size:12.5px;color:var(--sub)">新しい日時をお選びください。メニューは変わりません。</span>`;
+    `${esc(label)}<br><span style="font-size:12.5px;color:var(--sub)">新しい日時をお選びください。メニューは変わりません。</span>`;
   document.getElementById("menuCard").style.display = "none";
   document.getElementById("guestFields").style.display = "none";
   document.getElementById("agreeRow").style.display = "none";
