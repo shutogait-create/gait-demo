@@ -162,6 +162,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .schBk b{display:block;font-size:12.5px}
 .schBk .mn{color:var(--sub);font-size:10.5px}
 .schBk.gc{background:#fff6e8;border-color:#e0a24a}
+.schBk.blk{background:#eef1ef;border-color:#b6c2ba;color:#5b6b62}
 .schBuf{position:absolute;left:3px;right:3px;border-radius:6px;
         background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
 .schEmpty{padding:26px 10px;text-align:center;color:var(--sub);font-size:12.5px}
@@ -203,6 +204,22 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       </div>
       <div id="schWrap"><p class="notice">読み込み中…</p></div>
       <p class="finePrint">斜線の帯は、予約の前後15分の準備時間です。この時間はお客様側の予約画面で選べないようになっています。</p>
+      <div style="margin-top:12px;border-top:1px solid var(--gxl);padding-top:12px">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:8px">🚫 予約を受け付けない時間をつくる（私用・移動・休憩）</p>
+        <div class="fRow">
+          <input id="blkDate" type="date" style="width:150px">
+          <input id="blkFrom" type="time" style="width:115px">
+          <select id="blkDur">
+            <option value="30">30分</option><option value="60" selected>60分</option>
+            <option value="90">90分</option><option value="120">2時間</option>
+            <option value="180">3時間</option><option value="360">6時間</option>
+            <option value="840">終日（8:00〜22:00）</option>
+          </select>
+          <input id="blkNote" placeholder="内容（例：歯医者）" style="flex:1">
+          <button class="btn" style="width:auto;padding:8px 14px" onclick="blockAdd()">登録</button>
+        </div>
+        <p class="finePrint">登録すると、その時間はお客様の予約画面から選べなくなります。前後15分も自動であきます。スケジュール上ではグレーで表示され、タップで取り消せます。Googleカレンダーに直接予定を書いても同じように埋まります（15分以内に反映）。</p>
+      </div>
     </div>
 
     <div class="card">
@@ -417,7 +434,12 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;",
 const SCH_FROM = 8, SCH_TO = 22, SCH_PXMIN = 1.15, SCH_BUF = 15;
 let SCH_STAFF = null;
 
-function schToday(){ document.getElementById("schDate").value = jstDate(new Date()); loadSchedule(); }
+function schToday(){
+  const t = jstDate(new Date());
+  document.getElementById("schDate").value = t;
+  const bd = document.getElementById("blkDate"); if(bd && !bd.value) bd.value = t;
+  loadSchedule();
+}
 function schMove(d){
   const cur = document.getElementById("schDate").value || jstDate(new Date());
   const dt = new Date(cur + "T00:00:00");
@@ -469,14 +491,16 @@ async function loadSchedule(){
       const s = new Date(b.starts_at);
       const m0 = s.getHours()*60 + s.getMinutes();
       const dur = b.duration_min || (b.menus && b.menus.duration_min) || 60;
-      const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）";
+      const isBlk = b.source === "block";
+      const who = isBlk ? ("🚫 " + (b.title || "予約不可"))
+                        : ((b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）");
       const menu = (b.menus && b.menus.name) || b.title || "";
       cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
       cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
-      cells += `<div class="schBk ${b.source==="gcal"?"gc":""}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
+      cells += `<div class="schBk ${isBlk?"blk":(b.source==="gcal"?"gc":"")}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
                      title="${who} ／ ${menu}${b.customer_note?" ／ 備考："+b.customer_note:""}" onclick="ownerCancel(${b.id})">
                   <b>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")} ${who}</b>
-                  <span class="mn">${menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
+                  <span class="mn">${isBlk?"ご予約を受け付けない時間":menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
                 </div>`;
     });
     body += `<div class="schCol" style="height:${H}px">${cells}</div>`;
@@ -487,6 +511,26 @@ async function loadSchedule(){
   box.innerHTML = `<div style="font-size:12.5px;color:var(--sub);margin-bottom:7px">
       ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件</div>
     <div class="schScroll">${head}${body}</div>`;
+}
+
+/* ============ 予約を受け付けない時間（私用ブロック） ============ */
+async function blockAdd(){
+  const ds  = document.getElementById("blkDate").value || document.getElementById("schDate").value;
+  const tm  = document.getElementById("blkFrom").value;
+  const dur = Number(document.getElementById("blkDur").value) || 60;
+  const nt  = document.getElementById("blkNote").value.trim();
+  if(!ds){ toast("日付を入れてください"); return; }
+  if(!tm && dur < 840){ toast("開始時刻を入れてください"); return; }
+  const start = ds + "T" + (dur >= 840 ? "08:00" : tm) + ":00+09:00";
+  const { error } = await sb.from("bookings").insert({
+    starts_at: start, duration_min: dur, status: "confirmed",
+    channel: "other", source: "block",
+    title: nt || "予約不可", note: nt || null });
+  if(error){ toast("登録できませんでした：" + error.message); return; }
+  document.getElementById("blkNote").value = "";
+  toast("この時間は予約を受け付けないようにしました");
+  document.getElementById("schDate").value = ds;
+  loadSchedule(); loadBookings();
 }
 
 /* ============ キャンセル待ち ============ */

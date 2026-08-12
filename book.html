@@ -20,6 +20,15 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .stepLbl{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:12px}
 .stepLbl .n{width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:12px;font-weight:800;
             display:flex;align-items:center;justify-content:center;flex:none}
+.staffRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.staffOpt{border:1.5px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;background:#fff}
+.staffOpt.sel{border-color:var(--g);background:var(--gxl)}
+.staffOpt .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;
+              display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin:0 auto 7px}
+.staffOpt.free .av{background:#eef2ef;color:var(--sub)}
+.staffOpt .sn{font-size:13px;font-weight:800;line-height:1.35}
+.staffOpt .sr{font-size:10.5px;color:var(--sub);margin-top:3px;line-height:1.5}
+.dayBtn.off{opacity:.32;cursor:default}
 .menuOpt{border:1.5px solid var(--line);
          border-radius:12px;padding:12px 13px;margin-bottom:8px;cursor:pointer}
 .menuHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -89,14 +98,23 @@ footer a{color:var(--sub)}
       <button class="btn sub" style="margin-top:11px" onclick="cancelMove()">変更をやめる</button>
     </div>
 
+    <div class="card" id="staffCard">
+      <div class="stepLbl"><span class="n">1</span><b>担当を選ぶ</b></div>
+      <div class="staffRow" id="staffRow"></div>
+      <p class="notice" style="margin-top:10px">
+        <a href="/staff.html" target="_blank" rel="noopener" style="color:var(--gd);font-weight:700">スタッフ紹介を見る ›</a>
+      </p>
+      <p class="notice" id="staffHint" style="margin-top:6px"></p>
+    </div>
+
     <div class="card" id="menuCard">
-      <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
+      <div class="stepLbl"><span class="n">2</span><b>メニューを選ぶ</b></div>
       <p class="notice" style="margin:-4px 0 11px">表示している料金は<b>2026年9月1日からの改定後の価格</b>です。8月中のご来店は現行価格でご案内いたします。</p>
       <div id="menuList"><p class="notice">読み込み中…</p></div>
     </div>
 
     <div class="card">
-      <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
+      <div class="stepLbl"><span class="n">3</span><b>日時を選ぶ</b></div>
       <div class="dayRow" id="dayRow"></div>
       <div class="slotGrid" id="slotGrid"></div>
       <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。<br>
@@ -122,7 +140,7 @@ footer a{color:var(--sub)}
     </div>
 
     <div class="card" id="confirmCard" style="display:none">
-      <div class="stepLbl"><span class="n">3</span><b id="step3Title">お名前とご連絡先</b></div>
+      <div class="stepLbl"><span class="n">4</span><b id="step3Title">お名前とご連絡先</b></div>
       <div class="confirmBox" id="confirmText"></div>
       <div class="err" id="err"></div>
 
@@ -207,6 +225,45 @@ const WD = ["日","月","火","水","木","金","土"];
 let MENUS = [], SHIFTS = {};
 let selMenu = null, selDate = null, selSlot = null;
 let MOVE = null;   // 日時変更モードのとき、変更する予約の情報が入る
+let selStaff = 0;  // 0=フリー（指名なし） / 1=宗田 修斗 / 2=飯田 隼人
+
+const STAFF = [
+  { id:1, initial:"宗", name:"宗田 修斗", role:"理学療法士<br>FRPマスタートレーナー" },
+  { id:2, initial:"飯", name:"飯田 隼人", role:"理学療法士<br>初回1,000円" },
+  { id:0, initial:"－", name:"指名なし", role:"空いている担当が<br>ご案内します", free:true }
+];
+// その担当がその日に対応できるか
+function staffWorks(ds){
+  const d = new Date(ds+"T00:00:00");
+  const sun = d.getDay() === 0, shift = !!SHIFTS[ds];
+  if(selStaff === 1) return !sun;                 // 宗田さんは日曜以外
+  if(selStaff === 2) return sun && shift;         // 飯田さんはシフトの入る日曜だけ
+  return !sun || shift;                            // フリー
+}
+function menusFor(){
+  return MENUS.filter(m => selStaff === 0 ? !m.staff_id : (!m.staff_id || m.staff_id === selStaff));
+}
+function renderStaff(){
+  document.getElementById("staffRow").innerHTML = STAFF.map(st=>
+    `<div class="staffOpt ${st.free?"free":""} ${selStaff===st.id?"sel":""}" onclick="pickStaff(${st.id})">
+       <div class="av">${st.initial}</div>
+       <div class="sn">${st.name}</div>
+       <div class="sr">${st.role}</div>
+     </div>`).join("");
+  document.getElementById("staffHint").innerHTML = selStaff === 0
+    ? "はじめての方は、上で<b>担当をお選びください</b>。初回のメニューが表示されます。"
+    : (selStaff === 1
+        ? "宗田は<b>日曜をのぞく毎日 8:00〜21:00</b>の担当です。"
+        : "飯田は<b>日曜 9:00〜13:00</b>（シフトの入る日）の担当です。");
+}
+function pickStaff(id){
+  if(MOVE) return;
+  selStaff = id;
+  const list = menusFor();
+  if(!list.some(m => m.id === selMenu)) selMenu = list.length ? list[0].id : null;
+  selSlot = null;
+  renderStaff(); renderMenus(); renderDays(); renderSlots(); renderConfirm();
+}
 
 function jstDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -231,13 +288,23 @@ async function load(){
   const { data: shifts } = await sb.from("staff_shifts").select("date, open")
     .eq("staff_id", 2).gte("date", jstDate(today)).lte("date", jstDate(until));
   SHIFTS = {}; (shifts||[]).forEach(s=>{ if(s.open) SHIFTS[s.date] = true; });
+  const hs = (location.hash.match(/staff=(\d)/)||[])[1];
+  if(hs !== undefined) selStaff = Number(hs);
+  renderStaff();
+  renderMenus();
   renderDays();
-  await initMove();
+  const moving = await initMove();
+  if(moving) document.getElementById("staffCard").style.display = "none";
   renderSlots();
 }
 
 function renderMenus(){
-  document.getElementById("menuList").innerHTML = MENUS.map(m=>
+  const _list = menusFor();
+  if(!_list.length){
+    document.getElementById("menuList").innerHTML = '<p class="notice">この担当で受けられるメニューがありません。担当を選び直してください。</p>';
+    return;
+  }
+  document.getElementById("menuList").innerHTML = _list.map(m=>
     `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderSlots();renderConfirm()">
        <div class="menuHead">
          <div><div class="n">${esc(m.name)}</div>
@@ -253,7 +320,9 @@ function renderDays(){
   // ご予約の受付は前日23:59まで → 明日から14日ぶんを出す
   for(let i=1;i<=14;i++){
     const d = new Date(Date.now()+i*86400000), ds = jstDate(d);
-    html += `<button class="dayBtn ${selDate===ds?'sel':''}" onclick="selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()">
+    const ok = staffWorks(ds);
+    html += `<button class="dayBtn ${selDate===ds?'sel':''} ${ok?'':'off'}" ${ok?"":"disabled"}
+      onclick="${ok?`selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()`:""}">
       <div class="w">${WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
   }
   document.getElementById("dayRow").innerHTML = html;
@@ -263,9 +332,12 @@ async function renderSlots(){
   const el = document.getElementById("slotGrid");
   if(!selDate){ el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">日付を選んでください</div>'; return; }
   const d = new Date(selDate+"T00:00:00");
-  const isSun = d.getDay()===0, iida = isSun && SHIFTS[selDate];
-  if(isSun && !iida){
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です<br><span style="font-size:10.5px">※スタッフのシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span></div>';
+  const isSun = d.getDay()===0, iida = (selStaff===2) || (selStaff!==1 && isSun && SHIFTS[selDate]);
+  if(!staffWorks(selDate)){
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">' +
+      (selStaff===1 ? 'この日は宗田はお休みです。別の日をお選びください。'
+       : selStaff===2 ? 'この日は飯田のシフトが入っていません。日曜のシフト日をお選びください。'
+       : 'この日は定休日です<br><span style="font-size:10.5px">※スタッフのシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span>') + '</div>';
     return;
   }
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
@@ -282,7 +354,7 @@ async function renderSlots(){
     el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">このメニューの所要時間では、この日に取れる枠がありません</div>';
     return;
   }
-  const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>' : "";
+  const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（9:00〜13:00）</div>' : "";
   const now = new Date();
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
@@ -391,12 +463,12 @@ function renderConfirm(){
   if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
   const m = MENUS.find(x=>x.id===selMenu);
   const d = new Date(selDate+"T00:00:00");
-  const iida = d.getDay()===0 && SHIFTS[selDate];
+  const iida = (selStaff===2) || (selStaff!==1 && d.getDay()===0 && SHIFTS[selDate]);
   document.getElementById("confirmText").innerHTML =
     `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
     `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い）` +
-    (iida?"<br>担当：スタッフ 飯田":"");
+    (iida?"<br>担当：飯田 隼人":(selStaff===1?"<br>担当：宗田 修斗":""));
   c.style.display = "block";
 
   const mem = memGet();
@@ -423,7 +495,7 @@ async function submitBooking(){
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
-  const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
+  const staffId = selStaff || ((d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1);
   const btn = document.getElementById("bkBtn");
   const label = btn.textContent;
   let name = "", tel = "";
