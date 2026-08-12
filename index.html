@@ -385,7 +385,7 @@ let selMenu = null, selDate = null, selSlot = null;
 const SLOT_STEP   = 30;   // 何分刻みで枠を出すか
 const BUFFER_MIN  = 15;   // 予約の前後にあける分数
 // 営業時間帯（この中に「所要時間がまるごと収まる」枠だけ出します）
-const OPEN_REG  = [["10:00","12:00"], ["13:00","18:00"]];   // 通常日
+const OPEN_REG  = [["8:00","21:00"]];                        // 通常日（8:00〜21:00）
 const OPEN_IIDA = [["9:00","13:00"]];                        // スタッフ飯田の日曜
 function genSlots(blocks, dur){
   const out = [];
