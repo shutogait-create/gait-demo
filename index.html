@@ -246,6 +246,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
         <div>
           <div class="card" style="margin-top:0">
             <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
+            <p class="finePrint" style="margin:-2px 0 10px">表示している料金は<b>2026年9月1日からの改定後の価格</b>です。8月中のご来店は現行価格でご案内いたします。</p>
             <div id="menuList"><p class="notice">読み込み中…</p></div>
           </div>
         </div>
@@ -532,7 +533,7 @@ function renderMenus(){
     `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderSlots();renderConfirm()">
       <div class="menuHead">
         <div><div class="n">${m.name}</div><div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+m.price_note:""}</div></div>
-        <div class="pr">¥${m.price.toLocaleString()}</div>
+        <div class="pr">${m.price ? "¥"+m.price.toLocaleString() : "プラン内"}</div>
       </div>
       ${m.description?`<p class="desc">${m.description}</p><div class="more">タップして詳細を読む ›</div>`:""}
     </div>`).join("");
