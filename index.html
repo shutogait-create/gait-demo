@@ -511,7 +511,8 @@ function painChart(logs, visits){
   });
 
   const fd = s => s.slice(5).replace("-","/");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img"
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"
+     style="width:100%;height:auto;display:block;max-width:${W}px"
      aria-label="痛みの強さの変化 ${fd(L[0].d)}から${fd(L[L.length-1].d)}まで">
     ${g}
     <polygon points="${area}" fill="#2e9e72" opacity="0.07"/>
