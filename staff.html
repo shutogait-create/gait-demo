@@ -22,8 +22,9 @@ main{max-width:600px;margin:0 auto;padding:16px 16px 50px}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:19px;margin-bottom:14px;
       box-shadow:0 1px 3px rgba(30,60,45,.05)}
 .head{display:flex;align-items:center;gap:14px;margin-bottom:13px}
-.ava{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;
-     display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;flex:none}
+.ava{width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;
+     display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;flex:none;overflow:hidden}
+.ava img{width:100%;height:100%;object-fit:cover;display:block}
 .nm{font-size:19px;font-weight:800;line-height:1.35}
 .nm small{display:block;font-size:11.5px;color:var(--sub);font-weight:600;letter-spacing:.04em}
 .role{font-size:12.5px;color:var(--gd);font-weight:700;margin-top:3px}
@@ -55,7 +56,7 @@ html.embed footer{display:none}
 
   <div class="card">
     <div class="head">
-      <div class="ava">宗</div>
+      <div class="ava"><img src="/staff-1.jpg" alt="宗田 修斗" onerror="this.parentNode.textContent='宗'"></div>
       <div>
         <div class="nm">宗田 修斗<small>ソウタ シュウト</small></div>
         <div class="role">理学療法士 ／ FRPマスタートレーナー</div>
@@ -78,7 +79,7 @@ html.embed footer{display:none}
 
   <div class="card">
     <div class="head">
-      <div class="ava">飯</div>
+      <div class="ava"><img src="/staff-2.jpg" alt="飯田 隼人" onerror="this.parentNode.textContent='飯'"></div>
       <div>
         <div class="nm">飯田 隼人<small>イイダ ハヤト</small></div>
         <div class="role">理学療法士</div>

@@ -28,8 +28,9 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .staffRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .staffOpt{border:1.5px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;background:#fff}
 .staffOpt.sel{border-color:var(--g);background:var(--gxl)}
-.staffOpt .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;
-              display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin:0 auto 7px}
+.staffOpt .av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;
+              display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;margin:0 auto 7px;overflow:hidden}
+.staffOpt .av img{width:100%;height:100%;object-fit:cover;display:block}
 .staffOpt.free .av{background:#eef2ef;color:var(--sub)}
 .staffOpt .sn{font-size:13px;font-weight:800;line-height:1.35}
 .staffOpt .sr{font-size:10.5px;color:var(--sub);margin-top:3px;line-height:1.5}
@@ -251,8 +252,8 @@ let HOLIDAYS = {}; // 祝日（YYYY-MM-DD → 名称）
 let selStaff = 0;  // 0=フリー（指名なし） / 1=宗田 修斗 / 2=飯田 隼人
 
 const STAFF_META = {
-  1: { initial:"宗", role:"理学療法士<br>FRPマスタートレーナー" },
-  2: { initial:"飯", role:"理学療法士<br>初回1,100円" }
+  1: { initial:"宗", photo:"/staff-1.jpg", role:"理学療法士<br>FRPマスタートレーナー" },
+  2: { initial:"飯", photo:"/staff-2.jpg", role:"理学療法士<br>初回1,100円" }
 };
 const hhmm = t => String(t||"").slice(0,5);
 function worksOn(st, ds){
@@ -279,11 +280,12 @@ function menusFor(){
 function renderStaff(){
   const STAFF = STAFFDB.map(st => ({ id: st.id, name: st.name,
       initial: (STAFF_META[st.id]||{}).initial || st.name.slice(0,1),
+      photo: (STAFF_META[st.id]||{}).photo || null,
       role: (STAFF_META[st.id]||{}).role || "" }))
     .concat([{ id:0, initial:"－", name:"指名なし", role:"空いている担当が<br>ご案内します", free:true }]);
   document.getElementById("staffRow").innerHTML = STAFF.map(st=>
     `<div class="staffOpt ${st.free?"free":""} ${selStaff===st.id?"sel":""}" onclick="pickStaff(${st.id})">
-       <div class="av">${st.initial}</div>
+       <div class="av">${st.photo ? `<img src="${st.photo}" alt="${st.name}" onerror="this.parentNode.textContent='${st.initial}'">` : st.initial}</div>
        <div class="sn">${st.name}</div>
        <div class="sr">${st.role}</div>
      </div>`).join("");
