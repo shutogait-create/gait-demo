@@ -81,9 +81,19 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
         <label>電話番号</label>
         <input id="tel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
       </div>
-      <div class="field">
+      <div class="field" id="dobField">
         <label>生年月日</label>
         <input id="dob" type="date">
+        <p class="notice" style="margin-top:5px;font-size:11.5px">
+          <a onclick="useName()" style="color:var(--gd);text-decoration:underline;cursor:pointer">生年月日をお伝えしていない方はこちら（お名前で確認）</a>
+        </p>
+      </div>
+      <div class="field" id="nameField" style="display:none">
+        <label>お名前</label>
+        <input id="nm" type="text" placeholder="例：山田 花子" autocomplete="name">
+        <p class="notice" style="margin-top:5px;font-size:11.5px">
+          <a onclick="useDob()" style="color:var(--gd);text-decoration:underline;cursor:pointer">← 生年月日で確認する</a>
+        </p>
       </div>
       <label class="chk"><input type="checkbox" id="remember" checked><span>この端末に記憶して、次回から入力なしで表示する</span></label>
       <button class="btn" id="btn" onclick="lookup()">確認する</button>
@@ -92,9 +102,10 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
       </p>
     </div>
     <div class="card">
-      <h2>会員の方へ</h2>
-      <p class="notice">アプリに登録いただくと、ご自身での予約・カルテの閲覧・宿題動画の視聴ができます。</p>
-      <button class="btn sub" onclick="location.href='/'">予約アプリを開く</button>
+      <h2>ご予約はこちら</h2>
+      <p class="notice" style="margin-bottom:11px">会員登録なしで、お名前と電話番号だけでご予約いただけます。</p>
+      <button class="btn" onclick="location.href='/book.html'">予約する</button>
+      <button class="btn sub" onclick="location.href='/'">会員の方（カルテ・宿題動画）</button>
     </div>
   </div>
 
@@ -114,7 +125,7 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:20px 16px;lin
       <div id="rTickets"></div>
     </div>
 
-    <button class="btn" onclick="location.href='/'">予約アプリを開く</button>
+    <button class="btn" onclick="location.href='/book.html'">新しく予約する</button>
     <button class="btn sub" onclick="reset()">別の方を確認する</button>
     <p class="memo" id="memo" style="display:none">
       この端末では入力なしで確認できるようにしています。<br>
@@ -155,31 +166,43 @@ function showForm(){
 }
 function reset(){
   memDel();
-  document.getElementById("tel").value=""; document.getElementById("dob").value=""; showErr("");
+  document.getElementById("tel").value=""; document.getElementById("dob").value=""; document.getElementById("nm").value=""; showErr("");
   showForm();
 }
 function forget(){
   memDel();
-  document.getElementById("tel").value=""; document.getElementById("dob").value="";
+  document.getElementById("tel").value=""; document.getElementById("dob").value=""; document.getElementById("nm").value="";
   showForm();
   showErr("この端末の記憶を消しました。次回からは入力が必要になります。");
 }
 
+function useName(){
+  document.getElementById("dobField").style.display="none";
+  document.getElementById("nameField").style.display="block";
+  document.getElementById("dob").value=""; showErr("");
+}
+function useDob(){
+  document.getElementById("nameField").style.display="none";
+  document.getElementById("dobField").style.display="block";
+  document.getElementById("nm").value=""; showErr("");
+}
+
 async function lookup(auto){
   showErr("");
-  let tel, dob;
+  let tel, dob, nm;
   if(auto){
-    tel = auto.tel; dob = auto.dob;
+    tel = auto.tel; dob = auto.dob || null; nm = auto.name || null;
   }else{
     tel = document.getElementById("tel").value.replace(/[^0-9]/g,"");
-    dob = document.getElementById("dob").value;
+    dob = document.getElementById("dob").value || null;
+    nm  = document.getElementById("nm").value.trim() || null;
     if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
-    if(!dob){ showErr("生年月日を入力してください"); return; }
+    if(!dob && !nm){ showErr("生年月日、またはお名前を入力してください"); return; }
   }
 
   const btn = document.getElementById("btn");
   if(!auto){ btn.disabled = true; btn.textContent = "確認しています…"; }
-  const { data, error } = await sb.rpc("guest_lookup", { p_tel: tel, p_dob: dob });
+  const { data, error } = await sb.rpc("guest_lookup", { p_tel: tel, p_dob: dob, p_name: nm });
   if(!auto){ btn.disabled = false; btn.textContent = "確認する"; }
 
   if(error){
@@ -217,7 +240,7 @@ async function lookup(auto){
       }).join("")
     : '<p class="notice">有効な回数券はありません。</p>';
 
-  if(!auto && document.getElementById("remember").checked){ memSet({ tel: tel, dob: dob }); }
+  if(!auto && document.getElementById("remember").checked){ memSet({ tel: tel, dob: dob, name: nm }); }
   document.getElementById("memo").style.display = memGet() ? "block" : "none";
 
   document.getElementById("boot").style.display="none";
@@ -232,7 +255,7 @@ document.getElementById("dob").addEventListener("keydown", e=>{ if(e.key==="Ente
 // 記憶があれば、開いた瞬間に自動で表示する
 (function(){
   const m = memGet();
-  if(m && m.tel && m.dob){
+  if(m && m.tel && (m.dob || m.name)){
     document.getElementById("boot").style.display="block";
     lookup(m);
   }else{

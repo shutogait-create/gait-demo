@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ご予約 ｜ リラクゼーション＆ピラティス gait</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{ --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6; --ink:#1c2b24; --sub:#68796f;
+       --line:#dfe9e3; --bg:#f4f7f5; --warn:#c0392b; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;
+     background:var(--bg);color:var(--ink);font-size:15px;line-height:1.8;padding-bottom:40px}
+.appbar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:16px 18px}
+.logo{font-weight:800;font-size:17px;letter-spacing:.06em;line-height:1.2}
+.logo small{font-weight:600;font-size:9px;display:block;opacity:.85;letter-spacing:.18em}
+main{max-width:600px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px;margin-bottom:14px;
+      box-shadow:0 1px 3px rgba(30,60,45,.05)}
+.stepLbl{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:12px}
+.stepLbl .n{width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:12px;font-weight:800;
+            display:flex;align-items:center;justify-content:center;flex:none}
+.menuOpt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid var(--line);
+         border-radius:12px;padding:12px 13px;margin-bottom:8px;cursor:pointer}
+.menuOpt.sel{border-color:var(--g);background:var(--gxl)}
+.menuOpt .n{font-weight:700;font-size:14px}
+.menuOpt .len{font-size:11.5px;color:var(--sub)}
+.menuOpt .pr{font-weight:800;color:var(--gd);white-space:nowrap;font-size:14px}
+.dayRow{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:11px;-webkit-overflow-scrolling:touch}
+.dayBtn{flex:none;width:50px;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:7px 0;
+        text-align:center;cursor:pointer;font-family:inherit;color:var(--ink)}
+.dayBtn.sel{background:var(--g);border-color:var(--g);color:#fff}
+.dayBtn .w{font-size:10px;opacity:.75}
+.dayBtn .dd{font-size:17px;font-weight:800;line-height:1.2}
+.slotGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px 0;text-align:center;
+      font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+.slot.ng{background:#eef1ef;color:#b6c2ba;border-color:#e4eae6;cursor:default}
+.slot.ng small{display:block;font-size:8.5px;font-weight:500}
+.slot.sel{background:var(--g);border-color:var(--g);color:#fff}
+.confirmBox{background:var(--gxl);border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.95;margin-bottom:13px}
+.field{margin-bottom:11px}
+.field label{font-size:12px;font-weight:700;color:var(--sub);display:block;margin-bottom:3px}
+.field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit}
+.field input:focus{outline:none;border-color:var(--g)}
+.polBox{border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin:4px 0 12px;font-size:12.5px;
+        color:var(--sub);line-height:1.85}
+.polBox b{color:var(--ink)}
+.polBox a{color:var(--gd);font-weight:700}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;cursor:pointer;line-height:1.6;margin-bottom:12px}
+.chk input{width:19px;height:19px;accent-color:var(--g);flex:none;margin-top:2px}
+.btn{display:block;width:100%;background:var(--g);color:#fff;border:none;border-radius:12px;padding:14px;
+     font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;text-decoration:none}
+.btn:disabled{background:#b7cec2;cursor:default}
+.btn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g);margin-top:10px}
+.err{background:#fdeceb;color:var(--warn);border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:12px;display:none}
+.notice{font-size:12.5px;color:var(--sub);line-height:1.85}
+.done{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;border-radius:16px;padding:22px 18px;margin-bottom:14px;text-align:center}
+.done .ic{font-size:38px;line-height:1}
+.done .t{font-size:18px;font-weight:800;margin-top:6px}
+.done .d{font-size:15px;margin-top:9px;line-height:1.8}
+footer{text-align:center;font-size:11.5px;color:var(--sub);padding:14px 16px 30px;line-height:1.9}
+footer a{color:var(--sub)}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="logo">gait<small>RESERVATION</small></div>
+</div>
+
+<main>
+
+  <div id="flow">
+    <div class="card">
+      <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
+      <div id="menuList"><p class="notice">読み込み中…</p></div>
+    </div>
+
+    <div class="card">
+      <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
+      <div class="dayRow" id="dayRow"></div>
+      <div class="slotGrid" id="slotGrid"></div>
+      <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。埋まっている枠は選べないので、重複予約は起こりません。</p>
+    </div>
+
+    <div class="card" id="confirmCard" style="display:none">
+      <div class="stepLbl"><span class="n">3</span><b>お名前とご連絡先</b></div>
+      <div class="confirmBox" id="confirmText"></div>
+      <div class="err" id="err"></div>
+
+      <div class="field">
+        <label>お名前</label>
+        <input id="nm" type="text" placeholder="例：山田 花子" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>電話番号（ハイフンなし）</label>
+        <input id="tel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
+      </div>
+
+      <div class="polBox">
+        <b>キャンセル・変更について</b><br>
+        <b>前日中まで</b>は無料でご変更・キャンセルいただけます。<br>
+        <b>当日</b>は、回数券をお持ちの方は1回分を消化、都度払いの方は料金の50%を申し受けます。<br>
+        体調不良のときは、ご連絡いただければいただきません。<br>
+        <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
+      </div>
+
+      <label class="chk"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
+      <label class="chk"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
+
+      <button class="btn" id="bkBtn" onclick="submitBooking()">この内容で予約を確定する</button>
+      <p class="notice" style="margin-top:9px">お支払いは店舗にて。会員登録は不要です。</p>
+    </div>
+  </div>
+
+  <div id="doneScr" style="display:none">
+    <div class="done">
+      <div class="ic">✅</div>
+      <div class="t">ご予約を承りました</div>
+      <div class="d" id="doneText"></div>
+    </div>
+    <div class="card">
+      <p class="notice" style="margin-bottom:12px">ご予約の確認・キャンセルは、お名前と電話番号でいつでもご覧いただけます。</p>
+      <a class="btn" href="/me.html">予約・回数券を確認する</a>
+      <a class="btn sub" href="/parking.html">駐車場のご案内</a>
+      <a class="btn sub" href="/policy.html">キャンセル・変更について</a>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  リラクゼーション＆ピラティス gait（岡山）<br>
+  <a href="/policy.html">キャンセル・変更について</a> ｜ <a href="/">会員の方はこちら</a>
+</footer>
+
+<script>
+const SB_URL = "https://pizzhyvqptkhigwwhorp.supabase.co";
+const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+const POLICY_VERSION = "v2026-08";
+const REG_TIMES  = ["10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
+const IIDA_TIMES = ["9:00","10:00","11:00","12:00"];
+const WD = ["日","月","火","水","木","金","土"];
+
+let MENUS = [], SHIFTS = {};
+let selMenu = null, selDate = null, selSlot = null;
+
+function jstDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function showErr(m){ const e=document.getElementById("err"); e.style.display=m?"block":"none"; e.textContent=m||""; }
+
+/* ---- この端末を覚えておく（入力を減らすため。端末の中だけに保存します） ---- */
+const MEM = "gait_me_v1";
+function memGet(){ try{ return JSON.parse(localStorage.getItem(MEM)||"null"); }catch(e){ return null; } }
+function memSet(v){ try{ localStorage.setItem(MEM, JSON.stringify(v)); }catch(e){} }
+
+async function load(){
+  const { data: menus } = await sb.from("menus").select("*").eq("active", true).order("id");
+  MENUS = menus || [];
+  if(!MENUS.length){
+    document.getElementById("menuList").innerHTML = '<p class="notice">メニューを読み込めませんでした。時間をおいて開き直してください。</p>';
+    return;
+  }
+  selMenu = MENUS[0].id;
+  renderMenus();
+
+  const today = new Date(), until = new Date(Date.now()+15*86400000);
+  const { data: shifts } = await sb.from("staff_shifts").select("date, open")
+    .eq("staff_id", 2).gte("date", jstDate(today)).lte("date", jstDate(until));
+  SHIFTS = {}; (shifts||[]).forEach(s=>{ if(s.open) SHIFTS[s.date] = true; });
+  renderDays();
+  renderSlots();
+}
+
+function renderMenus(){
+  document.getElementById("menuList").innerHTML = MENUS.map(m=>
+    `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderConfirm()">
+       <div><div class="n">${esc(m.name)}</div>
+         <div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+esc(m.price_note):""}</div></div>
+       <div class="pr">¥${(m.price||0).toLocaleString()}</div>
+     </div>`).join("");
+}
+
+function renderDays(){
+  let html = "";
+  for(let i=0;i<14;i++){
+    const d = new Date(Date.now()+i*86400000), ds = jstDate(d);
+    html += `<button class="dayBtn ${selDate===ds?'sel':''}" onclick="selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()">
+      <div class="w">${WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
+  }
+  document.getElementById("dayRow").innerHTML = html;
+}
+
+async function renderSlots(){
+  const el = document.getElementById("slotGrid");
+  if(!selDate){ el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">日付を選んでください</div>'; return; }
+  const d = new Date(selDate+"T00:00:00");
+  const isSun = d.getDay()===0, iida = isSun && SHIFTS[selDate];
+  if(isSun && !iida){
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です<br><span style="font-size:10.5px">※スタッフのシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span></div>';
+    return;
+  }
+  el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
+  const { data: busy, error } = await sb.rpc("busy_slots", { p_from: selDate+"T00:00:00+09:00", p_to: selDate+"T23:59:59+09:00" });
+  if(error){ el.innerHTML = '<div style="grid-column:1/-1;color:var(--warn);font-size:12px">空き状況を取得できませんでした。開き直してください。</div>'; return; }
+  const busySet = new Set((busy||[]).map(b=>{ const t=new Date(b.starts_at); return t.getHours()+":"+String(t.getMinutes()).padStart(2,"0"); }));
+  const times = iida ? IIDA_TIMES : REG_TIMES;
+  const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>' : "";
+  const now = new Date();
+  el.innerHTML = head + times.map(t=>{
+    const [hh,mm] = t.split(":");
+    const slotDt = new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00");
+    if(slotDt < now || busySet.has(String(+hh)+":"+mm))
+      return `<div class="slot ng">×<small>${slotDt<now?"受付終了":"予約済み"}</small></div>`;
+    return `<button class="slot ${selSlot===t?'sel':''}" onclick="selSlot='${t}';renderSlots().then(renderConfirm)">${t}</button>`;
+  }).join("");
+  renderConfirm();
+}
+
+function renderConfirm(){
+  const c = document.getElementById("confirmCard");
+  if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
+  const m = MENUS.find(x=>x.id===selMenu);
+  const d = new Date(selDate+"T00:00:00");
+  const iida = d.getDay()===0 && SHIFTS[selDate];
+  document.getElementById("confirmText").innerHTML =
+    `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
+    `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
+    `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い）` +
+    (iida?"<br>担当：スタッフ 飯田":"");
+  c.style.display = "block";
+
+  const mem = memGet();
+  if(mem){
+    if(mem.name && !document.getElementById("nm").value)  document.getElementById("nm").value  = mem.name;
+    if(mem.tel  && !document.getElementById("tel").value) document.getElementById("tel").value = mem.tel;
+  }
+  c.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+async function submitBooking(){
+  showErr("");
+  if(!selSlot || !selDate || !selMenu) return;
+  const name = document.getElementById("nm").value.trim();
+  const tel  = document.getElementById("tel").value.replace(/[^0-9]/g,"");
+  if(!name){ showErr("お名前を入力してください"); return; }
+  if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
+  if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
+
+  const [hh,mm] = selSlot.split(":");
+  const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
+  const d = new Date(selDate+"T00:00:00");
+  const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
+
+  const btn = document.getElementById("bkBtn");
+  btn.disabled = true; btn.textContent = "予約しています…";
+  const { data, error } = await sb.rpc("guest_book", {
+    p_name: name, p_tel: tel, p_menu_id: selMenu, p_staff_id: staffId,
+    p_starts_at: startsAt, p_policy: POLICY_VERSION
+  });
+  btn.disabled = false; btn.textContent = "この内容で予約を確定する";
+
+  if(error){ showErr("予約できませんでした。時間をおいてお試しください。"); return; }
+  if(!data || !data.ok){
+    if(data && data.reason === "taken"){ showErr("申し訳ありません。ちょうどこの枠が埋まってしまいました。別の時間をお選びください。"); selSlot=null; renderSlots(); }
+    else { showErr("予約できませんでした。入力内容をご確認ください。"); }
+    return;
+  }
+
+  if(document.getElementById("remember").checked) memSet({ tel: tel, name: name });
+
+  const m = MENUS.find(x=>x.id===selMenu);
+  document.getElementById("doneText").innerHTML =
+    `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
+    `${esc(m.name)}<br><span style="font-size:12.5px;opacity:.9">${esc(name)} さま</span>`;
+  document.getElementById("flow").style.display = "none";
+  document.getElementById("doneScr").style.display = "block";
+  window.scrollTo(0,0);
+}
+
+load();
+</script>
+</body>
+</html>

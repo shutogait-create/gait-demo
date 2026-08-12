@@ -79,6 +79,11 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .slot.ng{background:#eef1ef;color:#b6c2ba;border-color:#e4eae6;cursor:default}
 .slot.ng small{display:block;font-size:8.5px;font-weight:500}
 .slot.sel{background:var(--g);border-color:var(--g);color:#fff}
+.polBox{border:1.5px solid var(--line);border-radius:12px;padding:12px 13px;margin:12px 0 10px;font-size:12.5px;color:var(--sub);line-height:1.85}
+.polBox b{color:var(--ink)}
+.polBox a{color:var(--gd);font-weight:700}
+.chkLine{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;cursor:pointer;line-height:1.6;margin-bottom:12px}
+.chkLine input{width:19px;height:19px;accent-color:var(--g);flex:none;margin-top:2px}
 .confirmBox{background:var(--gxl);border:1.5px solid var(--g);border-radius:12px;padding:13px;margin:12px 0;font-size:13px}
 .confirmBox b{color:var(--gd)}
 .finePrint{font-size:10.5px;color:var(--sub);margin-top:8px}
@@ -248,6 +253,14 @@ nav.bottom button.act .ic{filter:none;opacity:1}
           <div class="card" id="confirmCard" style="display:none">
             <div class="stepLbl"><span class="n">3</span><b>内容を確認して予約</b></div>
             <div class="confirmBox" id="confirmText"></div>
+            <div class="polBox">
+              <b>キャンセル・変更について</b><br>
+              <b>前日中まで</b>は無料でご変更・キャンセルいただけます。<br>
+              <b>当日</b>は、回数券をお持ちの方は1回分を消化、都度払いの方は料金の50%を申し受けます。<br>
+              体調不良のときは、ご連絡いただければいただきません。
+              <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
+            </div>
+            <label class="chkLine"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
             <button class="btn" id="bkBtn" onclick="confirmBooking()">この内容で予約を確定する</button>
             <p class="finePrint">お支払いは店舗にて。キャンセル・変更はホームの「今後のご予約」から行えます。</p>
           </div>
@@ -462,13 +475,17 @@ async function loadHome(){
   } else {
     document.getElementById("nextBkDate").textContent = fmtTs(bks[0].starts_at) + "〜";
     document.getElementById("nextBkMenu").textContent = (bks[0].menus?.name || "") + " ｜ 変更・キャンセルは下の一覧から";
-    list.innerHTML = bks.map(b=>`<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div><button class="cxBtn" onclick="cancelBk(${b.id})">キャンセル</button></div>`).join("");
+    list.innerHTML = bks.map(b=>`<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div><button class="cxBtn" onclick="cancelBk(${b.id},'${b.starts_at}')">キャンセル</button></div>`).join("");
   }
   const { data: tks } = await sb.from("tickets").select("left_count").gt("left_count",0).eq("member_id",ME.id);
   document.getElementById("tkHome").textContent = tks && tks.length ? tks.reduce((s,t)=>s+t.left_count,0) : 0;
 }
-async function cancelBk(id){
-  if(!confirm("この予約をキャンセルしますか？")) return;
+async function cancelBk(id, startsAt){
+  const sameDay = startsAt && (new Date(startsAt).toDateString() === new Date().toDateString());
+  const msg = sameDay
+    ? "本日のご予約です。\n\n当日のキャンセルは、回数券をお持ちの方は1回分を消化、都度払いの方は料金の50%を申し受けます。\n（体調不良の場合はいただきませんので、お手数ですが一度ご連絡ください）\n\nキャンセルしますか？"
+    : "この予約をキャンセルしますか？\n前日中までのキャンセルは無料です。";
+  if(!confirm(msg)) return;
   const { error } = await sb.from("bookings").update({ status: "cancelled" }).eq("id", id).eq("member_id", ME.id);
   if(error){ toast("キャンセルできませんでした"); return; }
   toast("予約をキャンセルしました");
@@ -542,17 +559,21 @@ function renderConfirm(){
   c.style.display = "block";
   c.scrollIntoView({block:"nearest"});
 }
+const POLICY_VERSION = "v2026-08";
 async function confirmBooking(){
   if(!selSlot || !selDate || !selMenu) return;
+  if(!document.getElementById("agree").checked){ toast("キャンセル・変更の内容にご同意ください"); return; }
   const btn = document.getElementById("bkBtn"); btn.disabled = true;
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
   const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
-  const { error } = await sb.from("bookings").insert({ member_id: ME.id, menu_id: selMenu, staff_id: staffId, starts_at: startsAt, channel: "app" });
+  const { error } = await sb.from("bookings").insert({ member_id: ME.id, menu_id: selMenu, staff_id: staffId, starts_at: startsAt, channel: "app",
+              policy_version: POLICY_VERSION, policy_agreed_at: new Date().toISOString() });
   btn.disabled = false;
   if(error){ toast("予約できませんでした。枠が埋まった可能性があります"); renderSlots(); return; }
   toast(`【予約確定】${fmtTs(startsAt)}〜 ご来店をお待ちしています 📅`);
+  document.getElementById("agree").checked = false;
   selSlot = null; renderSlots(); loadHome();
   setTimeout(()=>go("home"), 800);
 }
