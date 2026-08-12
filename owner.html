@@ -138,6 +138,33 @@ nav.bottom button.act .ic{filter:none;opacity:1}
   .myGrid .span2{grid-column:1/-1}
   #toast{bottom:40px}
 }
+
+/* 1日のスケジュール（サロンボード風） */
+.schNav{display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.schNav button{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 13px;cursor:pointer;
+               font-family:inherit;font-weight:700;font-size:13px;color:var(--ink)}
+.schNav button.now{background:var(--g);border-color:var(--g);color:#fff}
+.schNav input[type=date]{border:1.5px solid var(--line);border-radius:9px;padding:7px 9px;font-family:inherit;font-size:14px}
+.schScroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.schHead{display:flex;position:sticky;top:0;background:#fbfdfc;z-index:2;border-bottom:1px solid var(--line)}
+.schHead .g{flex:none;width:46px}
+.schHead .h{flex:1;min-width:150px;text-align:center;font-size:12.5px;font-weight:800;color:var(--gd);
+            padding:8px 4px;border-left:1px solid var(--line)}
+.schHead .h small{display:block;font-weight:600;font-size:10px;color:var(--sub)}
+.schBody{display:flex;position:relative}
+.schGutter{flex:none;width:46px;position:relative}
+.schCol{flex:1;min-width:150px;position:relative;border-left:1px solid var(--line)}
+.schLine{position:absolute;left:0;right:0;border-top:1px solid #eaf0ec}
+.schLine.hr{border-top-color:#dbe5df}
+.schTime{position:absolute;right:6px;font-size:10px;color:var(--sub);transform:translateY(-6px)}
+.schBk{position:absolute;left:3px;right:3px;background:var(--gl);border:1.5px solid var(--g);border-radius:8px;
+       padding:4px 7px;overflow:hidden;font-size:11.5px;line-height:1.45;cursor:pointer;z-index:1}
+.schBk b{display:block;font-size:12.5px}
+.schBk .mn{color:var(--sub);font-size:10.5px}
+.schBk.gc{background:#fff6e8;border-color:#e0a24a}
+.schBuf{position:absolute;left:3px;right:3px;border-radius:6px;
+        background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
+.schEmpty{padding:26px 10px;text-align:center;color:var(--sub);font-size:12.5px}
 </style>
 </head>
 <body>
@@ -164,6 +191,18 @@ nav.bottom button.act .ic{filter:none;opacity:1}
   <main>
     <div class="card" style="background:#233329;color:#fff;border:none">
       <div style="font-size:12px;line-height:1.6">🔐 <b>オーナー専用画面</b> — お客様側からこの画面・データは一切見えません（RLS保護）</div>
+    </div>
+
+    <div class="card">
+      <h3>🗓 1日のスケジュール</h3>
+      <div class="schNav">
+        <button onclick="schMove(-1)">◀ 前日</button>
+        <input type="date" id="schDate" onchange="loadSchedule()">
+        <button onclick="schMove(1)">翌日 ▶</button>
+        <button class="now" onclick="schToday()">今日</button>
+      </div>
+      <div id="schWrap"><p class="notice">読み込み中…</p></div>
+      <p class="finePrint">斜線の帯は、予約の前後15分の準備時間です。この時間はお客様側の予約画面で選べないようになっています。</p>
     </div>
 
     <div class="card">
@@ -362,12 +401,88 @@ async function enterApp(){
   }
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
-  await loadCusts(); loadBookings(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
+  await loadCusts(); schToday(); loadBookings(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
 let INBOX=[];
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+/* ============ 1日のスケジュール（オーナーのみ） ============ */
+const SCH_FROM = 8, SCH_TO = 22, SCH_PXMIN = 1.15, SCH_BUF = 15;
+let SCH_STAFF = null;
+
+function schToday(){ document.getElementById("schDate").value = jstDate(new Date()); loadSchedule(); }
+function schMove(d){
+  const cur = document.getElementById("schDate").value || jstDate(new Date());
+  const dt = new Date(cur + "T00:00:00");
+  dt.setDate(dt.getDate() + d);
+  document.getElementById("schDate").value = jstDate(dt);
+  loadSchedule();
+}
+
+async function loadSchedule(){
+  const wrap = document.getElementById("schDate");
+  if(!wrap.value) wrap.value = jstDate(new Date());
+  const ds = wrap.value;
+
+  if(!SCH_STAFF){
+    const { data: st } = await sb.from("staff").select("id, name").order("id");
+    SCH_STAFF = (st && st.length) ? st : [{id:1,name:"宗田 修斗"},{id:2,name:"飯田"}];
+  }
+
+  const { data: bks, error } = await sb.from("bookings")
+    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, profiles(nickname, full_name), menus(name, duration_min)")
+    .gte("starts_at", ds + "T00:00:00+09:00")
+    .lt("starts_at",  ds + "T23:59:59+09:00")
+    .neq("status", "cancelled")
+    .order("starts_at");
+
+  const box = document.getElementById("schWrap");
+  if(error){ box.innerHTML = '<p class="notice">スケジュールを読み込めませんでした</p>'; return; }
+
+  const H = (SCH_TO - SCH_FROM) * 60 * SCH_PXMIN;
+  const top = mins => (mins - SCH_FROM*60) * SCH_PXMIN;
+
+  // 時間の目盛り
+  let gut = "", lines = "";
+  for(let h = SCH_FROM; h <= SCH_TO; h++){
+    gut   += `<div class="schTime" style="top:${top(h*60)}px">${h}:00</div>`;
+    lines += `<div class="schLine hr" style="top:${top(h*60)}px"></div>`;
+    if(h < SCH_TO) lines += `<div class="schLine" style="top:${top(h*60+30)}px"></div>`;
+  }
+
+  const d = new Date(ds + "T00:00:00");
+  let head = '<div class="schHead"><div class="g"></div>';
+  let body = `<div class="schBody"><div class="schGutter" style="height:${H}px">${gut}</div>`;
+
+  SCH_STAFF.forEach(function(st){
+    head += `<div class="h">${st.name}<small>${st.id===1?"オーナー":"スタッフ"}</small></div>`;
+    const mine = (bks||[]).filter(b => (b.staff_id || 1) === st.id);
+    let cells = lines;
+    mine.forEach(function(b){
+      const s = new Date(b.starts_at);
+      const m0 = s.getHours()*60 + s.getMinutes();
+      const dur = b.duration_min || (b.menus && b.menus.duration_min) || 60;
+      const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）";
+      const menu = (b.menus && b.menus.name) || b.title || "";
+      cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
+      cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
+      cells += `<div class="schBk ${b.source==="gcal"?"gc":""}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
+                     title="${who} ／ ${menu}" onclick="ownerCancel(${b.id})">
+                  <b>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")} ${who}</b>
+                  <span class="mn">${menu}${dur?" ・"+dur+"分":""}</span>
+                </div>`;
+    });
+    body += `<div class="schCol" style="height:${H}px">${cells}</div>`;
+  });
+  head += "</div>"; body += "</div>";
+
+  const total = (bks||[]).length;
+  box.innerHTML = `<div style="font-size:12.5px;color:var(--sub);margin-bottom:7px">
+      ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件</div>
+    <div class="schScroll">${head}${body}</div>`;
+}
+
 async function loadInbox(){
   const { data, error } = await sb.from("gcal_inbox").select("*").eq("status","pending").order("starts_at",{ascending:false}).limit(400);
   const box = document.getElementById("inboxList");
@@ -506,7 +621,7 @@ async function loadBookings(){
 async function ownerCancel(id){
   if(!confirm("この予約を取り消しますか？")) return;
   await sb.from("bookings").update({status:"cancelled"}).eq("id", id);
-  toast("予約を取り消しました"); loadBookings();
+  toast("予約を取り消しました"); loadBookings(); loadSchedule();
 }
 
 async function loadTickets(){

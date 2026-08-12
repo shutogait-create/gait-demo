@@ -63,7 +63,13 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .stepLbl{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .stepLbl .n{width:22px;height:22px;border-radius:50%;background:var(--g);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
 .stepLbl b{font-size:14px;color:var(--gd)}
-.menuOpt{display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;gap:8px}
+.menuOpt{border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff}
+.menuHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.menuOpt .desc{font-size:12px;color:var(--sub);line-height:1.8;margin-top:8px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.menuOpt.sel .desc{-webkit-line-clamp:unset;overflow:visible}
+.menuOpt .more{font-size:11px;color:var(--gd);font-weight:700;margin-top:5px}
+.menuOpt.sel .more{display:none}
 .menuOpt.sel{border-color:var(--g);background:var(--gxl);box-shadow:0 0 0 1px var(--g)}
 .menuOpt .n{font-weight:700;font-size:13.5px}
 .menuOpt .len{font-size:11px;color:var(--sub)}
@@ -524,8 +530,12 @@ async function loadBookingMaster(){
 function renderMenus(){
   document.getElementById("menuList").innerHTML = MENUS.map(m=>
     `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderSlots();renderConfirm()">
-      <div><div class="n">${m.name}</div><div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+m.price_note:""}</div></div>
-      <div class="pr">¥${m.price.toLocaleString()}</div></div>`).join("");
+      <div class="menuHead">
+        <div><div class="n">${m.name}</div><div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+m.price_note:""}</div></div>
+        <div class="pr">¥${m.price.toLocaleString()}</div>
+      </div>
+      ${m.description?`<p class="desc">${m.description}</p><div class="more">タップして詳細を読む ›</div>`:""}
+    </div>`).join("");
 }
 function renderDays(){
   const row = document.getElementById("dayRow");
