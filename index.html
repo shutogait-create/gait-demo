@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>gait 会員アプリ</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2e9e72">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -379,16 +384,13 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 let ME = null;        // auth user
 let PROFILE = null;   // profiles row
 let MENUS = [];
-let SHIFTS = {};      // date(YYYY-MM-DD) -> true (飯田シフト)
+let STAFFDB = [];      // date(YYYY-MM-DD) -> true (飯田シフト)
 let selMenu = null, selDate = null, selSlot = null;
-/* ===== 予約枠の設定（ここだけ直せば変えられます） ===== */
-// 予約は30分刻み。予約の前後は15分あけて、準備と片づけの時間にします。
-// 例：10:00〜11:00 の予約が入ると 9:45〜11:15 は取れなくなります。
-const SLOT_STEP   = 30;   // 何分刻みで枠を出すか
-const BUFFER_MIN  = 15;   // 予約の前後にあける分数
-// 営業時間帯（この中に「所要時間がまるごと収まる」枠だけ出します）
-const OPEN_REG  = [["8:00","21:00"]];                        // 通常日（8:00〜21:00）
-const OPEN_IIDA = [["9:00","13:00"]];                        // スタッフ飯田の日曜
+/* ===== 予約枠の設定 ===== */
+// 30分刻み・予約の前後15分あき。営業する曜日と時間帯は
+// オーナー管理 → 設定 → 担当の勤務時間 で変えられます。
+const SLOT_STEP   = 30;
+const BUFFER_MIN  = 15;
 function genSlots(blocks, dur){
   const out = [];
   blocks.forEach(function(bk){
@@ -533,8 +535,8 @@ async function loadBookingMaster(){
   renderMenus();
   const today = new Date();
   const until = new Date(today.getTime() + 15*86400000);
-  const { data: shifts } = await sb.from("staff_shifts").select("date, open").eq("staff_id", 2).gte("date", jstDate(today)).lte("date", jstDate(until));
-  SHIFTS = {}; (shifts||[]).forEach(s=>{ if(s.open) SHIFTS[s.date] = true; });
+  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
+  STAFFDB = (stf || []).filter(x => x.work_days);
   renderDays();
 }
 function renderMenus(){
@@ -546,6 +548,15 @@ function renderMenus(){
       </div>
       ${m.description?`<p class="desc">${m.description}</p><div class="more">タップして詳細を読む ›</div>`:""}
     </div>`).join("");
+}
+const hhmm = t => String(t||"").slice(0,5);
+function worksOn(st, ds){
+  const dow = new Date(ds+"T00:00:00").getDay();
+  return String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
+}
+function staffOnDate(ds){ return STAFFDB.filter(st => worksOn(st, ds)); }
+function blocksFor(ds){
+  return staffOnDate(ds).map(st => [hhmm(st.work_from) || "08:00", hhmm(st.work_to) || "21:00"]);
 }
 function renderDays(){
   const row = document.getElementById("dayRow");
@@ -562,10 +573,10 @@ async function renderSlots(){
   const el = document.getElementById("slotGrid");
   if(!selDate){ el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">日付を選んでください</div>'; return; }
   const d = new Date(selDate + "T00:00:00");
-  const isSun = d.getDay() === 0;
-  const iida = isSun && SHIFTS[selDate];
-  if(isSun && !iida){
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日は定休日です<br><span style="font-size:10.5px">※スタッフシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span></div>';
+  const onDuty = staffOnDate(selDate);
+  const iida = onDuty.length === 1 && onDuty[0].id === 2;
+  if(!onDuty.length){
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">この日はお休みです。別の日をお選びください。</div>';
     return;
   }
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
@@ -575,13 +586,13 @@ async function renderSlots(){
   const BUF = BUFFER_MIN*60000;
   const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s-BUF, e:s + (b.duration_min||60)*60000 + BUF }; });
   const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
-  const times = genSlots(iida ? OPEN_IIDA : OPEN_REG, myDur);
+  const times = [...new Set(genSlots(blocksFor(selDate), myDur))].sort();
   if(times.indexOf(selSlot) < 0) selSlot = null;
   if(!times.length){
     el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">このメニューの所要時間では、この日に取れる枠がありません</div>';
     return;
   }
-  const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>' : "";
+  const head = iida ? `<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（${hhmm(onDuty[0].work_from)}〜${hhmm(onDuty[0].work_to)}）</div>` : "";
   const now = new Date();
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
@@ -599,7 +610,8 @@ function renderConfirm(){
   if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
   const m = MENUS.find(x=>x.id===selMenu);
   const d = new Date(selDate+"T00:00:00");
-  const iida = d.getDay()===0 && SHIFTS[selDate];
+  const _duty = staffOnDate(selDate);
+  const iida = _duty.length === 1 && _duty[0].id === 2;
   document.getElementById("confirmText").innerHTML =
     `<b>${m.name}（${m.duration_min||60}分）</b><br>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>料金：${m.price_note?m.price_note:"¥"+m.price.toLocaleString()}（店舗でのお支払い）${iida?"<br>担当：スタッフ 飯田":""}`;
   c.style.display = "block";
@@ -613,7 +625,7 @@ async function confirmBooking(){
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
-  const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
+  const staffId = (staffOnDate(selDate)[0] || {id:1}).id;
   const { error } = await sb.from("bookings").insert({ member_id: ME.id, menu_id: selMenu, staff_id: staffId, starts_at: startsAt, channel: "app",
               policy_version: POLICY_VERSION, policy_agreed_at: new Date().toISOString(),
               customer_note: (document.getElementById("bkNote").value.trim() || null) });

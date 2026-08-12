@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>gait オーナー管理</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2e9e72">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -173,6 +178,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .schBk .mn{color:var(--sub);font-size:10.5px}
 .schBk.gc{background:#fff6e8;border-color:#e0a24a}
 .schBk.blk{background:#eef1ef;border-color:#b6c2ba;color:#5b6b62}
+.schBk.pend{background:#fdf3f2;border-color:#d98b83;border-style:dashed;color:#8a3b33}
 .schBuf{position:absolute;left:3px;right:3px;border-radius:6px;
         background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
 .schEmpty{padding:26px 10px;text-align:center;color:var(--sub);font-size:12.5px}
@@ -373,9 +379,10 @@ nav.bottom button.act .ic{filter:none;opacity:1}
     </div>
     <div class="ownTab" id="ot-set">
     <div class="card">
-      <h3>👥 スタッフシフト（飯田さん・日曜 9:00〜13:00）</h3>
-      <p class="notice" style="margin-bottom:6px">ONにした日曜だけ、お客様の予約画面に9:00〜13:00の枠が表示されます。</p>
-      <div id="iidaList"></div>
+      <h3>🕐 担当の勤務時間</h3>
+      <p class="notice" style="margin-bottom:10px">曜日と時間帯を決めるだけです。ここで設定した曜日・時間だけ、お客様の予約画面に枠が出ます。<br>
+      単発のお休み（私用・研修など）は「予約」タブの<b>🚫 予約を受け付けない時間をつくる</b>で埋めてください。</p>
+      <div id="staffHours"><p class="notice">読み込み中…</p></div>
     </div>
 
     </div>
@@ -452,7 +459,7 @@ async function enterApp(){
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
   otabInit();
-  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
+  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadStaffHours(); loadPaySummary(); evInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -485,6 +492,12 @@ async function loadSchedule(){
     const { data: st } = await sb.from("staff").select("id, name").order("id");
     SCH_STAFF = (st && st.length) ? st : [{id:1,name:"宗田 修斗"},{id:2,name:"飯田"}];
   }
+
+  const { data: pend } = await sb.from("gcal_inbox")
+    .select("id, starts_at, duration_min, ends_at, summary")
+    .eq("status","pending")
+    .gte("starts_at", ds + "T00:00:00+09:00")
+    .lt("starts_at",  ds + "T23:59:59+09:00");
 
   const { data: bks, error } = await sb.from("bookings")
     .select("id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, profiles(nickname, full_name), menus(name, duration_min)")
@@ -531,13 +544,30 @@ async function loadSchedule(){
                   <span class="mn">${isBlk?"ご予約を受け付けない時間":menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
                 </div>`;
     });
+    // 振り分け待ちのカレンダー予定も、担当の左列に薄く出す
+    if(st.id === (SCH_STAFF[0]||{}).id){
+      (pend||[]).forEach(function(p){
+        const s2 = new Date(p.starts_at);
+        const m0 = s2.getHours()*60 + s2.getMinutes();
+        const dur = p.duration_min || (p.ends_at ? Math.round((new Date(p.ends_at)-s2)/60000) : 60) || 60;
+        cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
+        cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
+        cells += `<div class="schBk pend" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
+                       title="カレンダーから届いた予定（振り分け待ち）"
+                       onclick="otab('book');document.getElementById('inboxCard').scrollIntoView({behavior:'smooth'})">
+                    <b>${s2.getHours()}:${String(s2.getMinutes()).padStart(2,"0")} ${(p.summary||"（無題）")}</b>
+                    <span class="mn">振り分け待ち ・${dur}分</span>
+                  </div>`;
+      });
+    }
     body += `<div class="schCol" style="height:${H}px">${cells}</div>`;
   });
   head += "</div>"; body += "</div>";
 
   const total = (bks||[]).length;
+  const np = (pend||[]).length;
   box.innerHTML = `<div style="font-size:12.5px;color:var(--sub);margin-bottom:7px">
-      ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件</div>
+      ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件${np?`　<span style="color:#c0392b;font-weight:700">・振り分け待ち ${np}件</span>`:""}</div>
     <div class="schScroll">${head}${body}</div>`;
 }
 
@@ -609,7 +639,7 @@ async function wlClose(id){
 }
 
 async function loadInbox(){
-  const { data, error } = await sb.from("gcal_inbox").select("*").eq("status","pending").order("starts_at",{ascending:false}).limit(400);
+  const { data, error } = await sb.from("gcal_inbox").select("*").eq("status","pending").gte("starts_at", new Date(Date.now()-86400000).toISOString()).order("starts_at").limit(400);
   const box = document.getElementById("inboxList");
   if(error){ box.innerHTML = '<p class="notice">読み込めませんでした：'+esc(error.message)+'</p>'; return; }
   INBOX = data||[];
@@ -619,7 +649,8 @@ async function loadInbox(){
   const g = {};
   INBOX.forEach(r=>{ (g[r.summary] = g[r.summary] || []).push(r); });
   const opts = CUSTS.filter(c=>c.role!=="owner").map(c=>`<option value="${c.id}">${esc(c.nickname||"")}${c.full_name?"（"+esc(c.full_name)+"）":""}</option>`).join("");
-  box.innerHTML = Object.keys(g).sort((a,b)=>g[b].length-g[a].length).map((name,i)=>{
+  const soonest = n => Math.min.apply(null, g[n].map(r=>+new Date(r.starts_at)));
+  box.innerHTML = Object.keys(g).sort((a,b)=>soonest(a)-soonest(b)).map((name,i)=>{
     const rows = g[name];
     const dates = rows.slice(0,3).map(r=>fmtTs(r.starts_at)).join("・") + (rows.length>3? ` ほか${rows.length-3}件`:"");
     return `<div class="bkRow" style="display:block">
@@ -791,24 +822,41 @@ async function tkIssue(){
   toast(`${kind} ${total}回券（¥${price.toLocaleString()}）を発行しました`); loadTickets();
 }
 
-async function loadShifts(){
-  const sundays = [];
-  const d = new Date();
-  while(sundays.length < 6){ if(d.getDay()===0) sundays.push(jstDate(new Date(d))); d.setDate(d.getDate()+1); }
-  const { data } = await sb.from("staff_shifts").select("date, open").eq("staff_id",2).in("date", sundays);
-  const on = {}; (data||[]).forEach(s=>on[s.date]=s.open);
-  document.getElementById("iidaList").innerHTML = sundays.map(ds=>{
-    const dd = new Date(ds+"T00:00:00");
-    const isOn = !!on[ds];
-    return `<div class="bkRow"><div class="d">${dd.getMonth()+1}/${dd.getDate()}（日）9:00〜13:00</div>
-      <button class="btn ${isOn?"":"sub"}" style="width:auto;padding:8px 14px;font-size:12px" onclick="shiftToggle('${ds}',${isOn})">${isOn?"✓ 出勤（予約受付中）":"OFF（タップでON）"}</button></div>`;
+const WDN = ["日","月","火","水","木","金","土"];
+async function loadStaffHours(){
+  const { data } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
+  const el = document.getElementById("staffHours");
+  if(!data || !data.length){ el.innerHTML = '<p class="notice">担当が登録されていません</p>'; return; }
+  el.innerHTML = data.map(st=>{
+    const days = String(st.work_days||"").split(",").map(x=>x.trim());
+    const chips = WDN.map((w,i)=>
+      `<label style="display:inline-flex;align-items:center;gap:4px;margin:0 9px 6px 0;font-size:13px;cursor:pointer">
+         <input type="checkbox" id="wd${st.id}_${i}" ${days.indexOf(String(i))>=0?"checked":""}
+                style="width:17px;height:17px;accent-color:var(--g)">${w}</label>`).join("");
+    return `<div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:11px">
+      <div style="font-weight:800;font-size:14.5px;color:var(--gd);margin-bottom:9px">${esc(st.name)}</div>
+      <div style="margin-bottom:9px">${chips}</div>
+      <div class="fRow" style="align-items:center">
+        <input type="time" id="wf${st.id}" value="${String(st.work_from||"08:00").slice(0,5)}" style="width:120px">
+        <span style="color:var(--sub)">〜</span>
+        <input type="time" id="wt${st.id}" value="${String(st.work_to||"21:00").slice(0,5)}" style="width:120px">
+        <button class="btn" style="width:auto;padding:8px 16px" onclick="saveStaffHours(${st.id})">保存</button>
+      </div>
+      <p class="finePrint" style="margin-top:7px">いまの設定：${days.filter(d=>d!=="").map(d=>WDN[+d]).join("・") || "なし"}曜 ${String(st.work_from||"").slice(0,5)}〜${String(st.work_to||"").slice(0,5)}</p>
+    </div>`;
   }).join("");
 }
-async function shiftToggle(ds, isOn){
-  const { error } = await sb.from("staff_shifts").upsert({ staff_id:2, date: ds, open: !isOn }, { onConflict: "staff_id,date" });
-  if(error){ toast("切り替えできませんでした"); return; }
-  toast(`${ds.slice(5).replace("-","/")}（日）の飯田さんシフトを${!isOn?"ON":"OFF"}にしました`);
-  loadShifts();
+async function saveStaffHours(id){
+  const days = [];
+  for(let i=0;i<7;i++){ if(document.getElementById("wd"+id+"_"+i).checked) days.push(i); }
+  const from = document.getElementById("wf"+id).value || "08:00";
+  const to   = document.getElementById("wt"+id).value || "21:00";
+  if(!days.length){ toast("曜日を1つ以上選んでください"); return; }
+  if(from >= to){ toast("終了時刻は開始時刻より後にしてください"); return; }
+  const { error } = await sb.from("staff").update({ work_days: days.join(","), work_from: from, work_to: to }).eq("id", id);
+  if(error){ toast("保存できませんでした：" + error.message); return; }
+  toast("勤務時間を保存しました。お客様の予約画面にすぐ反映されます");
+  loadStaffHours();
 }
 
 async function payAdd(){

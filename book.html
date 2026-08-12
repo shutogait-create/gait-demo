@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ご予約 ｜ リラクゼーション＆ピラティス gait</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2e9e72">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{ --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6; --ink:#1c2b24; --sub:#68796f;
@@ -201,14 +206,11 @@ const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const POLICY_VERSION = "v2026-08";
-/* ===== 予約枠の設定（ここだけ直せば変えられます） ===== */
+/* ===== 予約枠の設定 ===== */
 // 予約は30分刻み。予約の前後は15分あけて、準備と片づけの時間にします。
-// 例：10:00〜11:00 の予約が入ると 9:45〜11:15 は取れなくなります。
+// 営業する曜日と時間帯は「オーナー管理 → 設定 → 担当の勤務時間」で変えられます。
 const SLOT_STEP   = 30;   // 何分刻みで枠を出すか
 const BUFFER_MIN  = 15;   // 予約の前後にあける分数
-// 営業時間帯（この中に「所要時間がまるごと収まる」枠だけ出します）
-const OPEN_REG  = [["8:00","21:00"]];                        // 通常日（8:00〜21:00）
-const OPEN_IIDA = [["9:00","13:00"]];                        // スタッフ飯田の日曜
 function genSlots(blocks, dur){
   const out = [];
   blocks.forEach(function(bk){
@@ -222,39 +224,53 @@ function genSlots(blocks, dur){
 }
 const WD = ["日","月","火","水","木","金","土"];
 
-let MENUS = [], SHIFTS = {};
+let MENUS = [];
 let selMenu = null, selDate = null, selSlot = null;
 let MOVE = null;   // 日時変更モードのとき、変更する予約の情報が入る
+let STAFFDB = [];  // 担当と勤務パターン（曜日・時間帯）
 let selStaff = 0;  // 0=フリー（指名なし） / 1=宗田 修斗 / 2=飯田 隼人
 
-const STAFF = [
-  { id:1, initial:"宗", name:"宗田 修斗", role:"理学療法士<br>FRPマスタートレーナー" },
-  { id:2, initial:"飯", name:"飯田 隼人", role:"理学療法士<br>初回1,000円" },
-  { id:0, initial:"－", name:"指名なし", role:"空いている担当が<br>ご案内します", free:true }
-];
+const STAFF_META = {
+  1: { initial:"宗", role:"理学療法士<br>FRPマスタートレーナー" },
+  2: { initial:"飯", role:"理学療法士<br>初回1,100円" }
+};
+const hhmm = t => String(t||"").slice(0,5);
+function worksOn(st, ds){
+  const dow = new Date(ds+"T00:00:00").getDay();
+  return String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
+}
+function staffOnDate(ds){ return STAFFDB.filter(st => worksOn(st, ds)); }
 // その担当がその日に対応できるか
 function staffWorks(ds){
-  const d = new Date(ds+"T00:00:00");
-  const sun = d.getDay() === 0, shift = !!SHIFTS[ds];
-  if(selStaff === 1) return !sun;                 // 宗田さんは日曜以外
-  if(selStaff === 2) return sun && shift;         // 飯田さんはシフトの入る日曜だけ
-  return !sun || shift;                            // フリー
+  if(selStaff === 0) return staffOnDate(ds).length > 0;
+  const st = STAFFDB.find(x => x.id === selStaff);
+  return !!st && worksOn(st, ds);
+}
+// その日に出す営業時間帯
+function blocksFor(ds){
+  const list = selStaff ? STAFFDB.filter(x => x.id === selStaff) : staffOnDate(ds);
+  return list.filter(st => worksOn(st, ds))
+             .map(st => [hhmm(st.work_from) || "08:00", hhmm(st.work_to) || "21:00"]);
 }
 function menusFor(){
   return MENUS.filter(m => selStaff === 0 ? !m.staff_id : (!m.staff_id || m.staff_id === selStaff));
 }
 function renderStaff(){
+  const STAFF = STAFFDB.map(st => ({ id: st.id, name: st.name,
+      initial: (STAFF_META[st.id]||{}).initial || st.name.slice(0,1),
+      role: (STAFF_META[st.id]||{}).role || "" }))
+    .concat([{ id:0, initial:"－", name:"指名なし", role:"空いている担当が<br>ご案内します", free:true }]);
   document.getElementById("staffRow").innerHTML = STAFF.map(st=>
     `<div class="staffOpt ${st.free?"free":""} ${selStaff===st.id?"sel":""}" onclick="pickStaff(${st.id})">
        <div class="av">${st.initial}</div>
        <div class="sn">${st.name}</div>
        <div class="sr">${st.role}</div>
      </div>`).join("");
+  const WDL = ["日","月","火","水","木","金","土"];
+  const cur = STAFFDB.find(x => x.id === selStaff);
   document.getElementById("staffHint").innerHTML = selStaff === 0
     ? "はじめての方は、上で<b>担当をお選びください</b>。初回のメニューが表示されます。"
-    : (selStaff === 1
-        ? "宗田は<b>日曜をのぞく毎日 8:00〜21:00</b>の担当です。"
-        : "飯田は<b>日曜 9:00〜13:00</b>（シフトの入る日）の担当です。");
+    : (cur ? `${cur.name.split(" ")[0]}は<b>${String(cur.work_days||"").split(",").map(d=>WDL[+d]).join("・")}曜 ${hhmm(cur.work_from)}〜${hhmm(cur.work_to)}</b>の担当です。` : "");
 }
 function pickStaff(id){
   if(MOVE) return;
@@ -284,10 +300,8 @@ async function load(){
   selMenu = MENUS[0].id;
   renderMenus();
 
-  const today = new Date(), until = new Date(Date.now()+15*86400000);
-  const { data: shifts } = await sb.from("staff_shifts").select("date, open")
-    .eq("staff_id", 2).gte("date", jstDate(today)).lte("date", jstDate(until));
-  SHIFTS = {}; (shifts||[]).forEach(s=>{ if(s.open) SHIFTS[s.date] = true; });
+  const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
+  STAFFDB = (stf || []).filter(x => x.work_days);
   const hs = (location.hash.match(/staff=(\d)/)||[])[1];
   if(hs !== undefined) selStaff = Number(hs);
   renderStaff();
@@ -332,12 +346,12 @@ async function renderSlots(){
   const el = document.getElementById("slotGrid");
   if(!selDate){ el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">日付を選んでください</div>'; return; }
   const d = new Date(selDate+"T00:00:00");
-  const isSun = d.getDay()===0, iida = (selStaff===2) || (selStaff!==1 && isSun && SHIFTS[selDate]);
+  const onDuty = selStaff ? STAFFDB.filter(x=>x.id===selStaff) : staffOnDate(selDate);
+  const iida = onDuty.length === 1 && onDuty[0].id === 2;
   if(!staffWorks(selDate)){
     el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">' +
-      (selStaff===1 ? 'この日は宗田はお休みです。別の日をお選びください。'
-       : selStaff===2 ? 'この日は飯田のシフトが入っていません。日曜のシフト日をお選びください。'
-       : 'この日は定休日です<br><span style="font-size:10.5px">※スタッフのシフトが入る日曜は 9:00〜13:00 でご予約いただける場合があります</span>') + '</div>';
+      (selStaff ? 'この日は担当がお休みです。別の日をお選びください。'
+                : 'この日はお休みです。別の日をお選びください。') + '</div>';
     return;
   }
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
@@ -348,13 +362,13 @@ async function renderSlots(){
   const BUF = BUFFER_MIN*60000;
   const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s-BUF, e:s + (b.duration_min||60)*60000 + BUF }; });
   const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
-  const times = genSlots(iida ? OPEN_IIDA : OPEN_REG, myDur);
+  const times = [...new Set(genSlots(blocksFor(selDate), myDur))].sort();
   if(times.indexOf(selSlot) < 0) selSlot = null;
   if(!times.length){
     el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">このメニューの所要時間では、この日に取れる枠がありません</div>';
     return;
   }
-  const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（9:00〜13:00）</div>' : "";
+  const head = iida ? `<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（${hhmm(onDuty[0].work_from)}〜${hhmm(onDuty[0].work_to)}）</div>` : "";
   const now = new Date();
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
@@ -463,7 +477,8 @@ function renderConfirm(){
   if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
   const m = MENUS.find(x=>x.id===selMenu);
   const d = new Date(selDate+"T00:00:00");
-  const iida = (selStaff===2) || (selStaff!==1 && d.getDay()===0 && SHIFTS[selDate]);
+  const _duty = selStaff ? STAFFDB.filter(x=>x.id===selStaff) : staffOnDate(selDate);
+  const iida = _duty.length === 1 && _duty[0].id === 2;
   document.getElementById("confirmText").innerHTML =
     `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
@@ -495,7 +510,7 @@ async function submitBooking(){
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
-  const staffId = selStaff || ((d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1);
+  const staffId = selStaff || ((staffOnDate(selDate)[0] || {id:1}).id);
   const btn = document.getElementById("bkBtn");
   const label = btn.textContent;
   let name = "", tel = "";
