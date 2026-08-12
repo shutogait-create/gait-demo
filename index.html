@@ -70,6 +70,10 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .stepLbl b{font-size:14px;color:var(--gd)}
 .menuOpt{border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff}
 .menuHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.baGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.baCell img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;background:#eef2ef}
+.baCell .lb{font-size:11.5px;color:var(--sub);text-align:center;margin-top:5px;line-height:1.5}
+.baCell .lb b{color:var(--gd)}
 .menuOpt .desc{font-size:12px;color:var(--sub);line-height:1.8;margin-top:8px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .menuOpt.sel .desc{-webkit-line-clamp:unset;overflow:visible}
@@ -345,6 +349,11 @@ nav.bottom button.act .ic{filter:none;opacity:1}
         </div>
 
         <div class="card">
+          <h3>📸 姿勢の変化（ビフォーアフター）</h3>
+          <div id="myPhotos"><p class="notice">読み込み中…</p></div>
+        </div>
+
+        <div class="card">
           <h3>📊 身体評価（理学療法士による評価）</h3>
           <div id="assessBody"><p class="notice">初回評価の後に表示されます</p></div>
         </div>
@@ -422,6 +431,98 @@ function fmtTs(ts){
   const d = new Date(ts);
   return `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
+/* ===== 姿勢写真：いちばん古いものと最新を並べて見せる ===== */
+const PP_VIEW = { front:"正面", side:"側面", back:"後面", other:"その他" };
+async function loadPhotos(){
+  const el = document.getElementById("myPhotos");
+  if(!el) return;
+  const { data } = await sb.from("progress_photos").select("*").eq("member_id", ME.id).order("taken_on");
+  if(!data || !data.length){
+    el.innerHTML = '<p class="notice">まだ写真がありません。ご来店時に、姿勢の写真を撮らせていただくことがあります。</p>';
+    return;
+  }
+  const signed = await sb.storage.from("progress").createSignedUrls(data.map(p=>p.path), 3600);
+  const urls = {}; (signed.data||[]).forEach((s,i)=>{ urls[data[i].path] = s.signedUrl; });
+  const fd = d => d.slice(0,4)+"年"+d.slice(5,7)+"月"+d.slice(8,10)+"日";
+
+  // 同じ向きで「最初」と「最新」がそろっていれば、それを並べる
+  const views = [...new Set(data.map(p=>p.view))];
+  let html = "";
+  views.forEach(v=>{
+    const list = data.filter(p=>p.view===v);
+    if(list.length < 2) return;
+    const a = list[0], b = list[list.length-1];
+    html += `<p style="font-size:12.5px;font-weight:700;color:var(--gd);margin:10px 0 7px">${PP_VIEW[v]||v}</p>
+      <div class="baGrid">
+        <div class="baCell"><img src="${urls[a.path]||""}" alt="${fd(a.taken_on)}の姿勢" loading="lazy">
+          <div class="lb">はじめ<br><b>${fd(a.taken_on)}</b></div></div>
+        <div class="baCell"><img src="${urls[b.path]||""}" alt="${fd(b.taken_on)}の姿勢" loading="lazy">
+          <div class="lb">いま<br><b>${fd(b.taken_on)}</b></div></div>
+      </div>`;
+  });
+  if(!html){
+    html = '<div class="baGrid">' + data.slice(-2).map(p=>
+      `<div class="baCell"><img src="${urls[p.path]||""}" alt="${fd(p.taken_on)}の姿勢" loading="lazy">
+        <div class="lb"><b>${fd(p.taken_on)}</b><br>${PP_VIEW[p.view]||""}</div></div>`).join("") + '</div>' +
+      '<p class="notice" style="margin-top:8px">同じ向きの写真が2枚たまると、はじめといまを並べて見られるようになります。</p>';
+  }
+  el.innerHTML = html;
+}
+
+/* ===== 痛みの記録（NRS）の折れ線グラフ =====
+   0〜10の1系列だけなので凡例は置かず、線と点で見せます。
+   施術日は下の軸に小さな印で重ねて、通院と痛みの関係が見えるようにしています。 */
+function painChart(logs, visits){
+  const L = (logs||[]).filter(p=>p && p.date && p.nrs!=null)
+    .map(p=>({ t:+new Date(p.date+"T00:00:00"), v:+p.nrs, d:p.date, site:p.site||"" }))
+    .sort((a,b)=>a.t-b.t);
+  if(L.length < 2) return '<p class="notice">記録が2回分たまると、変化のグラフが出ます。</p>';
+
+  const W=560, H=190, PL=30, PR=14, PT=14, PB=30;
+  const t0=L[0].t, t1=L[L.length-1].t, span=Math.max(t1-t0, 86400000);
+  const X = t => PL + (W-PL-PR) * (t-t0)/span;
+  const Y = v => PT + (H-PT-PB) * (v/10);          // 0が上、10が下…ではなく下が0
+  const Yv = v => PT + (H-PT-PB) * (1 - v/10);     // 0を下、10を上に
+
+  let g="";
+  [0,5,10].forEach(v=>{
+    g += `<line x1="${PL}" y1="${Yv(v)}" x2="${W-PR}" y2="${Yv(v)}" stroke="#e8efeb" stroke-width="1"/>`;
+    g += `<text x="${PL-7}" y="${Yv(v)+4}" text-anchor="end" font-size="10" fill="#8b9a92">${v}</text>`;
+  });
+
+  const pts = L.map(p=>`${X(p.t).toFixed(1)},${Yv(p.v).toFixed(1)}`).join(" ");
+  const area = `${PL},${Yv(0)} ` + pts + ` ${X(t1).toFixed(1)},${Yv(0)}`;
+
+  let vt="";
+  (visits||[]).forEach(v=>{
+    const t=+new Date(v); if(t<t0-86400000||t>t1+86400000) return;
+    vt += `<line x1="${X(t).toFixed(1)}" y1="${Yv(0)}" x2="${X(t).toFixed(1)}" y2="${Yv(0)+6}" stroke="#c6d3cc" stroke-width="2" stroke-linecap="round"/>`;
+  });
+
+  let dots="";
+  L.forEach((p,i)=>{
+    const last = i===L.length-1, first = i===0;
+    dots += `<circle cx="${X(p.t).toFixed(1)}" cy="${Yv(p.v).toFixed(1)}" r="${last?5:4}" fill="#fff" stroke="#2e9e72" stroke-width="2">
+               <title>${p.d} ${p.site} NRS ${p.v}/10</title></circle>`;
+    if(first||last){
+      dots += `<text x="${X(p.t).toFixed(1)}" y="${(Yv(p.v)-11).toFixed(1)}" text-anchor="${first?"start":"end"}"
+                 font-size="11" font-weight="700" fill="#1f7a56">${p.v}</text>`;
+    }
+  });
+
+  const fd = s => s.slice(5).replace("-","/");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img"
+     aria-label="痛みの強さの変化 ${fd(L[0].d)}から${fd(L[L.length-1].d)}まで">
+    ${g}
+    <polygon points="${area}" fill="#2e9e72" opacity="0.07"/>
+    <polyline points="${pts}" fill="none" stroke="#2e9e72" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vt}${dots}
+    <text x="${PL}" y="${H-8}" font-size="10" fill="#8b9a92">${fd(L[0].d)}</text>
+    <text x="${W-PR}" y="${H-8}" font-size="10" fill="#8b9a92" text-anchor="end">${fd(L[L.length-1].d)}</text>
+  </svg>
+  <p class="notice" style="margin-top:4px;font-size:11.5px">縦は痛みの強さ（0〜10）。下の小さな印がご来店日です。</p>`;
+}
+
 function pnFaceIcon(v){return v<=1?"😊":v<=3?"🙂":v<=6?"😐":v<=8?"😣":"😖"}
 function pnFace(v){document.getElementById("pnNrsV").textContent=v;document.getElementById("pnFaceIc").textContent=pnFaceIcon(v)}
 
@@ -470,7 +571,7 @@ async function enterApp(){
   document.getElementById("scrApp").style.display = "block";
   document.getElementById("homeNick").textContent = PROFILE.nickname || "会員";
   document.getElementById("myNick").textContent = PROFILE.nickname || "会員";
-  loadHome(); loadBookingMaster(); loadMypage(); loadLine(); goFromHash();
+  loadHome(); loadBookingMaster(); loadMypage(); loadLine(); loadPhotos(); goFromHash();
 }
 
 /* ============ nav ============ */
@@ -706,11 +807,14 @@ async function loadMypage(){
   }
 }
 async function loadPain(){
-  const { data: pains } = await sb.from("pain_logs").select("*").eq("member_id", ME.id).order("date", {ascending:false}).limit(8);
+  const { data: pains } = await sb.from("pain_logs").select("*").eq("member_id", ME.id).order("date", {ascending:false}).limit(60);
   const el = document.getElementById("painHist");
   if(!pains || !pains.length){ el.innerHTML = '<p class="notice">まだ記録がありません。下のフォームからどうぞ。</p>'; return; }
-  el.innerHTML = '<table class="evTable"><tr><th>日付</th><th style="text-align:left">部位（タイミング）</th><th>NRS</th></tr>' +
-    pains.map(p=>`<tr><td>${p.date.slice(5)}</td><td style="text-align:left">${p.site}（${p.trigger_txt||p.time_of_day||""}）</td><td><b>${pnFaceIcon(p.nrs)} ${p.nrs}</b>/10</td></tr>`).join("") + "</table>";
+  const { data: vs } = await sb.from("bookings").select("starts_at").eq("member_id", ME.id)
+    .eq("status","confirmed").lt("starts_at", new Date().toISOString()).order("starts_at",{ascending:false}).limit(60);
+  el.innerHTML = painChart(pains, (vs||[]).map(v=>v.starts_at)) +
+    '<table class="evTable"><tr><th>日付</th><th style="text-align:left">部位（タイミング）</th><th>NRS</th></tr>' +
+    pains.slice(0,8).map(p=>`<tr><td>${p.date.slice(5)}</td><td style="text-align:left">${p.site}（${p.trigger_txt||p.time_of_day||""}）</td><td><b>${pnFaceIcon(p.nrs)} ${p.nrs}</b>/10</td></tr>`).join("") + "</table>";
 }
 async function painAdd(){
   const { error } = await sb.from("pain_logs").insert({

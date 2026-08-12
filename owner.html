@@ -178,6 +178,11 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .schBk .mn{color:var(--sub);font-size:10.5px}
 .schBk.gc{background:#fff6e8;border-color:#e0a24a}
 .schBk.blk{background:#eef1ef;border-color:#b6c2ba;color:#5b6b62}
+.ppGrid{display:flex;gap:9px;overflow-x:auto;padding-bottom:5px}
+.ppItem{flex:none;width:112px}
+.ppItem img{width:112px;height:150px;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;background:#eef2ef}
+.ppItem .cap{font-size:10.5px;color:var(--sub);margin-top:4px;line-height:1.5;text-align:center}
+.ppItem .del{display:block;width:100%;margin-top:4px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:10.5px;padding:3px 0;cursor:pointer;color:var(--sub);font-family:inherit}
 .schBk.pend{background:#fdf3f2;border-color:#d98b83;border-style:dashed;color:#8a3b33}
 .schBuf{position:absolute;left:3px;right:3px;border-radius:6px;
         background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
@@ -304,6 +309,18 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       </div>
       <button class="btn" onclick="custSave()">カルテを保存する</button>
       <div id="cdExtra" style="margin-top:12px"></div>
+
+      <div style="margin-top:16px;border-top:1px solid var(--gxl);padding-top:13px">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:7px">📸 姿勢写真（ビフォーアフター）</p>
+        <p class="finePrint" style="margin-bottom:9px">同じ向き・同じ場所で撮ると比較しやすくなります。写真はご本人と修斗さんにしか見えません。</p>
+        <div class="fRow">
+          <input type="file" id="ppFile" accept="image/*" style="flex:1;font-size:12px">
+          <select id="ppView"><option value="front">正面</option><option value="side">側面</option><option value="back">後面</option><option value="other">その他</option></select>
+          <input type="date" id="ppDate" style="width:145px">
+          <button class="btn" style="width:auto;padding:8px 14px" onclick="ppUpload()">追加</button>
+        </div>
+        <div id="cdPhotos" style="margin-top:11px"></div>
+      </div>
       <button class="btn ghost" onclick="document.getElementById('custDetail').style.display='none'">閉じる</button>
     </div>
 
@@ -394,7 +411,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 const SB_URL = "https://pizzhyvqptkhigwwhorp.supabase.co";
 const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
-let ME=null, CUSTS=[], CATS=[], CUR=null;
+let ME=null, CUSTS=[], CATS=[], CUR=null, CURVISITS=[];
 const FEE = { cash:0, airpay_card:0.0324, paypay:0.0198, bank:0, paypay_send:0 };
 const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,12:88000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
 const EVAL_ITEMS = {
@@ -410,6 +427,60 @@ function authErr(m){const e=document.getElementById("authErr");e.style.display=m
 function fmtTs(ts){const d=new Date(ts);return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 function jstDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 
+
+/* ===== 痛みの記録（NRS）の折れ線グラフ =====
+   0〜10の1系列だけなので凡例は置かず、線と点で見せます。
+   施術日は下の軸に小さな印で重ねて、通院と痛みの関係が見えるようにしています。 */
+function painChart(logs, visits){
+  const L = (logs||[]).filter(p=>p && p.date && p.nrs!=null)
+    .map(p=>({ t:+new Date(p.date+"T00:00:00"), v:+p.nrs, d:p.date, site:p.site||"" }))
+    .sort((a,b)=>a.t-b.t);
+  if(L.length < 2) return '<p class="notice">記録が2回分たまると、変化のグラフが出ます。</p>';
+
+  const W=560, H=190, PL=30, PR=14, PT=14, PB=30;
+  const t0=L[0].t, t1=L[L.length-1].t, span=Math.max(t1-t0, 86400000);
+  const X = t => PL + (W-PL-PR) * (t-t0)/span;
+  const Y = v => PT + (H-PT-PB) * (v/10);          // 0が上、10が下…ではなく下が0
+  const Yv = v => PT + (H-PT-PB) * (1 - v/10);     // 0を下、10を上に
+
+  let g="";
+  [0,5,10].forEach(v=>{
+    g += `<line x1="${PL}" y1="${Yv(v)}" x2="${W-PR}" y2="${Yv(v)}" stroke="#e8efeb" stroke-width="1"/>`;
+    g += `<text x="${PL-7}" y="${Yv(v)+4}" text-anchor="end" font-size="10" fill="#8b9a92">${v}</text>`;
+  });
+
+  const pts = L.map(p=>`${X(p.t).toFixed(1)},${Yv(p.v).toFixed(1)}`).join(" ");
+  const area = `${PL},${Yv(0)} ` + pts + ` ${X(t1).toFixed(1)},${Yv(0)}`;
+
+  let vt="";
+  (visits||[]).forEach(v=>{
+    const t=+new Date(v); if(t<t0-86400000||t>t1+86400000) return;
+    vt += `<line x1="${X(t).toFixed(1)}" y1="${Yv(0)}" x2="${X(t).toFixed(1)}" y2="${Yv(0)+6}" stroke="#c6d3cc" stroke-width="2" stroke-linecap="round"/>`;
+  });
+
+  let dots="";
+  L.forEach((p,i)=>{
+    const last = i===L.length-1, first = i===0;
+    dots += `<circle cx="${X(p.t).toFixed(1)}" cy="${Yv(p.v).toFixed(1)}" r="${last?5:4}" fill="#fff" stroke="#2e9e72" stroke-width="2">
+               <title>${p.d} ${p.site} NRS ${p.v}/10</title></circle>`;
+    if(first||last){
+      dots += `<text x="${X(p.t).toFixed(1)}" y="${(Yv(p.v)-11).toFixed(1)}" text-anchor="${first?"start":"end"}"
+                 font-size="11" font-weight="700" fill="#1f7a56">${p.v}</text>`;
+    }
+  });
+
+  const fd = s => s.slice(5).replace("-","/");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img"
+     aria-label="痛みの強さの変化 ${fd(L[0].d)}から${fd(L[L.length-1].d)}まで">
+    ${g}
+    <polygon points="${area}" fill="#2e9e72" opacity="0.07"/>
+    <polyline points="${pts}" fill="none" stroke="#2e9e72" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vt}${dots}
+    <text x="${PL}" y="${H-8}" font-size="10" fill="#8b9a92">${fd(L[0].d)}</text>
+    <text x="${W-PR}" y="${H-8}" font-size="10" fill="#8b9a92" text-anchor="end">${fd(L[L.length-1].d)}</text>
+  </svg>
+  <p class="notice" style="margin-top:4px;font-size:11.5px">縦は痛みの強さ（0〜10）。下の小さな印がご来店日です。</p>`;
+}
 
 /* ============ Googleカレンダー ============ */
 const STUDIO_ADDR = "リラクゼーション＆ピラティス gait（岡山）";
@@ -740,17 +811,88 @@ async function openCust(id){
   document.getElementById("cdFullName").value = CUR.full_name||"";
   document.getElementById("cdTel").value = CUR.tel||"";
   const [pains, assess, probs] = await Promise.all([
-    sb.from("pain_logs").select("*").eq("member_id", id).order("date",{ascending:false}).limit(5),
+    sb.from("pain_logs").select("*").eq("member_id", id).order("date",{ascending:false}).limit(60),
     sb.from("assessments").select("*").eq("member_id", id).order("date",{ascending:false}).limit(8),
     sb.from("problems").select("ord, content").eq("member_id", id).order("ord")
   ]);
+  const { data: vdata } = await sb.from("bookings").select("starts_at").eq("member_id", id)
+    .eq("status","confirmed").lt("starts_at", new Date().toISOString()).order("starts_at",{ascending:false}).limit(60);
+  CURVISITS = vdata || [];
   let ex = "";
   if(probs.data?.length) ex += "<div class='chief'>⚠️ <b>問題点：</b>" + probs.data.map(p=>p.ord+". "+p.content).join("　") + "</div>";
-  if(pains.data?.length) ex += "<div class='chief' style='margin-top:8px'>🤕 <b>疼痛（最新）：</b>" + pains.data.map(p=>`${p.date.slice(5)} ${p.site} NRS${p.nrs}`).join(" ／ ") + "</div>";
+  if(pains.data?.length){
+    ex += "<div class='chief' style='margin-top:8px'>🤕 <b>疼痛（最新）：</b>" + pains.data.slice(0,5).map(p=>`${p.date.slice(5)} ${p.site} NRS${p.nrs}`).join(" ／ ") + "</div>";
+    const vlist = (CURVISITS||[]).map(v=>v.starts_at);
+    ex += "<div style='margin-top:10px'>" + painChart(pains.data, vlist) + "</div>";
+  }
   if(assess.data?.length) ex += '<table class="evTable"><tr><th>日付</th><th style="text-align:left">評価</th><th>値</th></tr>' + assess.data.map(a=>`<tr><td>${a.date.slice(5)}</td><td style="text-align:left">${a.item}${a.side&&a.side!=="—"?"（"+a.side+"）":""}</td><td><b>${a.value??""}</b>${a.unit||""}</td></tr>`).join("") + "</table>";
   document.getElementById("cdExtra").innerHTML = ex;
+  document.getElementById("ppDate").value = jstDate(new Date());
+  loadPhotos();
   document.getElementById("custDetail").scrollIntoView({behavior:"smooth"});
 }
+/* ============ 姿勢写真（ビフォーアフター） ============ */
+const PP_VIEW = { front:"正面", side:"側面", back:"後面", other:"その他" };
+
+// スマホの写真はそのままだと重いので、長辺1280pxに縮めてから保存します
+function ppShrink(file){
+  return new Promise(function(resolve){
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function(){
+      const max = 1280;
+      let w = img.width, h = img.height;
+      if(Math.max(w,h) > max){ const r = max/Math.max(w,h); w = Math.round(w*r); h = Math.round(h*r); }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => resolve(b || file), "image/jpeg", 0.82);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+async function ppUpload(){
+  if(!CUR){ toast("先に顧客を選んでください"); return; }
+  const f = document.getElementById("ppFile").files[0];
+  if(!f){ toast("写真を選んでください"); return; }
+  const view = document.getElementById("ppView").value;
+  const date = document.getElementById("ppDate").value || jstDate(new Date());
+  toast("写真を保存しています…");
+  const blob = await ppShrink(f);
+  const path = CUR.id + "/" + Date.now() + "_" + view + ".jpg";
+  const up = await sb.storage.from("progress").upload(path, blob, { contentType:"image/jpeg", upsert:false });
+  if(up.error){ toast("保存できませんでした：" + up.error.message); return; }
+  const ins = await sb.from("progress_photos").insert({ member_id: CUR.id, taken_on: date, view: view, path: path });
+  if(ins.error){ toast("記録できませんでした：" + ins.error.message); return; }
+  document.getElementById("ppFile").value = "";
+  toast("写真を追加しました");
+  loadPhotos();
+}
+
+async function loadPhotos(){
+  const el = document.getElementById("cdPhotos");
+  if(!CUR){ el.innerHTML = ""; return; }
+  const { data } = await sb.from("progress_photos").select("*").eq("member_id", CUR.id).order("taken_on");
+  if(!data || !data.length){ el.innerHTML = '<p class="notice">まだ写真がありません</p>'; return; }
+  const signed = await sb.storage.from("progress").createSignedUrls(data.map(p=>p.path), 3600);
+  const urls = {}; (signed.data||[]).forEach((s,i)=>{ urls[data[i].path] = s.signedUrl; });
+  el.innerHTML = '<div class="ppGrid">' + data.map(p=>`
+    <div class="ppItem">
+      <img src="${urls[p.path]||""}" alt="${p.taken_on} ${PP_VIEW[p.view]||""}" loading="lazy">
+      <div class="cap">${p.taken_on.slice(5).replace("-","/")}<br>${PP_VIEW[p.view]||""}</div>
+      <button class="del" onclick="ppDelete(${p.id},'${p.path}')">削除</button>
+    </div>`).join("") + '</div>' +
+    (data.length >= 2 ? `<p class="finePrint" style="margin-top:6px">いちばん古い写真（${data[0].taken_on.slice(5).replace("-","/")}）と最新（${data[data.length-1].taken_on.slice(5).replace("-","/")}）が、お客様のマイページで並べて表示されます。</p>` : "");
+}
+
+async function ppDelete(id, path){
+  if(!confirm("この写真を削除しますか？")) return;
+  await sb.storage.from("progress").remove([path]);
+  await sb.from("progress_photos").delete().eq("id", id);
+  toast("削除しました"); loadPhotos();
+}
+
 async function custSave(){
   if(!CUR) return;
   const upd = {
