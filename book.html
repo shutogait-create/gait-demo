@@ -81,7 +81,7 @@ footer a{color:var(--sub)}
       <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
       <div class="dayRow" id="dayRow"></div>
       <div class="slotGrid" id="slotGrid"></div>
-      <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。埋まっている枠は選べないので、重複予約は起こりません。</p>
+      <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。</p>
     </div>
 
     <div class="card" id="confirmCard" style="display:none">
@@ -141,8 +141,25 @@ const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const POLICY_VERSION = "v2026-08";
-const REG_TIMES  = ["10:00","11:00","13:00","14:00","15:00","16:00","17:00"];
-const IIDA_TIMES = ["9:00","10:00","11:00","12:00"];
+/* ===== 予約枠の設定（ここだけ直せば変えられます） ===== */
+// 予約は30分刻み。予約の前後は15分あけて、準備と片づけの時間にします。
+// 例：10:00〜11:00 の予約が入ると 9:45〜11:15 は取れなくなります。
+const SLOT_STEP   = 30;   // 何分刻みで枠を出すか
+const BUFFER_MIN  = 15;   // 予約の前後にあける分数
+// 営業時間帯（この中に「所要時間がまるごと収まる」枠だけ出します）
+const OPEN_REG  = [["10:00","12:00"], ["13:00","18:00"]];   // 通常日
+const OPEN_IIDA = [["9:00","13:00"]];                        // スタッフ飯田の日曜
+function genSlots(blocks, dur){
+  const out = [];
+  blocks.forEach(function(bk){
+    const a = bk[0].split(":"), b = bk[1].split(":");
+    const from = (+a[0])*60 + (+a[1]), to = (+b[0])*60 + (+b[1]);
+    for(let t = from; t + dur <= to; t += SLOT_STEP){
+      out.push(String(Math.floor(t/60)).padStart(2,"0") + ":" + String(t%60).padStart(2,"0"));
+    }
+  });
+  return out;
+}
 const WD = ["日","月","火","水","木","金","土"];
 
 let MENUS = [], SHIFTS = {};
@@ -207,9 +224,16 @@ async function renderSlots(){
   const { data: busy, error } = await sb.rpc("busy_slots", { p_from: selDate+"T00:00:00+09:00", p_to: selDate+"T23:59:59+09:00" });
   if(error){ el.innerHTML = '<div style="grid-column:1/-1;color:var(--warn);font-size:12px">空き状況を取得できませんでした。開き直してください。</div>'; return; }
   // 開始時刻が同じ予約だけでなく、時間が重なる予約もふさぐ
-  const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s, e:s + (b.duration_min||60)*60000 }; });
+  // 前後のあき時間ぶん、ふさがっている区間を広げておく
+  const BUF = BUFFER_MIN*60000;
+  const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s-BUF, e:s + (b.duration_min||60)*60000 + BUF }; });
   const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
-  const times = iida ? IIDA_TIMES : REG_TIMES;
+  const times = genSlots(iida ? OPEN_IIDA : OPEN_REG, myDur);
+  if(times.indexOf(selSlot) < 0) selSlot = null;
+  if(!times.length){
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">このメニューの所要時間では、この日に取れる枠がありません</div>';
+    return;
+  }
   const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>' : "";
   const now = new Date();
   el.innerHTML = head + times.map(t=>{
