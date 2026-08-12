@@ -506,7 +506,7 @@ async function loadBookingMaster(){
 }
 function renderMenus(){
   document.getElementById("menuList").innerHTML = MENUS.map(m=>
-    `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderConfirm()">
+    `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderSlots();renderConfirm()">
       <div><div class="n">${m.name}</div><div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+m.price_note:""}</div></div>
       <div class="pr">¥${m.price.toLocaleString()}</div></div>`).join("");
 }
@@ -534,7 +534,8 @@ async function renderSlots(){
   el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
   const { data: busy, error } = await sb.rpc("busy_slots", { p_from: selDate+"T00:00:00+09:00", p_to: selDate+"T23:59:59+09:00" });
   if(error){ el.innerHTML = '<div style="grid-column:1/-1;color:var(--warn);font-size:12px">空き状況を取得できませんでした。再読み込みしてください。</div>'; return; }
-  const busySet = new Set((busy||[]).map(b=>{ const t=new Date(b.starts_at); return t.getHours()+":"+String(t.getMinutes()).padStart(2,"0"); }));
+  const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s, e:s + (b.duration_min||60)*60000 }; });
+  const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
   const times = iida ? IIDA_TIMES : REG_TIMES;
   const head = iida ? '<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は スタッフ飯田 が担当します（9:00〜13:00）</div>' : "";
   const now = new Date();
@@ -542,7 +543,8 @@ async function renderSlots(){
     const [hh,mm] = t.split(":");
     const slotDt = new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00");
     const past = slotDt < now;
-    const taken = busySet.has(String(+hh)+":"+mm);
+    const _a = +slotDt, _b = _a + myDur*60000;
+    const taken = busyIv.some(iv => _a < iv.e && _b > iv.s);
     if(past || taken) return `<div class="slot ng">×<small>${past?"受付終了":"予約済み"}</small></div>`;
     return `<button class="slot ${selSlot===t?'sel':''}" onclick="selSlot='${t}';renderSlots().then(renderConfirm)">${t}</button>`;
   }).join("");
