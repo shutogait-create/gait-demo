@@ -16,6 +16,16 @@ body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meir
 .appbar{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;gap:12px}
 .logo{font-weight:800;font-size:17px;letter-spacing:.06em;line-height:1.2;white-space:nowrap}
 .logo small{font-weight:600;font-size:9px;display:block;opacity:.85;letter-spacing:.18em}
+.ownNav{display:flex;gap:6px;overflow-x:auto;margin:0 0 14px;padding:10px 0 6px;position:sticky;top:0;
+        background:var(--bg);z-index:6;-webkit-overflow-scrolling:touch}
+.ownNav button{flex:none;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+               padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.ownNav button.act{background:var(--g);border-color:var(--g);color:#fff}
+.ownNav button .bdg{display:inline-block;background:var(--warn);color:#fff;border-radius:999px;font-size:10px;
+                    padding:1px 6px;margin-left:5px;font-weight:800}
+.ownNav button.act .bdg{background:#fff;color:var(--warn)}
+.ownTab{display:none}
+.ownTab.act{display:block}
 .deskNav{display:none;gap:4px;flex:1;justify-content:center}
 .deskNav button{background:none;border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:600;padding:8px 18px;border-radius:99px;cursor:pointer;opacity:.8}
 .deskNav button.act{background:rgba(255,255,255,.2);opacity:1;font-weight:800}
@@ -194,6 +204,14 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div style="font-size:12px;line-height:1.6">🔐 <b>オーナー専用画面</b> — お客様側からこの画面・データは一切見えません（RLS保護）</div>
     </div>
 
+    <div class="ownNav" id="ownNav">
+      <button data-ot="book"  onclick="otab('book')">📅 予約</button>
+      <button data-ot="cust"  onclick="otab('cust')">👥 顧客・カルテ</button>
+      <button data-ot="money" onclick="otab('money')">🎫 回数券・売上</button>
+      <button data-ot="care"  onclick="otab('care')">📝 施術記録</button>
+      <button data-ot="set"   onclick="otab('set')">⚙️ 設定</button>
+    </div>
+    <div class="ownTab" id="ot-book">
     <div class="card">
       <h3>🗓 1日のスケジュール</h3>
       <div class="schNav">
@@ -240,6 +258,8 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div id="inboxList"><p class="notice">読み込み中…</p></div>
     </div>
 
+    </div>
+    <div class="ownTab" id="ot-cust">
     <div class="card">
       <h3>👥 顧客一覧（タップで詳細・編集）</h3>
       <div id="custList"><p class="notice">読み込み中…</p></div>
@@ -281,6 +301,8 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <button class="btn ghost" onclick="document.getElementById('custDetail').style.display='none'">閉じる</button>
     </div>
 
+    </div>
+    <div class="ownTab" id="ot-money">
     <div class="card">
       <h3>🎫 回数券の管理（ワンタップ消化）</h3>
       <div id="tkAdmin"><p class="notice">読み込み中…</p></div>
@@ -291,12 +313,6 @@ nav.bottom button.act .ic{filter:none;opacity:1}
         <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
       </div>
       <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）</p>
-    </div>
-
-    <div class="card">
-      <h3>👥 スタッフシフト（飯田さん・日曜 9:00〜13:00）</h3>
-      <p class="notice" style="margin-bottom:6px">ONにした日曜だけ、お客様の予約画面に9:00〜13:00の枠が表示されます。</p>
-      <div id="iidaList"></div>
     </div>
 
     <div class="card">
@@ -319,6 +335,8 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div id="paySummary" style="margin-top:12px"></div>
     </div>
 
+    </div>
+    <div class="ownTab" id="ot-care">
     <div class="card">
       <h3>📝 身体評価の入力（理学療法評価）</h3>
       <div class="fRow"><select id="evCust" style="flex:1"></select></div>
@@ -351,6 +369,15 @@ nav.bottom button.act .ic{filter:none;opacity:1}
         <input id="ytId" placeholder="YouTube動画ID（youtu.be/の後ろ）" style="width:170px">
       </div>
       <div class="fRow"><input id="ytFreq" placeholder="頻度メモ（例：毎日1セット）" style="flex:1"><button class="btn" style="width:auto;padding:8px 18px" onclick="ytAssign()">割り当て</button></div>
+    </div>
+    </div>
+    <div class="ownTab" id="ot-set">
+    <div class="card">
+      <h3>👥 スタッフシフト（飯田さん・日曜 9:00〜13:00）</h3>
+      <p class="notice" style="margin-bottom:6px">ONにした日曜だけ、お客様の予約画面に9:00〜13:00の枠が表示されます。</p>
+      <div id="iidaList"></div>
+    </div>
+
     </div>
   </main>
 </div>
@@ -424,6 +451,7 @@ async function enterApp(){
   }
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
+  otabInit();
   await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
 }
 
@@ -513,6 +541,27 @@ async function loadSchedule(){
     <div class="schScroll">${head}${body}</div>`;
 }
 
+/* ============ 管理画面のタブ ============ */
+function otab(t){
+  document.querySelectorAll(".ownTab").forEach(e=>e.classList.toggle("act", e.id === "ot"+"-"+t));
+  document.querySelectorAll("#ownNav button").forEach(b=>b.classList.toggle("act", b.dataset.ot === t));
+  try{ localStorage.setItem("gait_owner_tab", t); }catch(e){}
+  window.scrollTo(0,0);
+}
+function otabInit(){
+  let t = "book";
+  try{ t = localStorage.getItem("gait_owner_tab") || "book"; }catch(e){}
+  if(!document.getElementById("ot-"+t)) t = "book";
+  otab(t);
+}
+// 振り分け待ち・キャンセル待ちの件数をタブに出す
+function otabBadge(tab, n){
+  const b = document.querySelector('#ownNav button[data-ot="'+tab+'"]');
+  if(!b) return;
+  const old = b.querySelector(".bdg"); if(old) old.remove();
+  if(n > 0){ const s = document.createElement("span"); s.className = "bdg"; s.textContent = n; b.appendChild(s); }
+}
+
 /* ============ 予約を受け付けない時間（私用ブロック） ============ */
 async function blockAdd(){
   const ds  = document.getElementById("blkDate").value || document.getElementById("schDate").value;
@@ -564,6 +613,7 @@ async function loadInbox(){
   const box = document.getElementById("inboxList");
   if(error){ box.innerHTML = '<p class="notice">読み込めませんでした：'+esc(error.message)+'</p>'; return; }
   INBOX = data||[];
+  otabBadge("book", INBOX.length);
   if(!INBOX.length){ box.innerHTML = '<p class="notice">振り分け待ちの予定はありません 🎉</p>'; return; }
   // 同じタイトルごとにまとめる
   const g = {};
