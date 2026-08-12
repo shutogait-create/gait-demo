@@ -211,6 +211,12 @@ nav.bottom button.act .ic{filter:none;opacity:1}
       <div id="bkList"><p class="notice">読み込み中…</p></div>
     </div>
 
+    <div class="card">
+      <h3>⏳ キャンセル待ち</h3>
+      <p class="notice" style="margin-bottom:8px">空きが出たらご連絡してください。連絡が済んだら「対応済み」で消えます。</p>
+      <div id="wlList"><p class="notice">読み込み中…</p></div>
+    </div>
+
     <div class="card" id="inboxCard">
       <h3>📥 カレンダーから届いた予定（振り分け待ち）</h3>
       <p class="notice" style="margin-bottom:8px">Googleカレンダーに直接書いた予定のうち、どのお客様か自動で判断できなかったものです。一度お客様を選んで「以後も自動」にすると、次回から自動で予約に取り込まれます。</p>
@@ -401,7 +407,7 @@ async function enterApp(){
   }
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
-  await loadCusts(); schToday(); loadBookings(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
+  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadShifts(); loadPaySummary(); evInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -431,7 +437,7 @@ async function loadSchedule(){
   }
 
   const { data: bks, error } = await sb.from("bookings")
-    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, profiles(nickname, full_name), menus(name, duration_min)")
+    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, profiles(nickname, full_name), menus(name, duration_min)")
     .gte("starts_at", ds + "T00:00:00+09:00")
     .lt("starts_at",  ds + "T23:59:59+09:00")
     .neq("status", "cancelled")
@@ -468,9 +474,9 @@ async function loadSchedule(){
       cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
       cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
       cells += `<div class="schBk ${b.source==="gcal"?"gc":""}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
-                     title="${who} ／ ${menu}" onclick="ownerCancel(${b.id})">
+                     title="${who} ／ ${menu}${b.customer_note?" ／ 備考："+b.customer_note:""}" onclick="ownerCancel(${b.id})">
                   <b>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")} ${who}</b>
-                  <span class="mn">${menu}${dur?" ・"+dur+"分":""}</span>
+                  <span class="mn">${menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
                 </div>`;
     });
     body += `<div class="schCol" style="height:${H}px">${cells}</div>`;
@@ -481,6 +487,32 @@ async function loadSchedule(){
   box.innerHTML = `<div style="font-size:12.5px;color:var(--sub);margin-bottom:7px">
       ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件</div>
     <div class="schScroll">${head}${body}</div>`;
+}
+
+/* ============ キャンセル待ち ============ */
+async function loadWaitlist(){
+  const { data } = await sb.from("waitlist")
+    .select("id, name, tel, want_date, want_from, want_to, note, created_at, menus(name)")
+    .eq("status","open").order("want_date");
+  const el = document.getElementById("wlList");
+  if(!data || !data.length){ el.innerHTML = '<p class="notice">いまキャンセル待ちのお客様はいません</p>'; return; }
+  el.innerHTML = data.map(w=>{
+    const d = new Date(w.want_date + "T00:00:00");
+    const band = (w.want_from||w.want_to)
+      ? `${(w.want_from||"").slice(0,5)}〜${(w.want_to||"").slice(0,5)}` : "時間の指定なし";
+    return `<div class="bkRow">
+      <div>
+        <div class="d">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${w.name} さん</div>
+        <div class="m">${band} ｜ ${w.menus?.name||"メニュー未指定"} ｜ ☎ ${w.tel}</div>
+        ${w.note?`<div class="m">📝 ${w.note}</div>`:""}
+      </div>
+      <button class="cxBtn" onclick="wlClose(${w.id})">対応済み</button>
+    </div>`;
+  }).join("");
+}
+async function wlClose(id){
+  await sb.from("waitlist").update({ status:"closed", closed_at:new Date().toISOString() }).eq("id", id);
+  toast("キャンセル待ちを閉じました"); loadWaitlist();
 }
 
 async function loadInbox(){
@@ -612,16 +644,24 @@ async function custSave(){
 }
 
 async function loadBookings(){
-  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, profiles(nickname, full_name), menus(name), staff(name)")
+  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, customer_note, profiles(nickname, full_name), menus(name), staff(name)")
     .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(60);
   document.getElementById("bkList").innerHTML = (data&&data.length) ? data.map(b=>
-    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname ? b.profiles.nickname+" さん" : (b.title||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}</div><div class="m">${b.menus?.name||b.title||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div></div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
+    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname ? b.profiles.nickname+" さん" : (b.title||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}</div><div class="m">${b.menus?.name||b.title||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div>${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${b.customer_note}</div>`:""}</div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
     : '<p class="notice">今後の予約はまだありません</p>';
 }
 async function ownerCancel(id){
   if(!confirm("この予約を取り消しますか？")) return;
   await sb.from("bookings").update({status:"cancelled"}).eq("id", id);
-  toast("予約を取り消しました"); loadBookings(); loadSchedule();
+  toast("予約を取り消しました"); loadBookings(); loadSchedule(); loadWaitlist();
+  try{
+    const { data: bk } = await sb.from("bookings").select("starts_at").eq("id", id).maybeSingle();
+    if(bk){
+      const ds = jstDate(new Date(bk.starts_at));
+      const { data: wl } = await sb.from("waitlist").select("name").eq("status","open").eq("want_date", ds);
+      if(wl && wl.length) setTimeout(()=>toast(`⏳ この日はキャンセル待ちが ${wl.length} 件あります（${wl.map(x=>x.name).join("、")}）`), 2800);
+    }
+  }catch(e){}
 }
 
 async function loadTickets(){

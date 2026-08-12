@@ -267,6 +267,8 @@ nav.bottom button.act .ic{filter:none;opacity:1}
               体調不良のときは、ご連絡いただければいただきません。
               <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
             </div>
+            <label style="display:block;font-size:11px;color:var(--sub);margin-bottom:10px">ご要望・気になるところ（任意）
+              <textarea id="bkNote" rows="2" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px;margin-top:4px" placeholder="例：右肩が上げにくいです"></textarea></label>
             <label class="chkLine"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
             <button class="btn" id="bkBtn" onclick="confirmBooking()">この内容で予約を確定する</button>
             <p class="finePrint">お支払いは店舗にて。キャンセル・変更はホームの「今後のご予約」から行えます。</p>
@@ -499,7 +501,14 @@ async function loadHome(){
   } else {
     document.getElementById("nextBkDate").textContent = fmtTs(bks[0].starts_at) + "〜";
     document.getElementById("nextBkMenu").textContent = (bks[0].menus?.name || "") + " ｜ 変更・キャンセルは下の一覧から";
-    list.innerHTML = bks.map(b=>`<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div><button class="cxBtn" onclick="cancelBk(${b.id},'${b.starts_at}')">キャンセル</button></div>`).join("");
+    list.innerHTML = bks.map(b=>{
+      const canMove = new Date(b.starts_at).toDateString() !== new Date().toDateString() && new Date(b.starts_at) > new Date();
+      return `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          ${canMove?`<button class="cxBtn" style="border-color:var(--g);color:var(--gd)" onclick="location.href='/book.html#move=${b.id}'">日時変更</button>`:""}
+          <button class="cxBtn" onclick="cancelBk(${b.id},'${b.starts_at}')">キャンセル</button>
+        </div></div>`;
+    }).join("");
   }
   const { data: tks } = await sb.from("tickets").select("left_count").gt("left_count",0).eq("member_id",ME.id);
   document.getElementById("tkHome").textContent = tks && tks.length ? tks.reduce((s,t)=>s+t.left_count,0) : 0;
@@ -541,7 +550,7 @@ function renderMenus(){
 function renderDays(){
   const row = document.getElementById("dayRow");
   let html = "";
-  for(let i=0;i<14;i++){
+  for(let i=1;i<=14;i++){
     const d = new Date(Date.now()+i*86400000);
     const ds = jstDate(d);
     html += `<button class="dayBtn ${selDate===ds?'sel':''}" onclick="selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()">
@@ -606,11 +615,12 @@ async function confirmBooking(){
   const d = new Date(selDate+"T00:00:00");
   const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
   const { error } = await sb.from("bookings").insert({ member_id: ME.id, menu_id: selMenu, staff_id: staffId, starts_at: startsAt, channel: "app",
-              policy_version: POLICY_VERSION, policy_agreed_at: new Date().toISOString() });
+              policy_version: POLICY_VERSION, policy_agreed_at: new Date().toISOString(),
+              customer_note: (document.getElementById("bkNote").value.trim() || null) });
   btn.disabled = false;
   if(error){ toast("予約できませんでした。枠が埋まった可能性があります"); renderSlots(); return; }
   toast(`【予約確定】${fmtTs(startsAt)}〜 ご来店をお待ちしています 📅`);
-  document.getElementById("agree").checked = false;
+  document.getElementById("agree").checked = false; document.getElementById("bkNote").value = "";
   selSlot = null; renderSlots(); loadHome();
   setTimeout(()=>go("home"), 800);
 }

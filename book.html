@@ -48,7 +48,12 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .field{margin-bottom:11px}
 .field label{font-size:12px;font-weight:700;color:var(--sub);display:block;margin-bottom:3px}
 .field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit}
-.field input:focus{outline:none;border-color:var(--g)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--g)}
+.field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;font-size:15px;
+                font-family:inherit;line-height:1.7;resize:vertical}
+.moveBox{background:#fff8e8;border:1.5px solid #e0c48a;border-radius:14px;padding:15px 16px;margin-bottom:14px}
+.moveBox .t{font-weight:800;font-size:14px;color:#8a6412;margin-bottom:5px}
+.moveBox .i{font-size:14px;line-height:1.8}
 .polBox{border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin:4px 0 12px;font-size:12.5px;
         color:var(--sub);line-height:1.85}
 .polBox b{color:var(--ink)}
@@ -78,7 +83,13 @@ footer a{color:var(--sub)}
 <main>
 
   <div id="flow">
-    <div class="card">
+    <div class="moveBox" id="moveBanner" style="display:none">
+      <div class="t">🔁 ご予約の日時を変更します</div>
+      <div class="i" id="moveInfo"></div>
+      <button class="btn sub" style="margin-top:11px" onclick="cancelMove()">変更をやめる</button>
+    </div>
+
+    <div class="card" id="menuCard">
       <div class="stepLbl"><span class="n">1</span><b>メニューを選ぶ</b></div>
       <p class="notice" style="margin:-4px 0 11px">表示している料金は<b>2026年9月1日からの改定後の価格</b>です。8月中のご来店は現行価格でご案内いたします。</p>
       <div id="menuList"><p class="notice">読み込み中…</p></div>
@@ -88,14 +99,34 @@ footer a{color:var(--sub)}
       <div class="stepLbl"><span class="n">2</span><b>日時を選ぶ</b></div>
       <div class="dayRow" id="dayRow"></div>
       <div class="slotGrid" id="slotGrid"></div>
-      <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。</p>
+      <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。<br>
+      ⏰ <b>ご予約の受付は前日23:59まで</b>です。当日のご予約・ご変更はお電話か公式LINEでご相談ください。</p>
+      <button class="btn sub" id="wlOpen" style="display:none" onclick="wlOpenFor()">この日のキャンセル待ちに登録する</button>
+    </div>
+
+    <div class="card" id="wlCard" style="display:none">
+      <div class="stepLbl"><span class="n">＋</span><b>キャンセル待ちのご登録</b></div>
+      <p class="notice" id="wlLead" style="margin-bottom:12px"></p>
+      <div class="err" id="wlErr"></div>
+      <div class="field"><label>お名前</label><input id="wlName" type="text" placeholder="例：山田 花子" autocomplete="name"></div>
+      <div class="field"><label>電話番号（ハイフンなし）</label><input id="wlTel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel"></div>
+      <div class="field"><label>ご希望の時間帯（任意）</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="wlFrom" type="time" style="flex:1"><span style="color:var(--sub)">〜</span><input id="wlTo" type="time" style="flex:1">
+        </div>
+      </div>
+      <div class="field"><label>ひとこと（任意）</label><textarea id="wlNote" rows="2" placeholder="例：午前中だと助かります"></textarea></div>
+      <button class="btn" id="wlBtn" onclick="wlSubmit()">キャンセル待ちに登録する</button>
+      <button class="btn sub" onclick="wlClose()">閉じる</button>
+      <p class="notice" style="margin-top:9px">空きが出たら、こちらからお電話または公式LINEでご連絡します。自動で予約が入ることはありません。</p>
     </div>
 
     <div class="card" id="confirmCard" style="display:none">
-      <div class="stepLbl"><span class="n">3</span><b>お名前とご連絡先</b></div>
+      <div class="stepLbl"><span class="n">3</span><b id="step3Title">お名前とご連絡先</b></div>
       <div class="confirmBox" id="confirmText"></div>
       <div class="err" id="err"></div>
 
+      <div id="guestFields">
       <div class="field">
         <label>お名前</label>
         <input id="nm" type="text" placeholder="例：山田 花子" autocomplete="name">
@@ -103,6 +134,11 @@ footer a{color:var(--sub)}
       <div class="field">
         <label>電話番号（ハイフンなし）</label>
         <input id="tel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label>ご要望・気になるところ（任意）</label>
+        <textarea id="note" rows="3" placeholder="例：右肩が上げにくいです／産後3ヶ月です／はじめてなので不安です"></textarea>
+      </div>
       </div>
 
       <div class="polBox">
@@ -113,18 +149,18 @@ footer a{color:var(--sub)}
         <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
       </div>
 
-      <label class="chk"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
-      <label class="chk"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
+      <label class="chk" id="agreeRow"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
+      <label class="chk" id="rememberRow"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
 
       <button class="btn" id="bkBtn" onclick="submitBooking()">この内容で予約を確定する</button>
-      <p class="notice" style="margin-top:9px">お支払いは店舗にて。会員登録は不要です。</p>
+      <p class="notice" style="margin-top:9px" id="bkFoot">お支払いは店舗にて。会員登録は不要です。</p>
     </div>
   </div>
 
   <div id="doneScr" style="display:none">
     <div class="done">
       <div class="ic">✅</div>
-      <div class="t">ご予約を承りました</div>
+      <div class="t" id="doneTitle">ご予約を承りました</div>
       <div class="d" id="doneText"></div>
     </div>
     <div class="card">
@@ -170,6 +206,7 @@ const WD = ["日","月","火","水","木","金","土"];
 
 let MENUS = [], SHIFTS = {};
 let selMenu = null, selDate = null, selSlot = null;
+let MOVE = null;   // 日時変更モードのとき、変更する予約の情報が入る
 
 function jstDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -195,6 +232,7 @@ async function load(){
     .eq("staff_id", 2).gte("date", jstDate(today)).lte("date", jstDate(until));
   SHIFTS = {}; (shifts||[]).forEach(s=>{ if(s.open) SHIFTS[s.date] = true; });
   renderDays();
+  await initMove();
   renderSlots();
 }
 
@@ -212,7 +250,8 @@ function renderMenus(){
 
 function renderDays(){
   let html = "";
-  for(let i=0;i<14;i++){
+  // ご予約の受付は前日23:59まで → 明日から14日ぶんを出す
+  for(let i=1;i<=14;i++){
     const d = new Date(Date.now()+i*86400000), ds = jstDate(d);
     html += `<button class="dayBtn ${selDate===ds?'sel':''}" onclick="selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm()">
       <div class="w">${WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
@@ -254,7 +293,96 @@ async function renderSlots(){
       return `<div class="slot ng">×<small>${slotDt<now?"受付終了":"予約済み"}</small></div>`;
     return `<button class="slot ${selSlot===t?'sel':''}" onclick="selSlot='${t}';renderSlots().then(renderConfirm)">${t}</button>`;
   }).join("");
+  document.getElementById("wlOpen").style.display = MOVE ? "none" : "block";
   renderConfirm();
+}
+
+/* ---------- キャンセル待ち ---------- */
+function wlOpenFor(){
+  if(!selDate) return;
+  const d = new Date(selDate+"T00:00:00");
+  document.getElementById("wlLead").textContent =
+    `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）に空きが出たら、ご連絡を差し上げます。`;
+  const mem = memGet();
+  if(mem){
+    if(mem.name && !document.getElementById("wlName").value) document.getElementById("wlName").value = mem.name;
+    if(mem.tel  && !document.getElementById("wlTel").value)  document.getElementById("wlTel").value  = mem.tel;
+  }
+  document.getElementById("wlErr").style.display="none";
+  document.getElementById("wlCard").style.display="block";
+  document.getElementById("wlCard").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function wlClose(){ document.getElementById("wlCard").style.display="none"; }
+async function wlSubmit(){
+  const e = document.getElementById("wlErr");
+  const show = m => { e.style.display = m?"block":"none"; e.textContent = m||""; };
+  show("");
+  const name = document.getElementById("wlName").value.trim();
+  const tel  = document.getElementById("wlTel").value.replace(/[^0-9]/g,"");
+  if(!name){ show("お名前を入力してください"); return; }
+  if(tel.length < 10){ show("電話番号を正しく入力してください（ハイフンなし）"); return; }
+  const btn = document.getElementById("wlBtn");
+  btn.disabled = true; btn.textContent = "登録しています…";
+  const { data, error } = await sb.rpc("waitlist_add", {
+    p_name: name, p_tel: tel, p_menu_id: selMenu, p_date: selDate,
+    p_from: document.getElementById("wlFrom").value || null,
+    p_to:   document.getElementById("wlTo").value   || null,
+    p_note: document.getElementById("wlNote").value.trim() || null });
+  btn.disabled = false; btn.textContent = "キャンセル待ちに登録する";
+  if(error || !data || !data.ok){ show("登録できませんでした。時間をおいてお試しください。"); return; }
+  document.getElementById("wlCard").innerHTML =
+    '<div class="stepLbl"><span class="n">✓</span><b>キャンセル待ちを承りました</b></div>' +
+    '<p class="notice">空きが出ましたら、お電話または公式LINEでご連絡します。' +
+    (data.dup ? '<br>（この日はすでにご登録いただいています）' : '') + '</p>';
+}
+
+/* ---------- 日時変更モード ---------- */
+function moveGet(){ try{ return JSON.parse(localStorage.getItem("gait_move")||"null"); }catch(e){ return null; } }
+function cancelMove(){
+  try{ localStorage.removeItem("gait_move"); }catch(e){}
+  location.href = "/me.html";
+}
+async function initMove(){
+  if(location.hash.indexOf("move") < 0) return false;
+  const raw = moveGet();
+  const hid = (location.hash.match(/move=(\d+)/)||[])[1];
+  const id  = (raw && raw.id) || (hid ? Number(hid) : null);
+  if(!id) return false;
+
+  let bk = null;
+  const { data } = await sb.from("bookings")
+    .select("id, starts_at, menu_id").eq("id", id).eq("status","confirmed").maybeSingle();
+  if(data) bk = data;
+  if(!bk && raw && raw.tel){
+    const { data: g } = await sb.rpc("guest_lookup",
+      { p_tel: raw.tel, p_dob: raw.dob || null, p_name: raw.name || null });
+    if(g && g.ok) bk = (g.bookings||[]).find(x => Number(x.id) === Number(id)) || null;
+  }
+  if(!bk){
+    document.getElementById("moveBanner").style.display = "block";
+    document.getElementById("moveInfo").innerHTML =
+      'ご予約が見つかりませんでした。お手数ですが、<a href="/me.html">予約の確認ページ</a>からもう一度お試しください。';
+    return false;
+  }
+
+  MOVE = { id: bk.id, starts_at: bk.starts_at, menu_id: bk.menu_id,
+           tel: raw && raw.tel, dob: raw && raw.dob, name: raw && raw.name };
+  if(bk.menu_id) selMenu = bk.menu_id;
+
+  const m = MENUS.find(x => x.id === selMenu);
+  const d = new Date(bk.starts_at);
+  document.getElementById("moveBanner").style.display = "block";
+  document.getElementById("moveInfo").innerHTML =
+    `いまのご予約：<b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}〜</b><br>` +
+    `${m ? esc(m.name) : ""}<br><span style="font-size:12.5px;color:var(--sub)">新しい日時をお選びください。メニューは変わりません。</span>`;
+  document.getElementById("menuCard").style.display = "none";
+  document.getElementById("guestFields").style.display = "none";
+  document.getElementById("agreeRow").style.display = "none";
+  document.getElementById("rememberRow").style.display = "none";
+  document.getElementById("step3Title").textContent = "この日時に変更する";
+  document.getElementById("bkBtn").textContent = "この日時に変更する";
+  document.getElementById("bkFoot").textContent = "変更しても料金はかかりません。前日23:59まで何度でも変更できます。";
+  return true;
 }
 
 function renderConfirm(){
@@ -278,41 +406,63 @@ function renderConfirm(){
   c.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 
+const MOVE_ERR = {
+  taken: "申し訳ありません。ちょうどこの枠が埋まってしまいました。別の時間をお選びください。",
+  closed: "ご予約の受付は前日23:59までです。当日のご予約はお電話か公式LINEでご相談ください。",
+  closed_new: "ご予約の受付は前日23:59までです。翌日以降の日時をお選びください。",
+  closed_old: "当日のご変更は承れません。お手数ですが、お電話か公式LINEでご連絡ください。",
+  denied: "ご本人の確認ができませんでした。予約の確認ページからやり直してください。",
+  notfound: "このご予約は見つかりませんでした。すでに変更・キャンセルされている可能性があります。"
+};
+
 async function submitBooking(){
   showErr("");
   if(!selSlot || !selDate || !selMenu) return;
-  const name = document.getElementById("nm").value.trim();
-  const tel  = document.getElementById("tel").value.replace(/[^0-9]/g,"");
-  if(!name){ showErr("お名前を入力してください"); return; }
-  if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
-  if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
 
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
   const staffId = (d.getDay()===0 && SHIFTS[selDate]) ? 2 : 1;
-
   const btn = document.getElementById("bkBtn");
-  btn.disabled = true; btn.textContent = "予約しています…";
-  const { data, error } = await sb.rpc("guest_book", {
-    p_name: name, p_tel: tel, p_menu_id: selMenu, p_staff_id: staffId,
-    p_starts_at: startsAt, p_policy: POLICY_VERSION
-  });
-  btn.disabled = false; btn.textContent = "この内容で予約を確定する";
+  const label = btn.textContent;
+  let name = "", tel = "";
 
-  if(error){ showErr("予約できませんでした。時間をおいてお試しください。"); return; }
+  let res;
+  if(MOVE){
+    btn.disabled = true; btn.textContent = "変更しています…";
+    res = await sb.rpc("move_booking", {
+      p_booking_id: MOVE.id, p_new_starts_at: startsAt,
+      p_tel: MOVE.tel || null, p_dob: MOVE.dob || null, p_name: MOVE.name || null });
+  }else{
+    name = document.getElementById("nm").value.trim();
+    tel  = document.getElementById("tel").value.replace(/[^0-9]/g,"");
+    if(!name){ showErr("お名前を入力してください"); return; }
+    if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
+    if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
+    btn.disabled = true; btn.textContent = "予約しています…";
+    res = await sb.rpc("guest_book", {
+      p_name: name, p_tel: tel, p_menu_id: selMenu, p_staff_id: staffId,
+      p_starts_at: startsAt, p_policy: POLICY_VERSION,
+      p_note: document.getElementById("note").value.trim() || null });
+  }
+  const { data, error } = res;
+  btn.disabled = false; btn.textContent = label;
+
+  if(error){ showErr("うまく処理できませんでした。時間をおいてお試しください。"); return; }
   if(!data || !data.ok){
-    if(data && data.reason === "taken"){ showErr("申し訳ありません。ちょうどこの枠が埋まってしまいました。別の時間をお選びください。"); selSlot=null; renderSlots(); }
-    else { showErr("予約できませんでした。入力内容をご確認ください。"); }
+    showErr(MOVE_ERR[data && data.reason] || "うまく処理できませんでした。入力内容をご確認ください。");
+    if(data && data.reason === "taken"){ selSlot = null; renderSlots(); }
     return;
   }
 
-  if(document.getElementById("remember").checked) memSet({ tel: tel, name: name });
+  if(!MOVE && document.getElementById("remember").checked) memSet({ tel: tel, name: name });
+  if(MOVE){ try{ localStorage.removeItem("gait_move"); }catch(e){} }
 
   const m = MENUS.find(x=>x.id===selMenu);
+  document.getElementById("doneTitle").textContent = MOVE ? "日時を変更しました" : "ご予約を承りました";
   document.getElementById("doneText").innerHTML =
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
-    `${esc(m.name)}<br><span style="font-size:12.5px;opacity:.9">${esc(name)} さま</span>`;
+    `${m ? esc(m.name) : ""}` + (name ? `<br><span style="font-size:12.5px;opacity:.9">${esc(name)} さま</span>` : "");
   document.getElementById("flow").style.display = "none";
   document.getElementById("doneScr").style.display = "block";
   window.scrollTo(0,0);
