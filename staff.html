@@ -38,6 +38,11 @@ p+p{margin-top:11px}
 .btn.sub{background:#fff;color:var(--gd);border:1.5px solid var(--g);margin-top:10px}
 .note{font-size:12.5px;color:var(--sub);line-height:1.9}
 footer{text-align:center;font-size:11.5px;color:var(--sub);padding:8px 16px 40px;line-height:1.9}
+
+/* 予約ページの中に埋め込んで表示するとき（?embed=1） */
+html.embed .appbar{display:none}
+html.embed main{padding-top:14px}
+html.embed footer{display:none}
 </style>
 </head>
 <body>
@@ -115,5 +120,24 @@ footer{text-align:center;font-size:11.5px;color:var(--sub);padding:8px 16px 40px
 </main>
 
 <footer>リラクゼーション＆ピラティス gait（岡山）</footer>
+
+<script>
+(function(){
+  var embed = new URLSearchParams(location.search).get("embed");
+  if(!embed) return;
+  document.documentElement.classList.add("embed");
+  // 埋め込み中は、リンクで別ページに飛ばさず親に伝える
+  document.querySelectorAll('a[href]').forEach(function(a){
+    var href = a.getAttribute("href") || "";
+    if(href.indexOf("http") === 0) return;            // 外部リンクはそのまま
+    a.addEventListener("click", function(e){
+      e.preventDefault();
+      var m = href.match(/staff=(\d)/);
+      try{ parent.postMessage({ gait: "sheet", action: m ? "pickStaff" : "close",
+                                staffId: m ? Number(m[1]) : null }, location.origin); }catch(err){}
+    });
+  });
+})();
+</script>
 </body>
 </html>

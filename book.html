@@ -65,6 +65,16 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--g)}
 .field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px;font-size:15px;
                 font-family:inherit;line-height:1.7;resize:vertical}
+.sheetBg{position:fixed;inset:0;background:rgba(20,35,28,.45);z-index:50;display:none}
+.sheetBg.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;top:34px;background:var(--bg);z-index:51;border-radius:18px 18px 0 0;
+       display:none;flex-direction:column;overflow:hidden;box-shadow:0 -6px 30px rgba(20,35,28,.25)}
+.sheet.on{display:flex}
+.sheetBar{display:flex;align-items:center;gap:10px;padding:13px 15px;background:#fff;border-bottom:1px solid var(--line)}
+.sheetBar .ttl{font-weight:800;font-size:14.5px;color:var(--gd);flex:1}
+.sheetBar button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 15px;
+                 font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+.sheet iframe{flex:1;width:100%;border:none;background:var(--bg)}
 .moveBox{background:#fff8e8;border:1.5px solid #e0c48a;border-radius:14px;padding:15px 16px;margin-bottom:14px}
 .moveBox .t{font-weight:800;font-size:14px;color:#8a6412;margin-bottom:5px}
 .moveBox .i{font-size:14px;line-height:1.8}
@@ -107,7 +117,7 @@ footer a{color:var(--sub)}
       <div class="stepLbl"><span class="n">1</span><b>担当を選ぶ</b></div>
       <div class="staffRow" id="staffRow"></div>
       <p class="notice" style="margin-top:10px">
-        <a href="/staff.html" target="_blank" rel="noopener" style="color:var(--gd);font-weight:700">スタッフ紹介を見る ›</a>
+        <a onclick="openSheet('/staff.html','スタッフ紹介')" style="color:var(--gd);font-weight:700;text-decoration:underline;cursor:pointer">スタッフ紹介を見る ›</a>
       </p>
       <p class="notice" id="staffHint" style="margin-top:6px"></p>
     </div>
@@ -169,7 +179,7 @@ footer a{color:var(--sub)}
         <b>前日中まで</b>は無料でご変更・キャンセルいただけます。<br>
         <b>当日</b>は、回数券をお持ちの方は1回分を消化、都度払いの方は料金の50%を申し受けます。<br>
         体調不良のときは、ご連絡いただければいただきません。<br>
-        <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
+        <a onclick="openSheet('/policy.html','キャンセル・変更について')" style="cursor:pointer;text-decoration:underline">くわしく読む ›</a>
       </div>
 
       <label class="chk" id="agreeRow"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
@@ -195,9 +205,18 @@ footer a{color:var(--sub)}
 
 </main>
 
+<div class="sheetBg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheetBar">
+    <div class="ttl" id="sheetTtl"></div>
+    <button onclick="closeSheet()">✕ 閉じて予約に戻る</button>
+  </div>
+  <iframe id="sheetFrame" title=""></iframe>
+</div>
+
 <footer>
   リラクゼーション＆ピラティス gait（岡山）<br>
-  <a href="/policy.html">キャンセル・変更について</a> ｜ <a href="/">会員の方はこちら</a>
+  <a onclick="openSheet('/policy.html','キャンセル・変更について')" style="cursor:pointer;text-decoration:underline">キャンセル・変更について</a> ｜ <a href="/">会員の方はこちら</a>
 </footer>
 
 <script>
@@ -389,6 +408,29 @@ async function renderSlots(){
   document.getElementById("wlOpen").style.display = MOVE ? "none" : "block";
   renderConfirm();
 }
+
+/* ---------- ページを離れずに開く（新しいタブを増やさない） ---------- */
+function openSheet(url, title){
+  document.getElementById("sheetTtl").textContent = title;
+  document.getElementById("sheetFrame").src = url + "?embed=1";
+  document.getElementById("sheetBg").classList.add("on");
+  document.getElementById("sheet").classList.add("on");
+  document.body.style.overflow = "hidden";
+}
+function closeSheet(){
+  document.getElementById("sheetBg").classList.remove("on");
+  document.getElementById("sheet").classList.remove("on");
+  document.getElementById("sheetFrame").src = "about:blank";
+  document.body.style.overflow = "";
+}
+document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeSheet(); });
+window.addEventListener("message", e=>{
+  if(e.origin !== location.origin) return;
+  const d = e.data || {};
+  if(d.gait !== "sheet") return;
+  if(d.action === "pickStaff" && typeof d.staffId === "number") pickStaff(d.staffId);
+  closeSheet();
+});
 
 /* ---------- キャンセル待ち ---------- */
 function wlOpenFor(){
