@@ -9,6 +9,8 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#2e9e72">
+<link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -187,6 +189,15 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .schBuf{position:absolute;left:3px;right:3px;border-radius:6px;
         background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
 .schEmpty{padding:26px 10px;text-align:center;color:var(--sub);font-size:12.5px}
+
+/* タップの反応を速く・軽く見せるための指定 */
+*{touch-action:manipulation}
+button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
+  transition:background-color .12s ease,border-color .12s ease,transform .06s ease;
+  will-change:transform}
+.slot:active:not(.ng),.dayBtn:active:not(.off),.menuOpt:active,.staffOpt:active,
+.btn:active,a.btn:active,.tile:active{transform:scale(.97)}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
 </head>
 <body>

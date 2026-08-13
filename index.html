@@ -9,6 +9,8 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#2e9e72">
+<link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -154,6 +156,15 @@ nav.bottom button.act .ic{filter:none;opacity:1}
   .myGrid .span2{grid-column:1/-1}
   #toast{bottom:40px}
 }
+
+/* タップの反応を速く・軽く見せるための指定 */
+*{touch-action:manipulation}
+button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
+  transition:background-color .12s ease,border-color .12s ease,transform .06s ease;
+  will-change:transform}
+.slot:active:not(.ng),.dayBtn:active:not(.off),.menuOpt:active,.staffOpt:active,
+.btn:active,a.btn:active,.tile:active{transform:scale(.97)}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
 </head>
 <body>
@@ -643,6 +654,8 @@ async function loadBookingMaster(){
   const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to, skip_holidays").order("id");
   STAFFDB = (stf || []).filter(x => x.work_days);
   renderDays();
+  renderSlots();
+  prefetchBusy(6);
 }
 function renderMenus(){
   document.getElementById("menuList").innerHTML = MENUS.map(m=>
@@ -675,44 +688,68 @@ function renderDays(){
   }
   row.innerHTML = html;
 }
-async function renderSlots(){
+/* 空き状況は日付ごとに覚えておき、タップのたびに通信しないようにします */
+const BUSY = {};
+const BUSY_TTL = 90 * 1000;
+function busyIntervals(rows){
+  const BUF = BUFFER_MIN*60000;
+  return (rows||[]).map(b=>{ const t=+new Date(b.starts_at); return { s:t-BUF, e:t + (b.duration_min||60)*60000 + BUF }; });
+}
+async function fetchBusy(ds){
+  const { data, error } = await sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" });
+  if(error) return null;
+  BUSY[ds] = { iv: busyIntervals(data), at: Date.now() };
+  return BUSY[ds];
+}
+function prefetchBusy(n){
+  for(let i=1;i<=n;i++){
+    const ds = jstDate(new Date(Date.now()+i*86400000));
+    if(!BUSY[ds] && staffOnDate(ds).length) fetchBusy(ds).then(()=>{ if(ds===selDate) renderSlots(); });
+  }
+}
+function slotMsg(text){
+  document.getElementById("slotGrid").innerHTML =
+    '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">' + text + '</div>';
+}
+
+function renderSlots(){
   const el = document.getElementById("slotGrid");
-  if(!selDate){ el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">日付を選んでください</div>'; return; }
-  const d = new Date(selDate + "T00:00:00");
+  if(!selDate){ slotMsg("日付を選んでください"); return; }
   const onDuty = staffOnDate(selDate);
   const iida = onDuty.length === 1 && onDuty[0].id === 2;
   if(!onDuty.length){
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">'
-      + (HOLIDAYS[selDate] ? ('この日は祝日（' + HOLIDAYS[selDate] + '）のためお休みです。別の日をお選びください。')
-                           : 'この日はお休みです。別の日をお選びください。') + '</div>';
+    slotMsg(HOLIDAYS[selDate] ? ('この日は祝日（' + HOLIDAYS[selDate] + '）のためお休みです。別の日をお選びください。')
+                              : 'この日はお休みです。別の日をお選びください。');
     return;
   }
-  el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px 0">空き状況を確認中…</div>';
-  const { data: busy, error } = await sb.rpc("busy_slots", { p_from: selDate+"T00:00:00+09:00", p_to: selDate+"T23:59:59+09:00" });
-  if(error){ el.innerHTML = '<div style="grid-column:1/-1;color:var(--warn);font-size:12px">空き状況を取得できませんでした。再読み込みしてください。</div>'; return; }
-  // 前後のあき時間ぶん、ふさがっている区間を広げておく
-  const BUF = BUFFER_MIN*60000;
-  const busyIv = (busy||[]).map(b=>{ const s=+new Date(b.starts_at); return { s:s-BUF, e:s + (b.duration_min||60)*60000 + BUF }; });
+  const cache = BUSY[selDate];
+  if(!cache){
+    slotMsg("空き状況を確認中…");
+    fetchBusy(selDate).then(()=>{
+      if(BUSY[selDate]) renderSlots(); else slotMsg("空き状況を取得できませんでした。再読み込みしてください。");
+    });
+    return;
+  }
+  if(Date.now() - cache.at > BUSY_TTL) fetchBusy(selDate).then(()=>{ if(BUSY[selDate]) renderSlots(); });
+
   const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
   const times = [...new Set(genSlots(blocksFor(selDate), myDur))].sort();
   if(times.indexOf(selSlot) < 0) selSlot = null;
-  if(!times.length){
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">このメニューの所要時間では、この日に取れる枠がありません</div>';
-    return;
-  }
+  if(!times.length){ slotMsg("このメニューの所要時間では、この日に取れる枠がありません"); return; }
+
   const head = iida ? `<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（${hhmm(onDuty[0].work_from)}〜${hhmm(onDuty[0].work_to)}）</div>` : "";
-  const now = new Date();
+  const now = Date.now(), iv = cache.iv;
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
-    const slotDt = new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00");
-    const past = slotDt < now;
-    const _a = +slotDt, _b = _a + myDur*60000;
-    const taken = busyIv.some(iv => _a < iv.e && _b > iv.s);
+    const a2 = +new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00"), b2 = a2 + myDur*60000;
+    const past = a2 < now;
+    const taken = iv.some(x => a2 < x.e && b2 > x.s);
     if(past || taken) return `<div class="slot ng">×<small>${past?"受付終了":"予約済み"}</small></div>`;
-    return `<button class="slot ${selSlot===t?'sel':''}" onclick="selSlot='${t}';renderSlots().then(renderConfirm)">${t}</button>`;
+    return `<button class="slot ${selSlot===t?'sel':''}" onclick="pickSlot('${t}')">${t}</button>`;
   }).join("");
-  renderConfirm();
 }
+function pickSlot(t){ selSlot = t; renderSlots(); renderConfirm(); }
+
 function renderConfirm(){
   const c = document.getElementById("confirmCard");
   if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
@@ -740,6 +777,7 @@ async function confirmBooking(){
   btn.disabled = false;
   if(error){ toast("予約できませんでした。枠が埋まった可能性があります"); renderSlots(); return; }
   toast(`【予約確定】${fmtTs(startsAt)}〜 ご来店をお待ちしています 📅`);
+  Object.keys(BUSY).forEach(k=>delete BUSY[k]);
   document.getElementById("agree").checked = false; document.getElementById("bkNote").value = "";
   selSlot = null; renderSlots(); loadHome();
   setTimeout(()=>go("home"), 800);
