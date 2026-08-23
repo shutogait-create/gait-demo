@@ -99,6 +99,21 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .confirmBox{background:var(--gxl);border:1.5px solid var(--g);border-radius:12px;padding:13px;margin:12px 0;font-size:13px}
 .confirmBox b{color:var(--gd)}
 .finePrint{font-size:10.5px;color:var(--sub);margin-top:8px}
+/* SOAPカルテ */
+.soLab{display:block;margin-bottom:9px;font-size:13px;font-weight:800;color:var(--gd)}
+.soLab span{font-weight:500;font-size:10.5px;color:var(--sub);margin-left:6px}
+.soLab textarea{display:block;width:100%;margin-top:4px;font-weight:400;color:var(--ink);font-size:13.5px}
+.soCard{background:var(--gxl);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:9px}
+.soCard .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}
+.soCard .dt{font-size:12.5px;font-weight:800;color:var(--gd)}
+.soCard .by{font-size:10.5px;color:var(--sub);font-weight:600}
+.soCard .row{font-size:12.5px;line-height:1.75;margin-bottom:4px;display:flex;gap:7px}
+.soCard .row b{flex:none;width:15px;color:var(--g);font-size:12px}
+.soCard .row span{white-space:pre-wrap}
+.soCard .acts{display:flex;gap:6px}
+.soCard .acts button{border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:8px;
+  padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.soCard.editing{border-color:var(--g);box-shadow:0 0 0 2px var(--gl)}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:100px;width:88%;max-width:390px;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.22);padding:12px 14px;display:none;z-index:80;border-left:5px solid var(--line-green)}
 #toast.show{display:flex;gap:10px;animation:fade .12s}
 #toast .lic{width:34px;height:34px;border-radius:9px;background:var(--line-green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex:none}
@@ -318,8 +333,59 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
         <label style="flex:1;font-size:11px;color:var(--sub)">本名<input id="cdFullName" style="width:100%"></label>
         <label style="flex:1;font-size:11px;color:var(--sub)">電話<input id="cdTel" style="width:100%"></label>
       </div>
+      <div class="fRow">
+        <label style="flex:1;font-size:11px;color:var(--sub)">クレジットカード下4桁<input id="cdCard4" inputmode="numeric" maxlength="4" placeholder="例：1094" style="width:100%"></label>
+        <div style="flex:2"><p class="finePrint" style="margin-top:14px">一度入れておくと、AirPayの明細を取り込んだときに自動でこの方のお名前がつきます。カードを変えられたら入れ直してください。</p></div>
+      </div>
       <button class="btn" onclick="custSave()">カルテを保存する</button>
       <div id="cdExtra" style="margin-top:12px"></div>
+
+      <div style="margin-top:16px;border-top:1px solid var(--gxl);padding-top:13px">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:7px">🤕 痛みの記録（NRS）を代わりに入力</p>
+        <p class="finePrint" style="margin-bottom:9px">お客様がご自分でアプリに入れなくても、ここから記録できます。上の折れ線グラフにそのまま反映されます。</p>
+        <div class="fRow">
+          <input type="date" id="pnoDate" style="width:145px">
+          <select id="pnoSite" style="flex:1">
+            <option>肩・首</option><option>腰</option><option>膝（右）</option><option>膝（左）</option>
+            <option>股関節</option><option>背中</option><option>肘・手</option><option>足首・足</option><option>頭痛</option><option>その他</option>
+          </select>
+          <select id="pnoTime" style="width:110px">
+            <option>朝</option><option>日中</option><option>夜</option><option>動作時</option><option>安静時</option><option>施術前</option><option>施術後</option>
+          </select>
+        </div>
+        <div class="fRow" style="align-items:center;gap:10px">
+          <span style="font-size:21px" id="pnoFaceIc">🙂</span>
+          <input type="range" id="pnoNrs" min="0" max="10" value="2" step="1" oninput="pnoFace(this.value)" style="flex:1;accent-color:var(--g)">
+          <b style="font-size:15px;color:var(--gd);white-space:nowrap"><span id="pnoNrsV">2</span>/10</b>
+        </div>
+        <div class="fRow">
+          <input id="pnoTrig" placeholder="きっかけ・動作（例：前かがみ）" style="flex:1">
+          <input id="pnoMemo" placeholder="メモ（任意）" style="flex:1">
+          <button class="btn" style="width:auto;padding:8px 18px" onclick="pnoAdd()">記録</button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;border-top:1px solid var(--gxl);padding-top:13px">
+        <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:7px">🩺 SOAPカルテ<span class="tagPill own">スタッフのみ</span></p>
+        <p class="finePrint" style="margin-bottom:9px">この内容は<b>お客様のアプリには表示されません</b>。スタッフ間の申し送り用です。</p>
+        <div class="fRow">
+          <input type="date" id="soDate" style="width:145px">
+          <select id="soStaff" style="flex:1"></select>
+          <select id="soBooking" style="flex:1"><option value="">来店とひもづけない</option></select>
+        </div>
+        <label class="soLab">S <span>主観／お客様の訴え</span><textarea id="soS" rows="2" placeholder="例：右腰の痛みは前回より楽。朝の起き上がりがまだつらい。"></textarea></label>
+        <label class="soLab">O <span>客観／評価・所見・実施内容</span><textarea id="soO" rows="3" placeholder="例：SLR右60°（前回50°）／体幹屈曲MMT4／胸椎伸展制限あり。整体20分＋ピラティス（骨盤後傾−ヒップリフト）"></textarea></label>
+        <label class="soLab">A <span>考察</span><textarea id="soA" rows="2" placeholder="例：ハムストリングス柔軟性の改善で前屈時痛は軽減。胸椎の代償が残存。"></textarea></label>
+        <label class="soLab">P <span>計画／次回まで・宿題</span><textarea id="soP" rows="2" placeholder="例：次回は胸椎伸展モビリティを追加。自宅はキャットアンドカウ毎日10回。"></textarea></label>
+        <div class="fRow" style="align-items:center">
+          <button class="btn" onclick="soapSave()"><span id="soBtnTxt">SOAPを保存する</span></button>
+        </div>
+        <div class="fRow" style="justify-content:space-between;margin-top:2px">
+          <button class="btn ghost" style="width:auto" onclick="soapPrefill()">↩︎ 前回の内容を引き継ぐ</button>
+          <button class="btn ghost" style="width:auto;display:none" id="soCancelBtn" onclick="soapReset()">編集をやめる</button>
+        </div>
+        <div id="soList" style="margin-top:11px"></div>
+      </div>
 
       <div style="margin-top:16px;border-top:1px solid var(--gxl);padding-top:13px">
         <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:7px">📸 姿勢写真（ビフォーアフター）</p>
@@ -822,6 +888,7 @@ async function openCust(id){
   document.getElementById("cdMemo").value = CUR.memo||"";
   document.getElementById("cdFullName").value = CUR.full_name||"";
   document.getElementById("cdTel").value = CUR.tel||"";
+  document.getElementById("cdCard4").value = CUR.card_last4||"";
   const [pains, assess, probs] = await Promise.all([
     sb.from("pain_logs").select("*").eq("member_id", id).order("date",{ascending:false}).limit(60),
     sb.from("assessments").select("*").eq("member_id", id).order("date",{ascending:false}).limit(8),
@@ -840,7 +907,16 @@ async function openCust(id){
   if(assess.data?.length) ex += '<table class="evTable"><tr><th>日付</th><th style="text-align:left">評価</th><th>値</th></tr>' + assess.data.map(a=>`<tr><td>${a.date.slice(5)}</td><td style="text-align:left">${a.item}${a.side&&a.side!=="—"?"（"+a.side+"）":""}</td><td><b>${a.value??""}</b>${a.unit||""}</td></tr>`).join("") + "</table>";
   document.getElementById("cdExtra").innerHTML = ex;
   document.getElementById("ppDate").value = jstDate(new Date());
+  document.getElementById("pnoDate").value = jstDate(new Date());
+  pnoFace(document.getElementById("pnoNrs").value);
   loadPhotos();
+  SO_EDIT = null;
+  ["soS","soO","soA","soP"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("soDate").value = jstDate(new Date());
+  document.getElementById("soBtnTxt").textContent = "SOAPを保存する";
+  document.getElementById("soCancelBtn").style.display = "none";
+  await soapInit();
+  soapLoad();
   document.getElementById("custDetail").scrollIntoView({behavior:"smooth"});
 }
 /* ============ 姿勢写真（ビフォーアフター） ============ */
@@ -905,6 +981,163 @@ async function ppDelete(id, path){
   toast("削除しました"); loadPhotos();
 }
 
+/* ============ 痛みの記録（NRS）をスタッフが代理入力 ============ */
+function pnFaceIcon(v){ v=+v; return v<=1?"😊":v<=3?"🙂":v<=5?"😐":v<=7?"😣":"😖"; }
+function pnoFace(v){
+  document.getElementById("pnoNrsV").textContent = v;
+  document.getElementById("pnoFaceIc").textContent = pnFaceIcon(v);
+}
+async function pnoAdd(){
+  if(!CUR){ toast("先に顧客を選んでください"); return; }
+  const row = {
+    member_id: CUR.id,
+    date: document.getElementById("pnoDate").value || jstDate(new Date()),
+    site: document.getElementById("pnoSite").value,
+    time_of_day: document.getElementById("pnoTime").value,
+    trigger_txt: document.getElementById("pnoTrig").value.trim() || null,
+    nrs: +document.getElementById("pnoNrs").value,
+    memo: document.getElementById("pnoMemo").value.trim() || null,
+    entered_by: "staff",
+    staff_id: +document.getElementById("soStaff").value || null
+  };
+  const { error } = await sb.from("pain_logs").insert(row);
+  if(error){ toast("記録できませんでした：" + error.message); return; }
+  document.getElementById("pnoTrig").value = "";
+  document.getElementById("pnoMemo").value = "";
+  toast(`NRS ${row.nrs}/10 を記録しました`);
+  openCust(CUR.id);   // グラフを描き直す
+}
+
+/* ============ SOAPカルテ（スタッフ専用） ============ */
+let SOAPS = [], SO_EDIT = null;
+
+async function getStaffList(){
+  if(!SCH_STAFF){
+    const { data: st } = await sb.from("staff").select("id, name").order("id");
+    SCH_STAFF = (st && st.length) ? st : [{id:1,name:"宗田 修斗"},{id:2,name:"飯田 隼人"}];
+  }
+  return SCH_STAFF;
+}
+
+async function soapInit(){
+  const st = await getStaffList();
+  const sel = document.getElementById("soStaff");
+  const keep = sel.value;
+  sel.innerHTML = st.map(s=>`<option value="${s.id}">記入：${esc(s.name)}</option>`).join("");
+  if(keep) sel.value = keep;
+  // 直近の来店とひもづけられるように
+  const bsel = document.getElementById("soBooking");
+  bsel.innerHTML = '<option value="">来店とひもづけない</option>';
+  if(CUR){
+    const { data } = await sb.from("bookings")
+      .select("id, starts_at, menus(name), title")
+      .eq("member_id", CUR.id).eq("status","confirmed")
+      .lte("starts_at", new Date(Date.now()+86400000).toISOString())
+      .order("starts_at",{ascending:false}).limit(12);
+    (data||[]).forEach(b=>{
+      const o = document.createElement("option");
+      o.value = b.id;
+      o.textContent = fmtTs(b.starts_at) + " " + (b.menus?.name || b.title || "");
+      bsel.appendChild(o);
+    });
+  }
+}
+
+async function soapLoad(){
+  const el = document.getElementById("soList");
+  if(!CUR){ el.innerHTML = ""; return; }
+  const st = await getStaffList();
+  const { data, error } = await sb.from("soap_notes").select("*")
+    .eq("member_id", CUR.id).order("date",{ascending:false}).order("id",{ascending:false}).limit(30);
+  if(error){ el.innerHTML = '<p class="notice">SOAPを読み込めませんでした（' + esc(error.message) + '）</p>'; return; }
+  SOAPS = data || [];
+  if(!SOAPS.length){ el.innerHTML = '<p class="notice">まだSOAPの記録はありません</p>'; return; }
+  el.innerHTML = SOAPS.map(n=>{
+    const who = (st.find(s=>s.id===n.staff_id)||{}).name || "";
+    const line = (k,v)=> v ? `<div class="row"><b>${k}</b><span>${esc(v)}</span></div>` : "";
+    return `<div class="soCard${SO_EDIT===n.id?" editing":""}">
+      <div class="hd">
+        <div><span class="dt">${n.date.slice(5).replace("-","/")}</span>
+             <span class="by">${who?" ／ "+esc(who):""}</span></div>
+        <div class="acts">
+          <button onclick="soapEdit(${n.id})">編集</button>
+          <button onclick="soapDel(${n.id})">削除</button>
+        </div>
+      </div>
+      ${line("S",n.s)}${line("O",n.o)}${line("A",n.a)}${line("P",n.p)}
+    </div>`;
+  }).join("");
+}
+
+function soapReset(){
+  SO_EDIT = null;
+  ["soS","soO","soA","soP"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("soDate").value = jstDate(new Date());
+  document.getElementById("soBtnTxt").textContent = "SOAPを保存する";
+  document.getElementById("soCancelBtn").style.display = "none";
+  soapLoad();
+}
+
+function soapEdit(id){
+  const n = SOAPS.find(x=>x.id===id); if(!n) return;
+  SO_EDIT = id;
+  document.getElementById("soDate").value = n.date;
+  document.getElementById("soS").value = n.s||"";
+  document.getElementById("soO").value = n.o||"";
+  document.getElementById("soA").value = n.a||"";
+  document.getElementById("soP").value = n.p||"";
+  if(n.staff_id) document.getElementById("soStaff").value = n.staff_id;
+  document.getElementById("soBooking").value = n.booking_id || "";
+  document.getElementById("soBtnTxt").textContent = "この記録を上書き保存する";
+  document.getElementById("soCancelBtn").style.display = "block";
+  soapLoad();
+  document.getElementById("soS").scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+// 前回のSOAPを下敷きにする（Pを次回のSの手がかりにしたいとき用）
+function soapPrefill(){
+  if(!SOAPS.length){ toast("引き継げる前回の記録がありません"); return; }
+  const n = SOAPS[0];
+  SO_EDIT = null;
+  document.getElementById("soDate").value = jstDate(new Date());
+  document.getElementById("soS").value = "";
+  document.getElementById("soO").value = n.o || "";
+  document.getElementById("soA").value = n.a || "";
+  document.getElementById("soP").value = n.p || "";
+  document.getElementById("soBtnTxt").textContent = "SOAPを保存する";
+  document.getElementById("soCancelBtn").style.display = "none";
+  toast(`${n.date.slice(5).replace("-","/")} の O・A・P を引き継ぎました`);
+}
+
+async function soapSave(){
+  if(!CUR){ toast("先に顧客を選んでください"); return; }
+  const row = {
+    member_id: CUR.id,
+    date: document.getElementById("soDate").value || jstDate(new Date()),
+    s: document.getElementById("soS").value.trim() || null,
+    o: document.getElementById("soO").value.trim() || null,
+    a: document.getElementById("soA").value.trim() || null,
+    p: document.getElementById("soP").value.trim() || null,
+    staff_id: +document.getElementById("soStaff").value || null,
+    booking_id: +document.getElementById("soBooking").value || null
+  };
+  if(!row.s && !row.o && !row.a && !row.p){ toast("S・O・A・P のどれかを入力してください"); return; }
+  const res = SO_EDIT
+    ? await sb.from("soap_notes").update(row).eq("id", SO_EDIT)
+    : await sb.from("soap_notes").insert(row);
+  if(res.error){ toast("保存できませんでした：" + res.error.message); return; }
+  toast(SO_EDIT ? "SOAPを上書きしました" : "SOAPを保存しました");
+  soapReset();
+}
+
+async function soapDel(id){
+  if(!confirm("このSOAPの記録を削除しますか？")) return;
+  const { error } = await sb.from("soap_notes").delete().eq("id", id);
+  if(error){ toast("削除できませんでした"); return; }
+  toast("削除しました");
+  if(SO_EDIT===id) soapReset(); else soapLoad();
+}
+
 async function custSave(){
   if(!CUR) return;
   const upd = {
@@ -914,7 +1147,8 @@ async function custSave(){
     medication: document.getElementById("cdMed").value || null,
     memo: document.getElementById("cdMemo").value || null,
     full_name: document.getElementById("cdFullName").value || null,
-    tel: document.getElementById("cdTel").value || null
+    tel: document.getElementById("cdTel").value || null,
+    card_last4: (document.getElementById("cdCard4").value||"").replace(/[^0-9]/g,"").slice(-4) || null
   };
   const { error } = await sb.from("profiles").update(upd).eq("id", CUR.id);
   if(error){ toast("保存できませんでした"); return; }
