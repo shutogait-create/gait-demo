@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root{ --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6; --ink:#1c2b24; --sub:#68796f;
        --line:#dfe9e3; --bg:#f4f7f5; --warn:#c0392b; }
@@ -237,6 +238,23 @@ const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const POLICY_VERSION = "v2026-08";
+
+// ---- LINE 連携（段階B）----
+// LINE Developers → LINE Login チャネル → LIFF → 作成した LIFF ID を入れる（空なら何もしない）
+const LIFF_ID = "";
+let LINE_UID = null;
+(async()=>{
+  if(!LIFF_ID || typeof liff === "undefined") return;
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    if(liff.isLoggedIn()){ const p = await liff.getProfile(); LINE_UID = p.userId; }
+    else if(liff.isInClient()){ liff.login(); }
+  }catch(e){ /* LINE 外から開いた時などは通知なしで普通に予約できる */ }
+})();
+async function linkLine(name, tel){
+  if(!LINE_UID) return;
+  try{ await sb.rpc("link_line", { p_tel: tel, p_name: name, p_line_uid: LINE_UID }); }catch(e){}
+}
 /* ===== 予約枠の設定 ===== */
 // 予約は30分刻み。予約の前後は15分あけて、準備と片づけの時間にします。
 // 営業する曜日と時間帯は「オーナー管理 → 設定 → 担当の勤務時間」で変えられます。
@@ -529,6 +547,7 @@ async function submitBooking(){
   }
 
   Object.keys(BUSY).forEach(k=>delete BUSY[k]);
+  if(!MOVE) await linkLine(name, tel);   // LINE から開いていれば本人に確認通知が届く
   if(!MOVE && document.getElementById("remember").checked) memSet({ tel: tel, name: name });
   if(MOVE){ try{ localStorage.removeItem("gait_move"); }catch(e){} }
 
