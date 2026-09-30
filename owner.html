@@ -130,6 +130,16 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .evTable td{padding:6px 4px;border-bottom:1px solid var(--gxl)}
 .evTable td:nth-child(n+2),.evTable th:nth-child(n+2){text-align:right}
 .evTable .up{color:var(--gd);font-weight:700}
+.kkChips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.kkChips button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+.kkChips button.on{background:var(--g);border-color:var(--g);color:#fff}
+.kkGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kkStat{background:var(--gxl);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kkStat small{display:block;font-size:11px;color:var(--sub)}
+.kkStat b{font-size:18px}
+.kkStat.big{grid-column:1/-1;background:#fff;border-color:var(--g)}
+.kkList{font-size:12.5px;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.kkList div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
 .fRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .fRow select,.fRow input,.fRow textarea{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff}
 .fRow select:focus,.fRow input:focus,.fRow textarea:focus{outline:none;border-color:var(--g)}
@@ -244,6 +254,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
     <div class="ownNav" id="ownNav">
       <button data-ot="book"  onclick="otab('book')">📅 予約</button>
       <button data-ot="cust"  onclick="otab('cust')">👥 顧客・カルテ</button>
+      <button data-ot="kaikei" onclick="otab('kaikei')">🧾 会計</button>
       <button data-ot="money" onclick="otab('money')">🎫 回数券・売上</button>
       <button data-ot="care"  onclick="otab('care')">📝 施術記録</button>
       <button data-ot="set"   onclick="otab('set')">⚙️ 設定</button>
@@ -402,6 +413,59 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
     </div>
 
     </div>
+    <div class="ownTab" id="ot-kaikei">
+    <div class="card" id="kkSumCard">
+      <h3>📊 今日と今月の数字 <button class="btn ghost" style="width:auto;margin-left:auto" onclick="kkSummary()">↻ 更新</button></h3>
+      <div id="kkSum"><p class="notice">読み込み中…</p></div>
+    </div>
+
+    <div class="card">
+      <h3>💴 売上を入れる</h3>
+      <div class="kkChips" id="kkMenu"></div>
+      <div class="fRow">
+        <input id="kkCust" list="kkCustList" placeholder="お客さまのお名前（例：伊藤）" style="flex:1;min-width:0">
+        <datalist id="kkCustList"></datalist>
+      </div>
+      <div class="kkChips" id="kkAmtChips"></div>
+      <div class="fRow">
+        <input id="kkAmt" type="number" inputmode="numeric" placeholder="金額（円）" style="flex:1;min-width:0">
+        <input id="kkDate" type="date" style="width:150px">
+      </div>
+      <div class="kkChips" id="kkPay"></div>
+      <div class="fRow">
+        <select id="kkCat" style="flex:1"></select>
+        <select id="kkSrc" style="flex:1"></select>
+      </div>
+      <button class="btn" id="kkSaleBtn" onclick="kkSale()">この内容でスプレッドシートに記録</button>
+      <p class="finePrint">「令和8年 売り上げ」シートの一番下に1行追加されます（内容は「メニュー(お名前」の形で入ります）。</p>
+    </div>
+
+    <div class="card">
+      <h3>🧾 経費を入れる</h3>
+      <div class="fRow">
+        <select id="kkExCat" style="flex:1"></select>
+        <select id="kkExPlace" style="flex:1"></select>
+      </div>
+      <div class="fRow">
+        <input id="kkExMemo" placeholder="何に使った？（例：ガソリン、DAISO）" style="flex:1;min-width:0">
+      </div>
+      <div class="fRow">
+        <input id="kkExAmt" type="number" inputmode="numeric" placeholder="金額（円）" style="flex:1;min-width:0">
+        <input id="kkExDate" type="date" style="width:150px">
+      </div>
+      <button class="btn sub" id="kkExBtn" onclick="kkExpense()">経費を記録</button>
+      <p class="finePrint">費目ごとの列（日付・場所・事柄・金額）に追加されます。家賃などの固定費は、スプレッドシートの「固定費」シートに書いておけば毎月自動で入ります。</p>
+    </div>
+
+    <div class="card">
+      <h3>⚙️ 連携設定（最初の1回だけ）</h3>
+      <div class="fRow"><input id="kkUrl" placeholder="ウェブアプリのURL（https://script.google.com/macros/s/…/exec）" style="flex:1;min-width:0"></div>
+      <div class="fRow"><input id="kkTok" type="password" placeholder="合言葉（スプレッドシートの「アプリ連携」シートにあります）" style="flex:1;min-width:0"></div>
+      <button class="btn sub" onclick="kkSaveCfg()">保存してつながるか確認</button>
+      <p class="finePrint" id="kkCfgNote">この端末にだけ保存されます。</p>
+    </div>
+    </div>
+
     <div class="ownTab" id="ot-money">
     <div class="card">
       <h3>🎫 回数券の管理（ワンタップ消化）</h3>
@@ -608,7 +672,7 @@ async function enterApp(){
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
   otabInit();
-  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadStaffHours(); loadPaySummary(); evInit();
+  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -1260,6 +1324,121 @@ async function payAdd(){
   toast(`¥${amount.toLocaleString()} を記録（手数料 ¥${feeAmount.toLocaleString()}・実質 ¥${(amount-feeAmount).toLocaleString()}）`);
   loadPaySummary();
 }
+
+/* ============ 🧾 会計（スプレッドシート「gait」に書き込む） ============ */
+const KK_MENUS = [
+  {n:"パーソナル", c:"スタジオ", a:6600}, {n:"初回", c:"スタジオ", a:4400}, {n:"初回(飯田)", c:"スタジオ", a:1100},
+  {n:"回数券", c:"スタジオ", a:0}, {n:"キッズピラティス", c:"スタジオ", a:5500}, {n:"ランニング", c:"ランニング", a:4400},
+  {n:"オンライン", c:"オンライン", a:3500}, {n:"勉強会", c:"勉強会", a:2500}, {n:"外出レッスン", c:"外出レッスン", a:0},
+  {n:"レンタル", c:"レンタル", a:0}, {n:"その他", c:"", a:0}
+];
+const KK_CATS = ["スタジオ","オンライン","ランニング","勉強会","外出レッスン","レンタル","ひかり","SNS","雑所得"];
+const KK_PAYS = [["現金","現金"],["クレカ","カード(Airペイ)"],["PayPay","PayPay"],["銀行振込","振込"],["paypay送金","PayPay送金"]];
+const KK_SRCS = ["","ホットペッパー","Instagram","HP(Google)","紹介","TEL","LINE","YouTube","TikTok"];
+const KK_EXCATS = ["消耗品","旅費交通費","接待交際費","通信費","広告宣伝費","水道光熱費","外注工賃","修繕費","損害保険料","雑費","地代家賃","租税公課"];
+const KK_PLACES = ["楽天カード","現金","PayPay","住信SBIネット銀行","楽天銀行","ドコモSMTBネット銀行"];
+let kkMenu = KK_MENUS[0], kkPay = "現金";
+
+function kkCfg(){ try{ return { url: localStorage.getItem("gait_kk_url")||"", tok: localStorage.getItem("gait_kk_tok")||"" }; }catch(e){ return {url:"",tok:""}; } }
+function kkChipRow(id, items, cur, onPick){
+  const el = document.getElementById(id);
+  el.innerHTML = items.map((it,i)=>`<button data-i="${i}" class="${it.key===cur?"on":""}">${it.label}</button>`).join("");
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>{ el.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); onPick(items[+b.dataset.i]); });
+}
+function kkInit(){
+  const today = jstDate(new Date());
+  document.getElementById("kkDate").value = today;
+  document.getElementById("kkExDate").value = today;
+  document.getElementById("kkCat").innerHTML = `<option value="">分類（自動）</option>` + KK_CATS.map(c=>`<option>${c}</option>`).join("");
+  document.getElementById("kkSrc").innerHTML = KK_SRCS.map(s=>`<option value="${s}">${s||"予約方法（任意）"}</option>`).join("");
+  document.getElementById("kkExCat").innerHTML = KK_EXCATS.map(c=>`<option>${c}</option>`).join("");
+  document.getElementById("kkExPlace").innerHTML = KK_PLACES.map(c=>`<option>${c}</option>`).join("");
+  kkChipRow("kkMenu", KK_MENUS.map(m=>({key:m.n,label:m.n,m})), kkMenu.n, it=>{
+    kkMenu = it.m; document.getElementById("kkCat").value = it.m.c;
+    if(it.m.a) document.getElementById("kkAmt").value = it.m.a;
+  });
+  document.getElementById("kkCat").value = kkMenu.c;
+  kkChipRow("kkAmtChips", [1100,3500,4400,5500,6600].map(a=>({key:a,label:"¥"+a.toLocaleString(),a})), null, it=>{ document.getElementById("kkAmt").value = it.a; });
+  kkChipRow("kkPay", KK_PAYS.map(p=>({key:p[0],label:p[1],v:p[0]})), kkPay, it=>{ kkPay = it.v; });
+  const c = kkCfg();
+  document.getElementById("kkUrl").value = c.url;
+  document.getElementById("kkTok").value = c.tok;
+  kkCustList();
+  kkSummary();
+}
+function kkCustList(){
+  const names = new Set();
+  (typeof CUSTS!=="undefined"?CUSTS:[]).forEach(c=>{ if(c.full_name) names.add(c.full_name); if(c.nickname) names.add(c.nickname); });
+  document.getElementById("kkCustList").innerHTML = [...names].map(n=>`<option value="${n}">`).join("");
+}
+async function kkCall(body){
+  const c = kkCfg();
+  if(!c.url || !c.tok) throw new Error("先に「⚙️ 連携設定」でURLと合言葉を保存してください");
+  if(body){
+    const r = await fetch(c.url, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify({ ...body, token:c.tok }) });
+    return r.json();
+  }
+  const r = await fetch(c.url + "?action=summary&token=" + encodeURIComponent(c.tok));
+  return r.json();
+}
+const yen = n => "¥" + Math.round(n||0).toLocaleString();
+async function kkSummary(){
+  const box = document.getElementById("kkSum");
+  const c = kkCfg();
+  if(!c.url || !c.tok){ box.innerHTML = '<p class="notice">下の「⚙️ 連携設定」を済ませると、ここに今日と今月の数字が出ます。</p>'; return; }
+  box.innerHTML = '<p class="notice">スプレッドシートから読み込み中…</p>';
+  try{
+    const d = await kkCall();
+    if(!d.ok) throw new Error(d.error||"読み込めませんでした");
+    const cats = Object.entries(d.monthExpByCat||{}).map(([k,v])=>`${k} ${yen(v)}`).join("／");
+    box.innerHTML = `<div class="kkGrid">
+      <div class="kkStat big"><small>今日の売上（${d.today.slice(5).replace("-","/")}）</small><b>${yen(d.todaySales)}</b></div>
+      <div class="kkStat"><small>今月の収入</small><b>${yen(d.monthIn)}</b></div>
+      <div class="kkStat"><small>今月の支出（家賃など）</small><b>${yen(d.monthOut)}</b></div>
+      <div class="kkStat"><small>今月の経費</small><b>${yen(d.monthExp)}</b></div>
+      <div class="kkStat"><small>今月の利益</small><b style="color:${d.monthProfit<0?"var(--warn)":"var(--gd)"}">${yen(d.monthProfit)}</b></div>
+    </div>` +
+    (d.todayItems.length ? `<div class="kkList">${d.todayItems.map(i=>`<div><span>${i.content}（${i.method}）</span><b>${yen(i.amount)}</b></div>`).join("")}</div>` : "") +
+    (cats ? `<p class="finePrint">経費の内訳：${cats}</p>` : "");
+  }catch(e){ box.innerHTML = `<p class="notice">⚠️ ${e.message}</p>`; }
+}
+async function kkSale(){
+  const amount = parseInt(document.getElementById("kkAmt").value);
+  if(!amount){ toast("金額を入れてください"); return; }
+  const btn = document.getElementById("kkSaleBtn"); btn.disabled = true;
+  try{
+    const d = await kkCall({ action:"sale", date:document.getElementById("kkDate").value, method:kkPay,
+      content:kkMenu.n==="その他"?"その他":kkMenu.n, customer:document.getElementById("kkCust").value,
+      category:document.getElementById("kkCat").value, source:document.getElementById("kkSrc").value, amount });
+    if(!d.ok) throw new Error(d.error);
+    toast(`記録しました：${d.saved.content} ${yen(d.saved.amount)}`);
+    document.getElementById("kkCust").value = ""; document.getElementById("kkAmt").value = "";
+    kkSummary();
+  }catch(e){ toast("記録できませんでした：" + e.message); }
+  btn.disabled = false;
+}
+async function kkExpense(){
+  const amount = parseInt(document.getElementById("kkExAmt").value);
+  if(!amount){ toast("金額を入れてください"); return; }
+  const btn = document.getElementById("kkExBtn"); btn.disabled = true;
+  try{
+    const d = await kkCall({ action:"expense", date:document.getElementById("kkExDate").value, cat:document.getElementById("kkExCat").value,
+      place:document.getElementById("kkExPlace").value, memo:document.getElementById("kkExMemo").value, amount });
+    if(!d.ok) throw new Error(d.error);
+    toast(`経費を記録しました：${d.saved.cat} ${yen(d.saved.amount)}`);
+    document.getElementById("kkExMemo").value = ""; document.getElementById("kkExAmt").value = "";
+    kkSummary();
+  }catch(e){ toast("記録できませんでした：" + e.message); }
+  btn.disabled = false;
+}
+async function kkSaveCfg(){
+  const url = document.getElementById("kkUrl").value.trim(), tok = document.getElementById("kkTok").value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)){ toast("URLは https://script.google.com/macros/s/…/exec の形です"); return; }
+  try{ localStorage.setItem("gait_kk_url", url); localStorage.setItem("gait_kk_tok", tok); }catch(e){ toast("この端末に保存できませんでした"); return; }
+  await kkSummary();
+  document.getElementById("kkCfgNote").textContent = "保存しました（この端末にだけ保存されます）。上に数字が出ていれば連携OKです。";
+}
+
 async function loadPaySummary(){
   const first = new Date(); first.setDate(1);
   const { data } = await sb.from("payments").select("amount, fee_amount, category_id").gte("paid_at", jstDate(first));
