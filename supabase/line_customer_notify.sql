@@ -67,7 +67,7 @@ as $$
 declare
   v_uid  text;
   v_msg  text;
-  v_foot text := chr(10) || chr(10) || '▶ ご予約の確認・変更・キャンセル' || chr(10) || 'https://app.gait-pilates.com/me.html';
+  v_foot text := chr(10) || chr(10) || '▶ ご予約の確認・変更・キャンセル' || chr(10) || 'https://shutogait-create.github.io/gait-demo/me.html';
 begin
   select line_user_id into v_uid from public.profiles where id = new.member_id;
   if coalesce(v_uid,'') = '' then return new; end if;
@@ -139,7 +139,7 @@ begin
       perform private.line_push(p_line_uid,
         'ご予約を承りました🌿' || chr(10) || chr(10) || private.booking_line(v_bid) || chr(10) || chr(10)
         || '前日18時にリマインドをお送りします。' || chr(10) || chr(10)
-        || '▶ ご予約の確認・変更・キャンセル' || chr(10) || 'https://app.gait-pilates.com/me.html');
+        || '▶ ご予約の確認・変更・キャンセル' || chr(10) || 'https://shutogait-create.github.io/gait-demo/me.html');
     end if;
   end if;
   return jsonb_build_object('ok', true);
@@ -171,7 +171,7 @@ begin
       '明日のご予約のご案内です🌿' || chr(10) || chr(10) || private.booking_line(r.id) || chr(10) || chr(10)
       || 'お気をつけてお越しください。' || chr(10)
       || '変更・キャンセルは前日までにお願いします。' || chr(10) || chr(10)
-      || '▶ 確認・変更・キャンセル' || chr(10) || 'https://app.gait-pilates.com/me.html');
+      || '▶ 確認・変更・キャンセル' || chr(10) || 'https://shutogait-create.github.io/gait-demo/me.html');
     n := n + 1;
   end loop;
   return n;

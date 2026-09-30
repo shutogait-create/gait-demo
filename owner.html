@@ -576,7 +576,7 @@ function gcalUrl(startsAt, menuName, durationMin, staffName){
   const details = [
     menuName ? "メニュー：" + menuName : "",
     staffName ? "担当：" + staffName : "",
-    "予約アプリ：https://app.gait-pilates.com"
+    "予約アプリ：https://shutogait-create.github.io/gait-demo"
   ].filter(Boolean).join("\n");
   return "https://calendar.google.com/calendar/render?action=TEMPLATE"
     + "&text=" + encodeURIComponent(title)
