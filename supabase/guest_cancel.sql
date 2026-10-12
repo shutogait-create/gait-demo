@@ -36,7 +36,7 @@ begin
   end if;
 
   update public.bookings
-     set status = 'cancelled', cancelled_at = now(), cancel_type = 'web', cancel_note = 'お客さまが予約確認ページからキャンセル'
+     set status = 'cancelled', cancelled_at = now(), cancel_note = 'お客さまが予約確認ページからキャンセル（前日まで・無料）'
    where id = b.id;
   return jsonb_build_object('ok', true);
 end $$;
