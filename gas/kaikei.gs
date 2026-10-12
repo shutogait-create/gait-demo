@@ -18,6 +18,12 @@ const EXPENSE_CATS = ['水道光熱費','旅費交通費','通信費','広告宣
 const PAY_METHODS = ['現金','クレカ','PayPay','銀行振込','paypay送金'];
 const OWNER_MAIL = 'shutogait@gmail.com';   // 予約・新規登録の通知メールの宛先
 
+// エディタで「notifyTest」を選んで実行 → メール送信の権限を許可すると、通知が動くようになる
+function notifyTest() {
+  return notifyOwner_({ kind: 'テスト通知', name: 'テスト 太郎', tel: '09000000000', menu: '整体×ピラティス', staff: '宗田 修斗',
+    when: new Date(Date.now() + 86400000).toISOString(), channel: 'web', note: '通知の動作テストです' });
+}
+
 /* ---------- 初回セットアップ ---------- */
 function setup() {
   const ss = ss_();
@@ -155,12 +161,6 @@ function notifyOwner_(b) {
   const subject = '【gait】' + kind + '：' + name + ' さん' + (b.when ? '（' + Utilities.formatDate(new Date(b.when), TZ, 'M/d H:mm') + '〜）' : '');
   MailApp.sendEmail({ to: to, subject: subject, body: lines.join('\n'), name: 'gait 予約アプリ' });
   return { ok: true, sent: to };
-}
-
-// エディタで「notifyTest」を選んで実行 → メール送信の権限を許可すると、通知が動くようになる
-function notifyTest() {
-  return notifyOwner_({ kind: 'テスト通知', name: 'テスト 太郎', tel: '09000000000', menu: '整体×ピラティス', staff: '宗田 修斗',
-    when: new Date(Date.now() + 86400000).toISOString(), channel: 'web', note: '通知の動作テストです' });
 }
 
 /* ---------- 経費を費目ごとの4列ブロック（日付・場所・事柄・金額）に追加 ---------- */
