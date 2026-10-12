@@ -16,6 +16,7 @@ const SPREADSHEET_ID = '18RRVxqLwBPFlOusqarX46K2sbddM0hr28W5M9k75l_c';
 function ss_() { return SpreadsheetApp.openById(SPREADSHEET_ID); }
 const EXPENSE_CATS = ['水道光熱費','旅費交通費','通信費','広告宣伝費','接待交際費','損害保険料','修繕費','消耗品','外注工賃','雑費','地代家賃','租税公課'];
 const PAY_METHODS = ['現金','クレカ','PayPay','銀行振込','paypay送金'];
+const OWNER_MAIL = 'shutogait@gmail.com';   // 予約・新規登録の通知メールの宛先
 
 /* ---------- 初回セットアップ ---------- */
 function setup() {
@@ -133,7 +134,7 @@ function addSale_(b) {
 
 /* ---------- 予約・新規登録の通知メール（Supabase のトリガーから呼ばれる） ---------- */
 function notifyOwner_(b) {
-  const to = Session.getEffectiveUser().getEmail();          // このスクリプトの持ち主（＝自分）宛
+  const to = OWNER_MAIL;
   const kind = String(b.kind || 'お知らせ');
   const name = String(b.name || '（名前なし）');
   const lines = [];
@@ -154,6 +155,12 @@ function notifyOwner_(b) {
   const subject = '【gait】' + kind + '：' + name + ' さん' + (b.when ? '（' + Utilities.formatDate(new Date(b.when), TZ, 'M/d H:mm') + '〜）' : '');
   MailApp.sendEmail({ to: to, subject: subject, body: lines.join('\n'), name: 'gait 予約アプリ' });
   return { ok: true, sent: to };
+}
+
+// エディタで「notifyTest」を選んで実行 → メール送信の権限を許可すると、通知が動くようになる
+function notifyTest() {
+  return notifyOwner_({ kind: 'テスト通知', name: 'テスト 太郎', tel: '09000000000', menu: '整体×ピラティス', staff: '宗田 修斗',
+    when: new Date(Date.now() + 86400000).toISOString(), channel: 'web', note: '通知の動作テストです' });
 }
 
 /* ---------- 経費を費目ごとの4列ブロック（日付・場所・事柄・金額）に追加 ---------- */
