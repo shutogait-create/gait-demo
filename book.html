@@ -109,6 +109,15 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 .slot:active:not(.ng),.dayBtn:active:not(.off),.menuOpt:active,.staffOpt:active,
 .btn:active,a.btn:active,.tile:active{transform:scale(.97)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+.topTabs{display:flex;gap:8px;margin-bottom:14px}
+.topTabs button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 0;font-family:inherit;font-size:14px;font-weight:800;color:var(--sub);cursor:pointer}
+.topTabs button.act{background:var(--g);border-color:var(--g);color:#fff}
+.tkTable{width:100%;border-collapse:collapse;margin-top:10px}
+.tkTable td{padding:11px 6px;border-top:1px solid var(--line);font-size:14px}
+.tkTable td:last-child{text-align:right;font-weight:800;color:#c0392b;white-space:nowrap}
+.tkTable td small{font-weight:600;color:var(--sub);font-size:11.5px}
+.tkLead{font-size:13.5px;line-height:1.9;color:var(--ink)}
+.tkCatch{font-weight:800;color:var(--gd);font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -118,6 +127,40 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 </div>
 
 <main>
+
+  <div class="topTabs" id="topTabs">
+    <button class="act" onclick="showTop('book')">📅 ご予約</button>
+    <button onclick="showTop('ticket')">🎫 回数券</button>
+  </div>
+
+  <div id="ticketScr" style="display:none">
+    <div class="card">
+      <div class="stepLbl"><span class="n">1</span><b>整体×ピラティス 回数券</b></div>
+      <p class="tkLead">ピラティスなどのエクササイズは、継続が力なり！<br>固い意志を持って挑戦するぞ！という方は、回数券ご購入をお勧めします！</p>
+      <p class="tkCatch">10回で違いを感じ、20回で周りが気づき、30回で全て変わる！</p>
+      <table class="tkTable">
+        <tr><td>4回</td><td>¥28,800 <small>（7,200円/回）</small></td></tr>
+        <tr><td>10回</td><td>¥69,000 <small>（6,900円/回）</small></td></tr>
+        <tr><td>20回</td><td>¥132,000 <small>（6,600円/回）</small></td></tr>
+        <tr><td>30回</td><td>¥189,000 <small>（6,300円/回）</small></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="stepLbl"><span class="n">2</span><b>全身くまなく整体40分 回数券</b></div>
+      <p class="tkLead">ストレッチのみメニューです！<br>理学療法士×ピラティスインストラクターで身体のことに詳しいスタッフがお待ちしています！<br>定期的な身体のメンテナンスに回数券ご購入をお勧めします！</p>
+      <table class="tkTable">
+        <tr><td>4回</td><td>¥20,800 <small>（5,200円/回）</small></td></tr>
+        <tr><td>10回</td><td>¥50,000 <small>（5,000円/回）</small></td></tr>
+        <tr><td>20回</td><td>¥96,000 <small>（4,800円/回）</small></td></tr>
+        <tr><td>30回</td><td>¥138,000 <small>（4,600円/回）</small></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <p class="notice">ご購入は店舗にてお願いします（現金・カード・PayPay・お振込）。回数券をお持ちの方は、ご予約の確認画面で「回数券を使います」にチェックを入れてください。残り回数は「予約・回数券を確認する」から見られます。</p>
+      <button class="btn" style="margin-top:10px" onclick="showTop('book')">ご予約へ進む</button>
+      <a class="btn sub" href="./me.html" style="margin-top:8px">予約・回数券を確認する</a>
+    </div>
+  </div>
 
   <div id="flow">
     <div class="moveBox" id="moveBanner" style="display:none">
@@ -179,7 +222,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       </div>
 
       <label class="chk" id="agreeRow"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
-      <label class="chk" id="ticketRow" style="display:none"><input type="checkbox" id="useTicket"><span>回数券を使います（お持ちの方。料金は回数券から1回分を消化します）</span></label>
+      <label class="chk" id="ticketRow" style="display:none"><input type="checkbox" id="useTicket"><span>回数券を使います（お持ちの方。料金は回数券から1回分を消化します）　<a onclick="event.preventDefault();showTop('ticket')" style="color:var(--gd);text-decoration:underline;cursor:pointer">回数券の料金を見る</a></span></label>
       <label class="chk" id="rememberRow"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
 
       <button class="btn" id="bkBtn" onclick="submitBooking()">この内容で予約を確定する</button>
@@ -333,6 +376,16 @@ function showErr(m){ const e=document.getElementById("err"); e.style.display=m?"
 const MEM = "gait_me_v1";
 function memGet(){ try{ return JSON.parse(localStorage.getItem(MEM)||"null"); }catch(e){ return null; } }
 function memSet(v){ try{ localStorage.setItem(MEM, JSON.stringify(v)); }catch(e){} }
+
+
+function showTop(t){
+  const tk = t === "ticket";
+  document.getElementById("ticketScr").style.display = tk ? "block" : "none";
+  document.getElementById("flow").style.display = tk ? "none" : "block";
+  document.querySelectorAll("#topTabs button").forEach((b,i)=>b.classList.toggle("act", (i===1)===tk));
+  window.scrollTo(0,0);
+}
+if((location.hash||"") === "#ticket") showTop("ticket");
 
 async function load(){
   const { data: menus } = await sb.from("menus").select("*").eq("active", true).order("id");
