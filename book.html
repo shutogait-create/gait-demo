@@ -53,6 +53,20 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .menuOpt .len{font-size:11.5px;color:var(--sub)}
 .menuOpt .pr{font-weight:800;color:var(--gd);white-space:nowrap;font-size:14px}
 .dayRow{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:11px;-webkit-overflow-scrolling:touch}
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.calHead b{font-size:15px}
+.calHead button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font-family:inherit;font-weight:700;color:var(--gd);cursor:pointer}
+.calHead button:disabled{opacity:.3}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
+.calGrid .wd{text-align:center;font-size:10.5px;color:var(--sub);padding:2px 0}
+.calGrid .wd.su{color:#c0392b}.calGrid .wd.sa{color:#2a6fb0}
+.calCell{aspect-ratio:1/1;border:1.5px solid var(--line);background:#fff;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;color:var(--ink);cursor:pointer;padding:0;font-size:14px;font-weight:700;line-height:1.1}
+.calCell small{font-size:9px;font-weight:600;color:var(--sub);margin-top:2px}
+.calCell.off{opacity:.3;cursor:default;background:var(--bg)}
+.calCell.blank{border:none;background:transparent;cursor:default}
+.calCell.sel{background:var(--g);border-color:var(--g);color:#fff}
+.calCell.sel small{color:#fff}
+.calCell.hol:not(.sel){color:#c0392b}
 .dayBtn{flex:none;width:50px;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:7px 0;
         text-align:center;cursor:pointer;font-family:inherit;color:var(--ink)}
 .dayBtn.sel{background:var(--g);border-color:var(--g);color:#fff}
@@ -156,7 +170,8 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 
     <div class="card" id="dateCard">
       <div class="stepLbl"><span class="n">3</span><b>日時を選ぶ</b></div>
-      <div class="dayRow" id="dayRow"></div>
+      <div class="calHead"><button id="calPrev" onclick="calMove(-1)">‹ 前の月</button><b id="calTitle"></b><button id="calNext" onclick="calMove(1)">次の月 ›</button></div>
+      <div class="calGrid" id="calGrid"></div>
       <div class="slotGrid" id="slotGrid"></div>
       <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。<br>
       ⏰ <b>ご予約の受付は前日23:59まで</b>です。当日のご予約・ご変更はお電話か公式LINEでご相談ください。</p>
@@ -388,7 +403,7 @@ async function load(){
   selMenu = MENUS[0].id;
   renderMenus();
 
-  const today = jstDate(new Date()), until = jstDate(new Date(Date.now()+40*86400000));
+  const today = jstDate(new Date()), until = jstDate(new Date(Date.now()+75*86400000));
   const { data: hol } = await sb.from("holidays").select("d, name").gte("d", today).lte("d", until);
   HOLIDAYS = {}; (hol||[]).forEach(h=>{ HOLIDAYS[h.d] = h.name; });
 
@@ -445,18 +460,32 @@ function renderMenus(){
      </div>`).join("");
 }
 
+// ── 月ごとのカレンダー（明日〜60日先まで選べる） ──
+let CAL_Y = null, CAL_M = null;    // 表示中の年・月（0始まり）
+const BOOK_DAYS_AHEAD = 60;
 function renderDays(){
-  let html = "";
-  // ご予約の受付は前日23:59まで → 明日から14日ぶんを出す
-  for(let i=1;i<=14;i++){
-    const d = new Date(Date.now()+i*86400000), ds = jstDate(d);
-    const ok = staffWorks(ds);
-    html += `<button class="dayBtn ${selDate===ds?'sel':''} ${ok?'':'off'}" ${ok?"":"disabled"}
-      onclick="${ok?`selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm();document.getElementById('slotGrid').scrollIntoView({behavior:'smooth',block:'center'})`:""}">
-      <div class="w">${HOLIDAYS[ds] ? "祝" : WD[d.getDay()]}</div><div class="dd">${d.getDate()}</div></button>`;
+  const first = new Date(Date.now()+1*86400000), last = new Date(Date.now()+BOOK_DAYS_AHEAD*86400000);
+  const firstDs = jstDate(first), lastDs = jstDate(last);
+  if(CAL_Y === null){ const base = selDate ? new Date(selDate+"T00:00:00") : first; CAL_Y = base.getFullYear(); CAL_M = base.getMonth(); }
+  const minYM = first.getFullYear()*12+first.getMonth(), maxYM = last.getFullYear()*12+last.getMonth(), curYM = CAL_Y*12+CAL_M;
+  document.getElementById("calTitle").textContent = CAL_Y + "年" + (CAL_M+1) + "月";
+  document.getElementById("calPrev").disabled = curYM <= minYM;
+  document.getElementById("calNext").disabled = curYM >= maxYM;
+  let html = ["日","月","火","水","木","金","土"].map((w,i)=>`<div class="wd ${i===0?'su':(i===6?'sa':'')}">${w}</div>`).join("");
+  const lead = new Date(CAL_Y, CAL_M, 1).getDay();
+  for(let i=0;i<lead;i++) html += '<div class="calCell blank"></div>';
+  const days = new Date(CAL_Y, CAL_M+1, 0).getDate();
+  for(let d=1; d<=days; d++){
+    const ds = jstDate(new Date(CAL_Y, CAL_M, d));
+    const inRange = ds >= firstDs && ds <= lastDs;
+    const ok = inRange && staffWorks(ds);
+    const hol = !!HOLIDAYS[ds];
+    html += `<button class="calCell ${selDate===ds?'sel':''} ${ok?'':'off'} ${hol?'hol':''}" ${ok?"":"disabled"}
+      onclick="${ok?`selDate='${ds}';selSlot=null;renderDays();renderSlots();renderConfirm();document.getElementById('slotGrid').scrollIntoView({behavior:'smooth',block:'center'})`:""}">${d}${hol?'<small>祝</small>':''}</button>`;
   }
-  document.getElementById("dayRow").innerHTML = html;
+  document.getElementById("calGrid").innerHTML = html;
 }
+function calMove(n){ CAL_M += n; if(CAL_M<0){CAL_M=11;CAL_Y--;} if(CAL_M>11){CAL_M=0;CAL_Y++;} renderDays(); }
 
 /* 空き状況は日付ごとに覚えておき、タップのたびに通信しないようにします。
    これで枠・メニュー・担当を切り替えても待ち時間がゼロになります。 */
