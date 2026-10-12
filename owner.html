@@ -233,6 +233,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 .slot:active:not(.ng),.dayBtn:active:not(.off),.menuOpt:active,.staffOpt:active,
 .btn:active,a.btn:active,.tile:active{transform:scale(.97)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+.ownNav button .bdgNew{background:#e67e22!important;color:#fff!important;margin-left:4px}
 </style>
 </head>
 <body>
@@ -270,6 +271,15 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <button data-ot="set"   onclick="otab('set')">⚙️ 設定</button>
     </div>
     <div class="ownTab" id="ot-book">
+    <div class="card" id="newBkCard">
+      <h3>🆕 新着予約 <span id="newBkCnt" style="font-size:12px;color:var(--sub);font-weight:500"></span></h3>
+      <p class="notice" style="margin-bottom:8px">予約ページ（登録なし）・会員アプリから入った予約とキャンセルが、まだ確認していない順に並びます。お名前・電話・メニュー・ご要望はここで見られます（📞をタップで発信）。</p>
+      <div id="newBkList"><p class="notice">読み込み中…</p></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn sub" style="width:auto;padding:7px 12px" onclick="newBkSeenAll()">すべて確認済みにする</button>
+        <button class="btn sub" style="width:auto;padding:7px 12px" onclick="loadNewBookings()">↻ 更新</button>
+      </div>
+    </div>
     <div class="card">
       <h3>🗓 1日のスケジュール</h3>
       <div class="schNav">
@@ -690,7 +700,7 @@ async function enterApp(){
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
   otabInit();
-  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); tkKindChanged(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
+  await loadCusts(); schToday(); loadBookings(); loadNewBookings(); loadWaitlist(); loadInbox(); loadTickets(); tkKindChanged(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -731,7 +741,7 @@ async function loadSchedule(){
     .lt("starts_at",  ds + "T23:59:59+09:00");
 
   const { data: bks, error } = await sb.from("bookings")
-    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, profiles(nickname, full_name), menus(name, duration_min)")
+    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, guest_name, guest_tel, profiles(nickname, full_name, tel), menus(name, duration_min)")
     .gte("starts_at", ds + "T00:00:00+09:00")
     .lt("starts_at",  ds + "T23:59:59+09:00")
     .neq("status", "cancelled")
@@ -765,12 +775,13 @@ async function loadSchedule(){
       const dur = b.duration_min || (b.menus && b.menus.duration_min) || 60;
       const isBlk = b.source === "block";
       const who = isBlk ? ("🚫 " + (b.title || "予約不可"))
-                        : ((b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）");
+                        : ((b.profiles && (b.profiles.full_name || b.profiles.nickname)) || b.guest_name || b.title || "（名称なし）");
+      const telS = (b.profiles && b.profiles.tel) || b.guest_tel || "";
       const menu = (b.menus && b.menus.name) || b.title || "";
       cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
       cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
       cells += `<div class="schBk ${isBlk?"blk":(b.source==="gcal"?"gc":"")}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
-                     title="${who} ／ ${menu}${b.customer_note?" ／ 備考："+b.customer_note:""}" onclick="ownerCancel(${b.id})">
+                     title="${who} ／ ${menu}${telS?" ／ ☎"+telS:""}${b.customer_note?" ／ 備考："+b.customer_note:""}" onclick="ownerCancel(${b.id})">
                   <b>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")} ${who}</b>
                   <span class="mn">${isBlk?"ご予約を受け付けない時間":menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
                 </div>`;
@@ -1238,17 +1249,67 @@ async function custSave(){
   await loadCusts();
 }
 
+
+/* ============ 新着予約（まだ確認していない予約・キャンセル） ============ */
+const NB_KEY = "gait_nb_seen";          // 確認済みにした予約ID → 確認時刻
+const NB_SINCE_KEY = "gait_nb_since";   // 「すべて確認済み」を押した時刻
+function chLabel(c){ return ({app:"会員アプリ", web:"予約ページ", line:"LINE", gcal:"カレンダー", phone:"電話", other:"その他"})[c] || (c||""); }
+function nbSeen(){ try{ return JSON.parse(localStorage.getItem(NB_KEY)||"{}"); }catch(e){ return {}; } }
+function nbSince(){ try{ return localStorage.getItem(NB_SINCE_KEY) || new Date(Date.now()-14*86400000).toISOString(); }catch(e){ return new Date(Date.now()-14*86400000).toISOString(); } }
+async function loadNewBookings(){
+  const box = document.getElementById("newBkList"); if(!box) return;
+  const since = nbSince();
+  const sel = "id, starts_at, created_at, status, cancelled_at, channel, source, title, customer_note, guest_name, guest_tel, member_id, menus(name), staff(name), profiles(full_name, nickname, tel, visits_offset, first_visit_at, created_at)";
+  const [a, c] = await Promise.all([
+    sb.from("bookings").select(sel).gt("created_at", since).not("source","in","(gcal,block)").order("created_at",{ascending:false}).limit(40),
+    sb.from("bookings").select(sel).gt("cancelled_at", since).eq("status","cancelled").not("source","in","(gcal,block)").order("cancelled_at",{ascending:false}).limit(40),
+  ]);
+  const seen = nbSeen();
+  const rows = [];
+  (a.data||[]).forEach(b=>{ if(!seen["n"+b.id]) rows.push({ kind:"new", at:b.created_at, b }); });
+  (c.data||[]).forEach(b=>{ if(!seen["c"+b.id]) rows.push({ kind:"cancel", at:b.cancelled_at, b }); });
+  rows.sort((x,y)=> x.at < y.at ? 1 : -1);
+  // 新規 or 再来：この予約より前に同じ方の予約（確定）があるか
+  for(const r of rows){
+    const b = r.b; r.repeat = null;
+    if(b.profiles && (Number(b.profiles.visits_offset)>0 || b.profiles.first_visit_at)) { r.repeat = true; continue; }
+    let q = sb.from("bookings").select("id",{count:"exact",head:true}).neq("status","cancelled").lt("starts_at", b.starts_at);
+    if(b.member_id) q = q.eq("member_id", b.member_id); else if(b.guest_tel) q = q.eq("guest_tel", b.guest_tel); else continue;
+    const { count } = await q; r.repeat = (count||0) > 0;
+  }
+  document.getElementById("newBkCnt").textContent = rows.length ? `未確認 ${rows.length}件` : "未確認なし";
+  const nav = document.querySelector('#ownNav button[data-ot="book"]');
+  if(nav){ const o = nav.querySelector(".bdgNew"); if(o) o.remove(); if(rows.length){ const sp=document.createElement("span"); sp.className="bdg bdgNew"; sp.textContent=rows.length; nav.appendChild(sp); } }
+  if(!rows.length){ box.innerHTML = '<p class="notice">未確認の新着はありません</p>'; return; }
+  box.innerHTML = rows.map(r=>{
+    const b = r.b;
+    const name = b.profiles?.full_name || b.profiles?.nickname || b.guest_name || b.title || "（名前なし）";
+    const tel = b.profiles?.tel || b.guest_tel || "";
+    const tag = r.kind==="cancel" ? '<span class="tagPill" style="background:#fdecea;color:var(--warn)">キャンセル</span>'
+              : (r.repeat===true ? '<span class="tagPill off">再来</span>' : (r.repeat===false ? '<span class="tagPill" style="background:#fff3cd;color:#8a6d00">新規</span>' : ""));
+    const d = new Date(r.at);
+    return `<div class="bkRow" style="align-items:flex-start"><div>
+      <div class="d">${tag} ${esc(name)} さん ${b.guest_name&&!b.profiles?'<span class="tagPill off">登録なし</span>':""}</div>
+      <div class="m"><b>${fmtTs(b.starts_at)}〜</b> ｜ ${esc(b.menus?.name||b.title||"メニュー未指定")} ｜ 担当:${esc(b.staff?.name||"")}</div>
+      <div class="m">${tel?`<a href="tel:${esc(tel)}">📞 ${esc(tel)}</a> ｜ `:""}経路:${chLabel(b.channel)} ｜ ${r.kind==="cancel"?"キャンセル":"受付"} ${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}</div>
+      ${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${esc(b.customer_note)}</div>`:""}
+    </div><button class="calBtn" onclick="newBkSeen('${r.kind==="cancel"?"c":"n"}${b.id}')">確認</button></div>`;
+  }).join("");
+}
+function newBkSeen(key){ const s = nbSeen(); s[key] = Date.now(); try{ localStorage.setItem(NB_KEY, JSON.stringify(s)); }catch(e){} loadNewBookings(); }
+function newBkSeenAll(){ try{ localStorage.setItem(NB_SINCE_KEY, new Date().toISOString()); localStorage.setItem(NB_KEY, "{}"); }catch(e){} loadNewBookings(); }
+
 async function loadBookings(){
-  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, customer_note, profiles(nickname, full_name), menus(name), staff(name)")
+  const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, customer_note, guest_name, guest_tel, profiles(nickname, full_name, tel), menus(name), staff(name)")
     .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(60);
   document.getElementById("bkList").innerHTML = (data&&data.length) ? data.map(b=>
-    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${b.profiles?.nickname ? b.profiles.nickname+" さん" : (b.title||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}</div><div class="m">${b.menus?.name||b.title||""} ｜ 担当:${b.staff?.name||""} ｜ 経路:${b.channel}</div>${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${b.customer_note}</div>`:""}</div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
+    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${(b.profiles?.full_name||b.profiles?.nickname||b.guest_name) ? esc(b.profiles?.full_name||b.profiles?.nickname||b.guest_name)+" さん" : (esc(b.title)||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}${b.guest_name&&!b.profiles?'<span class="tagPill">登録なし</span>':""}</div><div class="m">${esc(b.menus?.name||b.title||"")} ｜ 担当:${esc(b.staff?.name||"")} ｜ 経路:${chLabel(b.channel)}${(b.profiles?.tel||b.guest_tel)?` ｜ <a href="tel:${esc(b.profiles?.tel||b.guest_tel)}">📞 ${esc(b.profiles?.tel||b.guest_tel)}</a>`:""}</div>${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${b.customer_note}</div>`:""}</div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
     : '<p class="notice">今後の予約はまだありません</p>';
 }
 async function ownerCancel(id){
   if(!confirm("この予約を取り消しますか？")) return;
   await sb.from("bookings").update({status:"cancelled"}).eq("id", id);
-  toast("予約を取り消しました"); loadBookings(); loadSchedule(); loadWaitlist();
+  toast("予約を取り消しました"); loadBookings(); loadSchedule(); loadWaitlist(); loadNewBookings();
   try{
     const { data: bk } = await sb.from("bookings").select("starts_at").eq("id", id).maybeSingle();
     if(bk){

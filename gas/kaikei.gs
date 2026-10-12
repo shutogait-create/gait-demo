@@ -91,6 +91,7 @@ function doPost(e) {
   try {
     if (b.action === 'sale')    return json_(addSale_(b));
     if (b.action === 'expense') return json_(addExpense_(b));
+    if (b.action === 'notify')  return json_(notifyOwner_(b));
     return json_({ ok: false, error: '不明な操作です' });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -128,6 +129,31 @@ function addSale_(b) {
     isExpense ? 0 : amount, isExpense ? amount : fee,
   ]);
   return { ok: true, saved: { date: fmt_(d), content: content, amount: amount, fee: fee } };
+}
+
+/* ---------- 予約・新規登録の通知メール（Supabase のトリガーから呼ばれる） ---------- */
+function notifyOwner_(b) {
+  const to = Session.getEffectiveUser().getEmail();          // このスクリプトの持ち主（＝自分）宛
+  const kind = String(b.kind || 'お知らせ');
+  const name = String(b.name || '（名前なし）');
+  const lines = [];
+  if (b.when) {
+    const d = new Date(b.when);
+    const wd = ['日','月','火','水','木','金','土'][Number(Utilities.formatDate(d, TZ, 'u')) % 7];
+    lines.push('日時：' + Utilities.formatDate(d, TZ, 'M/d') + '（' + wd + '）' + Utilities.formatDate(d, TZ, 'H:mm') + '〜');
+  }
+  lines.push('お名前：' + name + ' さん');
+  if (b.tel)     lines.push('電話：' + b.tel);
+  if (b.menu)    lines.push('メニュー：' + b.menu);
+  if (b.staff)   lines.push('担当：' + b.staff);
+  if (b.channel) lines.push('経路：' + ({app:'会員アプリ', web:'予約ページ', line:'LINE'}[b.channel] || b.channel));
+  if (b.note)    lines.push('ご要望：' + b.note);
+  if (b.created_at) lines.push('登録：' + b.created_at);
+  lines.push('');
+  lines.push('▶ オーナー画面で確認：https://shutogait-create.github.io/gait-demo/owner.html');
+  const subject = '【gait】' + kind + '：' + name + ' さん' + (b.when ? '（' + Utilities.formatDate(new Date(b.when), TZ, 'M/d H:mm') + '〜）' : '');
+  MailApp.sendEmail({ to: to, subject: subject, body: lines.join('\n'), name: 'gait 予約アプリ' });
+  return { ok: true, sent: to };
 }
 
 /* ---------- 経費を費目ごとの4列ブロック（日付・場所・事柄・金額）に追加 ---------- */
