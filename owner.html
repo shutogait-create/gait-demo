@@ -1492,7 +1492,7 @@ async function kkToday(){
   const ds = document.getElementById("kkTodayDate").value || jstDate(new Date());
   box.innerHTML = '<p class="notice">読み込み中…</p>';
   const { data: bks, error } = await sb.from("bookings")
-    .select("id, starts_at, status, title, source, channel, member_id, profiles(nickname, full_name), menus(name, price, price_note)")
+    .select("id, starts_at, status, title, source, channel, member_id, customer_note, profiles(nickname, full_name), menus(name, price, price_note)")
     .gte("starts_at", ds + "T00:00:00+09:00").lt("starts_at", ds + "T23:59:59+09:00")
     .neq("status","cancelled").neq("source","block").order("starts_at");
   if(error){ box.innerHTML = '<p class="notice">予約を読み込めませんでした</p>'; return; }
@@ -1561,7 +1561,7 @@ function kkBillType(b){
   const note = String((b.menus && b.menus.price_note) || "");
   const name = String((b.menus && b.menus.name) || b.title || "");
   if(/ひかり/.test(name) || /期謝|コース/.test(note)) return "term";
-  if(/回数券/.test(note)) return "ticket";
+  if(/回数券/.test(note) || /回数券/.test(String(b.customer_note||""))) return "ticket";
   if(/月額|月謝/.test(note) || /キッズピラティス|ランニング|習い事|ファンクショナルローラー|FRP教室/.test(name)) return "monthly";
   return "single";
 }

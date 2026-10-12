@@ -179,6 +179,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       </div>
 
       <label class="chk" id="agreeRow"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
+      <label class="chk" id="ticketRow" style="display:none"><input type="checkbox" id="useTicket"><span>回数券を使います（お持ちの方。料金は回数券から1回分を消化します）</span></label>
       <label class="chk" id="rememberRow"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
 
       <button class="btn" id="bkBtn" onclick="submitBooking()">この内容で予約を確定する</button>
@@ -474,10 +475,12 @@ function renderConfirm(){
   document.getElementById("confirmText").innerHTML =
     `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
-    `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い）` +
+    `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い${/^(整体×ピラティス|全身整体)$/.test(m.name)?"・回数券もお使いいただけます":""}）` +
     (iida?"<br>担当：飯田 隼人":(effStaff()===1?"<br>担当：宗田 修斗":""));
   c.style.display = "block";
 
+  const tkOk = /^(整体×ピラティス|全身整体)$/.test(m.name);
+  const tr = document.getElementById("ticketRow"); if(tr){ tr.style.display = (tkOk && !MOVE) ? "flex" : "none"; if(!tkOk) document.getElementById("useTicket").checked = false; }
   const mem = memGet();
   if(mem){
     if(mem.name && !document.getElementById("nm").value)  document.getElementById("nm").value  = mem.name;
@@ -524,7 +527,7 @@ async function submitBooking(){
     res = await sb.rpc("guest_book", {
       p_name: name, p_tel: tel, p_menu_id: selMenu, p_staff_id: staffId,
       p_starts_at: startsAt, p_policy: POLICY_VERSION,
-      p_note: document.getElementById("note").value.trim() || null });
+      p_note: ((document.getElementById("useTicket")&&document.getElementById("useTicket").checked) ? "【回数券利用】" : "") + (document.getElementById("note").value.trim() || "") || null });
   }
   const { data, error } = res;
   btn.disabled = false; btn.textContent = label;
