@@ -128,40 +128,6 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 
 <main>
 
-  <div class="topTabs" id="topTabs">
-    <button class="act" onclick="showTop('book')">📅 ご予約</button>
-    <button onclick="showTop('ticket')">🎫 回数券</button>
-  </div>
-
-  <div id="ticketScr" style="display:none">
-    <div class="card">
-      <div class="stepLbl"><span class="n">1</span><b>整体×ピラティス 回数券</b></div>
-      <p class="tkLead">ピラティスなどのエクササイズは、継続が力なり！<br>固い意志を持って挑戦するぞ！という方は、回数券ご購入をお勧めします！</p>
-      <p class="tkCatch">10回で違いを感じ、20回で周りが気づき、30回で全て変わる！</p>
-      <table class="tkTable">
-        <tr><td>4回</td><td>¥28,800 <small>（7,200円/回）</small></td></tr>
-        <tr><td>10回</td><td>¥69,000 <small>（6,900円/回）</small></td></tr>
-        <tr><td>20回</td><td>¥132,000 <small>（6,600円/回）</small></td></tr>
-        <tr><td>30回</td><td>¥189,000 <small>（6,300円/回）</small></td></tr>
-      </table>
-    </div>
-    <div class="card">
-      <div class="stepLbl"><span class="n">2</span><b>全身くまなく整体40分 回数券</b></div>
-      <p class="tkLead">ストレッチのみメニューです！<br>理学療法士×ピラティスインストラクターで身体のことに詳しいスタッフがお待ちしています！<br>定期的な身体のメンテナンスに回数券ご購入をお勧めします！</p>
-      <table class="tkTable">
-        <tr><td>4回</td><td>¥20,800 <small>（5,200円/回）</small></td></tr>
-        <tr><td>10回</td><td>¥50,000 <small>（5,000円/回）</small></td></tr>
-        <tr><td>20回</td><td>¥96,000 <small>（4,800円/回）</small></td></tr>
-        <tr><td>30回</td><td>¥138,000 <small>（4,600円/回）</small></td></tr>
-      </table>
-    </div>
-    <div class="card">
-      <p class="notice">ご購入は店舗にてお願いします（現金・カード・PayPay・お振込）。回数券をお持ちの方は、ご予約の確認画面で「回数券を使います」にチェックを入れてください。残り回数は「予約・回数券を確認する」から見られます。</p>
-      <button class="btn" style="margin-top:10px" onclick="showTop('book')">ご予約へ進む</button>
-      <a class="btn sub" href="./me.html" style="margin-top:8px">予約・回数券を確認する</a>
-    </div>
-  </div>
-
   <div id="flow">
     <div class="moveBox" id="moveBanner" style="display:none">
       <div class="t">🔁 ご予約の日時を変更します</div>
@@ -222,7 +188,6 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       </div>
 
       <label class="chk" id="agreeRow"><input type="checkbox" id="agree"><span>キャンセル・変更の内容に同意します</span></label>
-      <label class="chk" id="ticketRow" style="display:none"><input type="checkbox" id="useTicket"><span>回数券を使います（お持ちの方。料金は回数券から1回分を消化します）　<a onclick="event.preventDefault();showTop('ticket')" style="color:var(--gd);text-decoration:underline;cursor:pointer">回数券の料金を見る</a></span></label>
       <label class="chk" id="rememberRow"><input type="checkbox" id="remember" checked><span>この端末にお名前と電話番号を記憶する（次回から入力なしで予約できます）</span></label>
 
       <button class="btn" id="bkBtn" onclick="submitBooking()">この内容で予約を確定する</button>
@@ -378,18 +343,40 @@ function memGet(){ try{ return JSON.parse(localStorage.getItem(MEM)||"null"); }c
 function memSet(v){ try{ localStorage.setItem(MEM, JSON.stringify(v)); }catch(e){} }
 
 
-function showTop(t){
-  const tk = t === "ticket";
-  document.getElementById("ticketScr").style.display = tk ? "block" : "none";
-  document.getElementById("flow").style.display = tk ? "none" : "block";
-  document.querySelectorAll("#topTabs button").forEach((b,i)=>b.classList.toggle("act", (i===1)===tk));
-  window.scrollTo(0,0);
-}
-if((location.hash||"") === "#ticket") showTop("ticket");
 
+function openSheet(url, title){
+  document.getElementById("sheetTtl").textContent = title || "";
+  document.getElementById("sheetFrame").src = url;
+  document.getElementById("sheetBg").classList.add("on");
+  document.getElementById("sheet").classList.add("on");
+  document.body.style.overflow = "hidden";
+}
+function closeSheet(){
+  document.getElementById("sheetBg").classList.remove("on");
+  document.getElementById("sheet").classList.remove("on");
+  document.getElementById("sheetFrame").src = "about:blank";
+  document.body.style.overflow = "";
+}
 async function load(){
   const { data: menus } = await sb.from("menus").select("*").eq("active", true).order("id");
   MENUS = menus || [];
+  // 回数券で予約するプラン（メニュー表には無いので、ここで整体×ピラティス／全身整体の回数券版を足す）
+  const TK = {
+    1: { id: 1001, base: 1, name: "整体×ピラティス【回数券】", note: "回数券1回分",
+         prices: "4回 ¥28,800（7,200円/回）／10回 ¥69,000（6,900円/回）／20回 ¥132,000（6,600円/回）／30回 ¥189,000（6,300円/回）",
+         lead: "ピラティスなどのエクササイズは、継続が力なり！ 10回で違いを感じ、20回で周りが気づき、30回で全て変わる！" },
+    3: { id: 1003, base: 3, name: "全身整体【回数券】", note: "回数券1回分",
+         prices: "4回 ¥20,800（5,200円/回）／10回 ¥50,000（5,000円/回）／20回 ¥96,000（4,800円/回）／30回 ¥138,000（4,600円/回）",
+         lead: "ストレッチのみのメニュー。定期的な身体のメンテナンスに。" },
+  };
+  const out = [];
+  MENUS.forEach(m => {
+    out.push(m);
+    const t = TK[m.id];
+    if(t) out.push({ id: t.id, base_id: t.base, name: t.name, duration_min: m.duration_min, price: 0, price_note: t.note, staff_id: m.staff_id || null,
+      description: "回数券をお持ちの方はこちらからご予約ください（1回分を消化）。まだお持ちでない方も、当日のご購入でこの価格になります。\n【回数券の料金】" + t.prices + "\n" + t.lead });
+  });
+  MENUS = out;
   if(!MENUS.length){
     document.getElementById("menuList").innerHTML = '<p class="notice">メニューを読み込めませんでした。時間をおいて開き直してください。</p>';
     return;
@@ -425,9 +412,9 @@ function renderMenus(){
        <div class="menuHead">
          <div><div class="n">${esc(m.name)}</div>
            <div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+esc(m.price_note):""}${(selStaff===0 && m.staff_id)?` ｜ <b style="color:var(--gd)">担当：${esc(staffLabel(m.staff_id))}</b>`:""}</div></div>
-         <div class="pr">${m.price ? "¥"+m.price.toLocaleString() : "プラン内"}</div>
+         <div class="pr">${m.price ? "¥"+m.price.toLocaleString() : (m.base_id ? "回数券" : "プラン内")}</div>
        </div>
-       ${m.description?`<p class="desc">${esc(m.description)}</p><div class="more">タップして詳細を読む ›</div>`:""}
+       ${m.description?`<p class="desc" style="white-space:pre-line">${esc(m.description)}</p><div class="more">タップして詳細を読む ›</div>`:""}
      </div>`).join("");
 }
 
@@ -528,12 +515,10 @@ function renderConfirm(){
   document.getElementById("confirmText").innerHTML =
     `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
-    `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い${/^(整体×ピラティス|全身整体)$/.test(m.name)?"・回数券もお使いいただけます":""}）` +
+    `料金：${m.base_id?"回数券1回分（お持ちでない方は当日ご購入いただけます）":(m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString())+"（店舗でのお支払い）"}` +
     (iida?"<br>担当：飯田 隼人":(effStaff()===1?"<br>担当：宗田 修斗":""));
   c.style.display = "block";
 
-  const tkOk = /^(整体×ピラティス|全身整体)$/.test(m.name);
-  const tr = document.getElementById("ticketRow"); if(tr){ tr.style.display = (tkOk && !MOVE) ? "flex" : "none"; if(!tkOk) document.getElementById("useTicket").checked = false; }
   const mem = memGet();
   if(mem){
     if(mem.name && !document.getElementById("nm").value)  document.getElementById("nm").value  = mem.name;
@@ -578,9 +563,9 @@ async function submitBooking(){
     if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
     btn.disabled = true; btn.textContent = "予約しています…";
     res = await sb.rpc("guest_book", {
-      p_name: name, p_tel: tel, p_menu_id: selMenu, p_staff_id: staffId,
+      p_name: name, p_tel: tel, p_menu_id: ((MENUS.find(x=>x.id===selMenu)||{}).base_id || selMenu), p_staff_id: staffId,
       p_starts_at: startsAt, p_policy: POLICY_VERSION,
-      p_note: ((document.getElementById("useTicket")&&document.getElementById("useTicket").checked) ? "【回数券利用】" : "") + (document.getElementById("note").value.trim() || "") || null });
+      p_note: (((MENUS.find(x=>x.id===selMenu)||{}).base_id) ? "【回数券利用】" : "") + (document.getElementById("note").value.trim() || "") || null });
   }
   const { data, error } = res;
   btn.disabled = false; btn.textContent = label;
