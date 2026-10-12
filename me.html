@@ -46,6 +46,17 @@ main{max-width:560px;margin:0 auto;padding:16px}
 .bk .d{font-weight:800;font-size:15.5px}
 .bk .m{font-size:12.5px;color:var(--sub)}
 .bk .nt{font-size:12px;color:var(--sub);margin-top:4px;padding-top:5px;border-top:1px dashed #d9e5df}
+.appbar .ab{border:1.5px solid rgba(255,255,255,.6);color:#fff;background:rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.cxBtn{margin-top:8px;margin-left:6px;border:1.5px solid #e0b4b4;background:#fff;color:#b03a2e;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.modalBg{position:fixed;inset:0;background:rgba(20,35,28,.5);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.modalBg.on{display:flex}
+.modal{background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;width:100%;max-width:600px;max-height:88vh;overflow:auto}
+.modal h3{font-size:15px;margin-bottom:8px;color:var(--gd)}
+.modal .pol{background:var(--gxl);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:13px;line-height:1.9;margin:10px 0}
+.modal .pol b{color:var(--gd)}
+.modal .btn{display:block;width:100%;border:none;border-radius:12px;padding:13px;font-size:14.5px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:8px}
+.modal .btn.danger{background:#c0392b;color:#fff}
+.modal .btn.sub{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
 .mvBtn{margin-top:8px;border:1.5px solid var(--g);background:#fff;color:var(--gd);border-radius:9px;
        padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .tk{margin-bottom:14px}
@@ -78,6 +89,9 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 
 <div class="appbar">
   <div class="logo">gait<small>RESERVATION CHECK</small></div>
+  <div style="flex:1"></div>
+  <a class="ab" href="./book.html">📅 予約する</a>
+  <a class="ab" href="./">👤 マイページ</a>
 </div>
 
 <main>
@@ -158,6 +172,23 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
   ご不明な点は公式LINE、またはお電話でお問い合わせください。
 </footer>
 
+<div class="modalBg" id="cxBg" onclick="if(event.target===this)closeCancel()">
+  <div class="modal">
+    <h3>ご予約をキャンセルしますか？</h3>
+    <div id="cxInfo" style="font-size:13.5px;font-weight:700"></div>
+    <div class="pol">
+      <b>キャンセル・変更について（1分でわかる版）</b><br>
+      ・<b>前日23:59まで</b>：無料。この画面から何度でも変更・キャンセルできます<br>
+      ・<b>当日</b>：回数券の方は<b>1回分を消化</b>、都度払いの方は<b>料金の50%</b>（次回ご来店時）<br>
+      ・<b>ご連絡のないキャンセル</b>：回数券は1回分消化、都度払いは料金の100%<br>
+      ・体調不良・ご家族の急病・警報が出る悪天候のときは、当日でもいただきません。LINEに一言ください<br>
+      ・はじめてのご予約は、初回1度に限り当日キャンセルも承ります
+    </div>
+    <p class="notice" style="font-size:12px">いまキャンセルすると、前日までの無料キャンセルとして処理されます。</p>
+    <button class="btn danger" id="cxGo" onclick="doCancel()">この予約をキャンセルする</button>
+    <button class="btn sub" onclick="closeCancel()">やめる（予約はそのまま）</button>
+  </div>
+</div>
 <script>
 const SB_URL = "https://pizzhyvqptkhigwwhorp.supabase.co";
 const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
@@ -172,6 +203,31 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;",
 function showErr(m){const e=document.getElementById("err");e.style.display=m?"block":"none";e.textContent=m||""}
 // 日時変更のとき、どなたのご予約かを予約ページへ引き継ぐ（この端末の中だけ）
 let LAST = null;
+
+let CX_ID = null;
+function askCancel(id, when, menu){
+  CX_ID = id;
+  document.getElementById("cxInfo").textContent = when + "〜 " + menu;
+  document.getElementById("cxBg").classList.add("on");
+}
+function closeCancel(){ CX_ID = null; document.getElementById("cxBg").classList.remove("on"); }
+async function doCancel(){
+  if(!CX_ID || !LAST) return;
+  const btn = document.getElementById("cxGo"); btn.disabled = true; btn.textContent = "キャンセルしています…";
+  const { data, error } = await sb.rpc("guest_cancel", { p_booking_id: CX_ID, p_tel: LAST.tel, p_dob: LAST.dob || null, p_name: LAST.name || null });
+  btn.disabled = false; btn.textContent = "この予約をキャンセルする";
+  if(error || !data || !data.ok){
+    const r = data && data.reason;
+    alert(r === "closed_old" ? "当日のキャンセルはこの画面からはできません。お電話または公式LINEでご連絡ください。"
+        : r === "denied" ? "ご本人の確認ができませんでした。もう一度ご確認からやり直してください。"
+        : r === "notfound" ? "このご予約は見つかりませんでした。すでにキャンセル済みの可能性があります。"
+        : "うまく処理できませんでした。時間をおいてお試しください。");
+    return;
+  }
+  closeCancel();
+  alert("ご予約をキャンセルしました。またのご利用をお待ちしています。");
+  lookup({ tel: LAST.tel, dob: LAST.dob || null, name: LAST.name || null });
+}
 function startMove(id){
   try{ localStorage.setItem("gait_move", JSON.stringify({
     id: id, tel: LAST && LAST.tel, dob: (LAST && LAST.dob) || null, name: (LAST && LAST.name) || null })); }catch(e){}
@@ -258,8 +314,8 @@ async function lookup(auto){
         <div class="m">${esc(b.menu)}</div>
         ${b.note?`<div class="nt">📝 ${esc(b.note)}</div>`:""}
         ${b.can_move
-           ? `<button class="mvBtn" onclick="startMove(${b.id})">日時を変更する</button>`
-           : `<div class="nt">当日のご変更は、お電話または公式LINEでご連絡ください。</div>`}
+           ? `<button class="mvBtn" onclick="startMove(${b.id})">日時を変更する</button><button class="cxBtn" onclick="askCancel(${b.id},'${esc(fmtTs(b.starts_at))}','${esc(b.menu||"")}')">キャンセルする</button>`
+           : `<div class="nt">当日のご変更・キャンセルは、お電話または公式LINEでご連絡ください。</div>`}
       </div>`).join("")
     : '<p class="notice">今後のご予約はありません。<br>下の「新しく予約する」からどうぞ。</p>';
 
