@@ -38,6 +38,23 @@ function setup() {
     fx.setColumnWidth(2, 200); fx.setColumnWidth(6, 320);
   }
 
+  // 手数料シート（支払方法ごとの決済手数料率。％で書く。ここを直せば次の記録から反映）
+  let fee = ss.getSheetByName('手数料');
+  if (!fee) {
+    fee = ss.insertSheet('手数料');
+    fee.getRange(1, 1, 6, 3).setValues([
+      ['支払方法', '手数料率(%)', 'メモ'],
+      ['現金', 0, ''],
+      ['クレカ', 3.24, 'Airペイ（カード）。契約の料率に合わせて直してください'],
+      ['PayPay', 1.98, 'PayPay店頭QR。契約の料率に合わせて直してください'],
+      ['銀行振込', 0, '受け取り側の手数料がある場合は金額ではなく％で'],
+      ['paypay送金', 0, '手数料無料'],
+    ]);
+    fee.setFrozenRows(1);
+    fee.getRange('A1:C1').setFontWeight('bold').setBackground('#e6f5ee');
+    fee.setColumnWidth(3, 360);
+  }
+
   // 連携情報シート
   let ap = ss.getSheetByName('アプリ連携');
   if (!ap) ap = ss.insertSheet('アプリ連携');
@@ -90,21 +107,26 @@ function addSale_(b) {
   const name = String(b.customer || '').trim();
   const content = String(b.content || '').trim() + (name ? '(' + name : '');   // 既存の書き方「パーソナル(伊藤」に合わせる
   const isExpense = b.kind === 'out';
+  const fee = isExpense ? 0 : Math.round(amount * feeRate_(b.method));   // 決済手数料は同じ行の「支出」に入れる → 利益＝手取り
   // 月謝など「月に1回だけ」入れたいもの：同じ月に同じ内容＋お名前の行があれば入れない
   if (b.once) {
     const sh = salesSheet_(d);
     const last = sh.getLastRow();
     if (last >= 3) {
       const rows = sh.getRange(3, 1, last - 2, 3).getValues();
-      const hit = rows.some(r => { const k = key_(r[0]); return k && k.slice(0, 7) === String(b.once).slice(0, 7) && String(r[2]).trim() === content; });
+      const once = String(b.once);
+      const hit = rows.some(r => {
+        const k = key_(r[0]); if (!k || String(r[2]).trim() !== content) return false;
+        return /^\d{4}-\d{2}$/.test(once) ? k.slice(0, 7) === once : k.slice(0, 4) === once.slice(0, 4);   // 月謝は同じ月、期謝などは同じ年で判定
+      });
       if (hit) return { ok: true, dup: true, saved: { date: fmt_(d), content: content, amount: amount } };
     }
   }
   appendMainRow_(salesSheet_(d), [
     d, b.method, content, String(b.source || ''), String(b.category || (isExpense ? '支払い' : '')),
-    isExpense ? 0 : amount, isExpense ? amount : 0,
+    isExpense ? 0 : amount, isExpense ? amount : fee,
   ]);
-  return { ok: true, saved: { date: fmt_(d), content: content, amount: amount } };
+  return { ok: true, saved: { date: fmt_(d), content: content, amount: amount, fee: fee } };
 }
 
 /* ---------- 経費を費目ごとの4列ブロック（日付・場所・事柄・金額）に追加 ---------- */
@@ -233,6 +255,13 @@ function num_(v) {
   return isNaN(n) ? 0 : n;
 }
 function fmt_(d) { return Utilities.formatDate(d, TZ, 'yyyy/MM/dd'); }
+function feeRate_(method) {
+  const sh = ss_().getSheetByName('手数料');
+  if (!sh || sh.getLastRow() < 2) return 0;
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+  const r = rows.find(x => String(x[0]).trim() === String(method));
+  return r ? (Number(r[1]) || 0) / 100 : 0;
+}
 function auth_(t) {
   const tok = PropertiesService.getScriptProperties().getProperty('TOKEN');
   return !!tok && t === tok;
