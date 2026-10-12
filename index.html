@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>gait 会員アプリ</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2e9e72">
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -285,7 +285,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
               <b>前日中まで</b>は無料でご変更・キャンセルいただけます。<br>
               <b>当日</b>は、回数券をお持ちの方は1回分を消化、都度払いの方は料金の50%を申し受けます。<br>
               体調不良のときは、ご連絡いただければいただきません。
-              <a href="/policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
+              <a href="./policy.html" target="_blank" rel="noopener">くわしく読む ›</a>
             </div>
             <label style="display:block;font-size:11px;color:var(--sub);margin-bottom:10px">ご要望・気になるところ（任意）
               <textarea id="bkNote" rows="2" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:14px;margin-top:4px" placeholder="例：右肩が上げにくいです"></textarea></label>
@@ -620,7 +620,7 @@ async function loadHome(){
       const canMove = new Date(b.starts_at).toDateString() !== new Date().toDateString() && new Date(b.starts_at) > new Date();
       return `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜</div><div class="m">${b.menus?.name||""}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          ${canMove?`<button class="cxBtn" style="border-color:var(--g);color:var(--gd)" onclick="location.href='/book.html#move=${b.id}'">日時変更</button>`:""}
+          ${canMove?`<button class="cxBtn" style="border-color:var(--g);color:var(--gd)" onclick="location.href='./book.html#move=${b.id}'">日時変更</button>`:""}
           <button class="cxBtn" onclick="cancelBk(${b.id},'${b.starts_at}')">キャンセル</button>
         </div></div>`;
     }).join("");

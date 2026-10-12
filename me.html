@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>予約・回数券の確認 ｜ リラクゼーション＆ピラティス gait</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2e9e72">
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -123,7 +123,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
     <div class="card">
       <h2>ご予約はこちら</h2>
       <p class="notice" style="margin-bottom:11px">会員登録なしで、お名前と電話番号だけでご予約いただけます。</p>
-      <button class="btn" onclick="location.href='/book.html'">予約する</button>
+      <button class="btn" onclick="location.href='./book.html'">予約する</button>
       <button class="btn sub" onclick="location.href='/'">会員の方（カルテ・宿題動画）</button>
     </div>
   </div>
@@ -144,7 +144,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <div id="rTickets"></div>
     </div>
 
-    <button class="btn" onclick="location.href='/book.html'">新しく予約する</button>
+    <button class="btn" onclick="location.href='./book.html'">新しく予約する</button>
     <button class="btn sub" onclick="reset()">別の方を確認する</button>
     <p class="memo" id="memo" style="display:none">
       この端末では入力なしで確認できるようにしています。<br>
@@ -175,7 +175,7 @@ let LAST = null;
 function startMove(id){
   try{ localStorage.setItem("gait_move", JSON.stringify({
     id: id, tel: LAST && LAST.tel, dob: (LAST && LAST.dob) || null, name: (LAST && LAST.name) || null })); }catch(e){}
-  location.href = "/book.html#move=" + id;
+  location.href = "./book.html#move=" + id;
 }
 // ── この端末を覚えておく仕組み ──────────────────────────
 // 2回目以降は入力なしで開けるように、端末の中だけに情報を残します。
