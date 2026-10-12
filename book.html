@@ -147,25 +147,8 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <div class="slotGrid" id="slotGrid"></div>
       <p class="notice" style="margin-top:10px">🔄 空き状況はリアルタイムです。ご予約の前後15分は準備のためお休みをいただくので、その時間は選べないようになっています。<br>
       ⏰ <b>ご予約の受付は前日23:59まで</b>です。当日のご予約・ご変更はお電話か公式LINEでご相談ください。</p>
-      <button class="btn sub" id="wlOpen" style="display:none" onclick="wlOpenFor()">この日のキャンセル待ちに登録する</button>
     </div>
 
-    <div class="card" id="wlCard" style="display:none">
-      <div class="stepLbl"><span class="n">＋</span><b>キャンセル待ちのご登録</b></div>
-      <p class="notice" id="wlLead" style="margin-bottom:12px"></p>
-      <div class="err" id="wlErr"></div>
-      <div class="field"><label>お名前</label><input id="wlName" type="text" placeholder="例：山田 花子" autocomplete="name"></div>
-      <div class="field"><label>電話番号（ハイフンなし）</label><input id="wlTel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel"></div>
-      <div class="field"><label>ご希望の時間帯（任意）</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="wlFrom" type="time" style="flex:1"><span style="color:var(--sub)">〜</span><input id="wlTo" type="time" style="flex:1">
-        </div>
-      </div>
-      <div class="field"><label>ひとこと（任意）</label><textarea id="wlNote" rows="2" placeholder="例：午前中だと助かります"></textarea></div>
-      <button class="btn" id="wlBtn" onclick="wlSubmit()">キャンセル待ちに登録する</button>
-      <button class="btn sub" onclick="wlClose()">閉じる</button>
-      <p class="notice" style="margin-top:9px">空きが出たら、こちらからお電話または公式LINEでご連絡します。自動で予約が入ることはありません。</p>
-    </div>
 
     <div class="card" id="confirmCard" style="display:none">
       <div class="stepLbl"><span class="n">4</span><b id="step3Title">お名前とご連絡先</b></div>
@@ -437,7 +420,6 @@ function slotMsg(text){
 
 function renderSlots(){
   const el = document.getElementById("slotGrid");
-  document.getElementById("wlOpen").style.display = (selDate && !MOVE) ? "block" : "none";
   if(!selDate){ slotMsg("日付を選んでください"); return; }
 
   if(!staffWorks(selDate)){
