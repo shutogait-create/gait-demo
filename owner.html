@@ -138,6 +138,15 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .kkStat small{display:block;font-size:11px;color:var(--sub)}
 .kkStat b{font-size:18px}
 .kkStat.big{grid-column:1/-1;background:#fff;border-color:var(--g)}
+.kkToday{display:flex;flex-direction:column;gap:8px}
+.kkRow{border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:#fff}
+.kkRow.done{background:var(--gxl);opacity:.75}
+.kkRow .top{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.kkRow .top b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kkRow .top input{width:84px;text-align:right;padding:5px 7px;border:1px solid var(--line);border-radius:8px;font:inherit;font-weight:700}
+.kkRow .kkChips{margin:7px 0 0}
+.kkRow .kkChips button{padding:6px 10px;font-size:12.5px}
+.kkRow .ok{font-size:12.5px;color:var(--gd);font-weight:700;margin-top:4px}
 .kkList{font-size:12.5px;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
 .kkList div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
 .fRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
@@ -417,6 +426,13 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
     <div class="card" id="kkSumCard">
       <h3>📊 今日と今月の数字 <button class="btn ghost" style="width:auto;margin-left:auto" onclick="kkSummary()">↻ 更新</button></h3>
       <div id="kkSum"><p class="notice">読み込み中…</p></div>
+    </div>
+
+    <div class="card">
+      <h3>⚡ 今日の会計（ワンタップ） <button class="btn ghost" style="width:auto;margin-left:auto" onclick="kkToday()">↻</button></h3>
+      <div class="fRow"><input id="kkTodayDate" type="date" style="width:150px" onchange="kkToday()"></div>
+      <div id="kkTodayList" class="kkToday"><p class="notice">読み込み中…</p></div>
+      <p class="finePrint">予約の金額が入った状態で並びます。支払方法を1回タップすると、その場でスプレッドシートに記録されます（金額は右の欄で直せます）。</p>
     </div>
 
     <div class="card">
@@ -1365,6 +1381,80 @@ function kkInit(){
   document.getElementById("kkTok").value = c.tok;
   kkCustList();
   kkSummary();
+  const td = document.getElementById("kkTodayDate"); if(td && !td.value) td.value = jstDate(new Date());
+  kkToday();
+}
+/* ---- 今日の会計：予約をそのまま売上にする（ワンタップ） ---- */
+const KK_DONE_KEY = "gait_kk_done";
+function kkDone(){ try{ return JSON.parse(localStorage.getItem(KK_DONE_KEY)||"{}"); }catch(e){ return {}; } }
+function kkMarkDone(id, info){ try{ const d = kkDone(); d[id] = info; localStorage.setItem(KK_DONE_KEY, JSON.stringify(d)); }catch(e){} }
+function kkMenuCat(name){
+  const n = String(name||"");
+  if(/オンライン/.test(n)) return "オンライン";
+  if(/ランニング|かけっこ/.test(n)) return "ランニング";
+  if(/勉強会|セミナー/.test(n)) return "勉強会";
+  if(/出張|外出/.test(n)) return "外出レッスン";
+  if(/レンタル/.test(n)) return "レンタル";
+  if(/ひかり/.test(n)) return "ひかり";
+  return "スタジオ";
+}
+function kkSrcOf(b){
+  const s = (b.source||"") + " " + (b.channel||"");
+  if(/hotpepper|ホットペッパー/i.test(s)) return "ホットペッパー";
+  if(/instagram/i.test(s)) return "Instagram";
+  if(/line/i.test(s)) return "LINE";
+  if(/youtube/i.test(s)) return "YouTube";
+  if(/tiktok/i.test(s)) return "TikTok";
+  if(/tel|phone/i.test(s)) return "TEL";
+  if(/web|app|member|book/i.test(s)) return "HP(Google)";
+  return "";
+}
+async function kkToday(){
+  const box = document.getElementById("kkTodayList"); if(!box) return;
+  const ds = document.getElementById("kkTodayDate").value || jstDate(new Date());
+  box.innerHTML = '<p class="notice">読み込み中…</p>';
+  const { data: bks, error } = await sb.from("bookings")
+    .select("id, starts_at, status, title, source, channel, profiles(nickname, full_name), menus(name, price)")
+    .gte("starts_at", ds + "T00:00:00+09:00").lt("starts_at", ds + "T23:59:59+09:00")
+    .neq("status","cancelled").neq("source","block").order("starts_at");
+  if(error){ box.innerHTML = '<p class="notice">予約を読み込めませんでした</p>'; return; }
+  const list = (bks||[]);
+  if(!list.length){ box.innerHTML = '<p class="notice">この日の予約はありません。下の「売上を入れる」から手で記録できます。</p>'; return; }
+  const done = kkDone();
+  box.innerHTML = list.map(b => {
+    const s = new Date(b.starts_at);
+    const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）";
+    const menu = (b.menus && b.menus.name) || b.title || "";
+    const price = (b.menus && b.menus.price) || 0;
+    const dn = done[b.id];
+    const chips = KK_PAYS.map(p=>`<button onclick="kkTapSale(${b.id},'${p[0]}')">${p[1]}</button>`).join("");
+    return `<div class="kkRow ${dn?"done":""}" id="kkRow-${b.id}">
+      <div class="top"><span>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")}</span><b>${who}　<span style="font-weight:400;color:var(--sub)">${menu}</span></b>
+        <input type="number" inputmode="numeric" id="kkAmt-${b.id}" value="${price||""}" placeholder="金額"></div>
+      ${dn ? `<div class="ok">✓ 記録済み（${dn.method}・${yen(dn.amount)}）</div>` : `<div class="kkChips">${chips}</div>`}
+    </div>`;
+  }).join("");
+  window.__kkTodayBks = list;
+}
+async function kkTapSale(id, method){
+  const b = (window.__kkTodayBks||[]).find(x=>x.id===id); if(!b) return;
+  const amount = parseInt(document.getElementById("kkAmt-"+id).value);
+  if(!amount){ toast("金額を入れてください"); return; }
+  const row = document.getElementById("kkRow-"+id);
+  row.querySelectorAll("button").forEach(x=>x.disabled=true);
+  const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "";
+  const menu = (b.menus && b.menus.name) || b.title || "レッスン";
+  try{
+    const d = await kkCall({ action:"sale", date: jstDate(new Date(b.starts_at)), method, content: menu, customer: who,
+      category: kkMenuCat(menu), source: kkSrcOf(b), amount });
+    if(!d.ok) throw new Error(d.error);
+    kkMarkDone(id, { method, amount, at: Date.now() });
+    toast(`記録しました：${menu}(${who} ${yen(amount)}`);
+    kkToday(); kkSummary();
+  }catch(e){
+    toast("記録できませんでした：" + e.message);
+    row.querySelectorAll("button").forEach(x=>x.disabled=false);
+  }
 }
 function kkCustList(){
   const names = new Set();
