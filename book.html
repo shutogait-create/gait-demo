@@ -293,19 +293,27 @@ function worksOn(st, ds){
 function staffOnDate(ds){ return STAFFDB.filter(st => worksOn(st, ds)); }
 // その担当がその日に対応できるか
 function staffWorks(ds){
-  if(selStaff === 0) return staffOnDate(ds).length > 0;
-  const st = STAFFDB.find(x => x.id === selStaff);
+  const sid = effStaff();
+  if(sid === 0) return staffOnDate(ds).length > 0;
+  const st = STAFFDB.find(x => x.id === sid);
   return !!st && worksOn(st, ds);
 }
 // その日に出す営業時間帯
 function blocksFor(ds){
-  const list = selStaff ? STAFFDB.filter(x => x.id === selStaff) : staffOnDate(ds);
+  const list = effStaff() ? STAFFDB.filter(x => x.id === effStaff()) : staffOnDate(ds);
   return list.filter(st => worksOn(st, ds))
              .map(st => [hhmm(st.work_from) || "08:00", hhmm(st.work_to) || "21:00"]);
 }
+// 指名なしでも担当付きメニュー（初回など）は全部出す。担当付きメニューを選んだら、その担当の枠だけ出す
 function menusFor(){
-  return MENUS.filter(m => selStaff === 0 ? !m.staff_id : (!m.staff_id || m.staff_id === selStaff));
+  return MENUS.filter(m => selStaff === 0 ? true : (!m.staff_id || m.staff_id === selStaff));
 }
+function effStaff(){
+  if(selStaff) return selStaff;
+  const m = MENUS.find(x => x.id === selMenu);
+  return (m && m.staff_id) ? m.staff_id : 0;
+}
+function staffLabel(id){ const st = STAFFDB.find(x => x.id === id); return st ? st.name : ""; }
 function renderStaff(){
   const STAFF = STAFFDB.map(st => ({ id: st.id, name: st.name,
       initial: (STAFF_META[st.id]||{}).initial || st.name.slice(0,1),
@@ -321,7 +329,7 @@ function renderStaff(){
   const WDL = ["日","月","火","水","木","金","土"];
   const cur = STAFFDB.find(x => x.id === selStaff);
   document.getElementById("staffHint").innerHTML = selStaff === 0
-    ? "はじめての方は、上で<b>担当をお選びください</b>。初回のメニューが表示されます。"
+    ? "はじめての方は、下の<b>初回メニュー</b>からどうぞ（担当ごとに初回メニューがあります。選ぶとその担当の空き枠が出ます）。"
     : (cur ? `${cur.name.split(" ")[0]}は<b>${String(cur.work_days||"").split(",").map(d=>WDL[+d]).join("・")}曜 ${hhmm(cur.work_from)}〜${hhmm(cur.work_to)}</b>の担当です。` : "");
 }
 function pickStaff(id){
@@ -376,10 +384,10 @@ function renderMenus(){
     return;
   }
   document.getElementById("menuList").innerHTML = _list.map(m=>
-    `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};renderMenus();renderSlots();renderConfirm()">
+    `<div class="menuOpt ${m.id===selMenu?'sel':''}" onclick="selMenu=${m.id};selSlot=null;renderMenus();renderDays();renderSlots();renderConfirm()">
        <div class="menuHead">
          <div><div class="n">${esc(m.name)}</div>
-           <div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+esc(m.price_note):""}</div></div>
+           <div class="len">${m.duration_min?m.duration_min+"分":""}${m.price_note?" ｜ "+esc(m.price_note):""}${(selStaff===0 && m.staff_id)?` ｜ <b style="color:var(--gd)">担当：${esc(staffLabel(m.staff_id))}</b>`:""}</div></div>
          <div class="pr">${m.price ? "¥"+m.price.toLocaleString() : "プラン内"}</div>
        </div>
        ${m.description?`<p class="desc">${esc(m.description)}</p><div class="more">タップして詳細を読む ›</div>`:""}
@@ -434,7 +442,7 @@ function renderSlots(){
 
   if(!staffWorks(selDate)){
     slotMsg(HOLIDAYS[selDate] ? ('この日は祝日（' + HOLIDAYS[selDate] + '）のためお休みです。別の日をお選びください。')
-      : selStaff ? 'この日は担当がお休みです。別の日をお選びください。'
+      : effStaff() ? 'この日は担当がお休みです。別の日をお選びください。'
                  : 'この日はお休みです。別の日をお選びください。');
     return;
   }
@@ -452,7 +460,7 @@ function renderSlots(){
     fetchBusy(selDate).then(()=>{ if(BUSY[selDate]) renderSlots(); });
   }
 
-  const onDuty = selStaff ? STAFFDB.filter(x=>x.id===selStaff) : staffOnDate(selDate);
+  const onDuty = effStaff() ? STAFFDB.filter(x=>x.id===effStaff()) : staffOnDate(selDate);
   const iida = onDuty.length === 1 && onDuty[0].id === 2;
   const myDur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
   const times = [...new Set(genSlots(blocksFor(selDate), myDur))].sort();
@@ -479,13 +487,13 @@ function renderConfirm(){
   if(!selSlot || !selDate || !selMenu){ c.style.display="none"; return; }
   const m = MENUS.find(x=>x.id===selMenu);
   const d = new Date(selDate+"T00:00:00");
-  const _duty = selStaff ? STAFFDB.filter(x=>x.id===selStaff) : staffOnDate(selDate);
+  const _duty = effStaff() ? STAFFDB.filter(x=>x.id===effStaff()) : staffOnDate(selDate);
   const iida = _duty.length === 1 && _duty[0].id === 2;
   document.getElementById("confirmText").innerHTML =
     `<b>${esc(m.name)}（${m.duration_min||60}分）</b><br>` +
     `${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）${selSlot}〜<br>` +
     `料金：${m.price_note?esc(m.price_note):"¥"+(m.price||0).toLocaleString()}（店舗でのお支払い）` +
-    (iida?"<br>担当：飯田 隼人":(selStaff===1?"<br>担当：宗田 修斗":""));
+    (iida?"<br>担当：飯田 隼人":(effStaff()===1?"<br>担当：宗田 修斗":""));
   c.style.display = "block";
 
   const mem = memGet();
@@ -513,7 +521,7 @@ async function submitBooking(){
   const [hh,mm] = selSlot.split(":");
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
-  const staffId = selStaff || ((staffOnDate(selDate)[0] || {id:1}).id);
+  const staffId = effStaff() || ((staffOnDate(selDate)[0] || {id:1}).id);
   const btn = document.getElementById("bkBtn");
   const label = btn.textContent;
   let name = "", tel = "";
