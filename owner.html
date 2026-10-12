@@ -146,6 +146,7 @@ nav.bottom button.act .ic{filter:none;opacity:1}
 .kkRow .top input{width:84px;text-align:right;padding:5px 7px;border:1px solid var(--line);border-radius:8px;font:inherit;font-weight:700}
 .kkRow .kkChips{margin:7px 0 0}
 .kkRow .kkChips button{padding:6px 10px;font-size:12.5px}
+.kkBadge{display:inline-block;font-size:10.5px;font-weight:700;color:var(--gd);background:var(--gxl);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:1px}
 .kkRow .ok{font-size:12.5px;color:var(--gd);font-weight:700;margin-top:4px}
 .kkList{font-size:12.5px;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
 .kkList div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
@@ -490,9 +491,10 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
         <select id="tkNewCust" style="flex:1"></select>
         <select id="tkNewKind"><option>整体×ピラティス</option><option>全身整体</option></select>
         <select id="tkNewType"><option>4回</option><option>10回</option><option>12回</option><option>20回</option><option>30回</option></select>
+        <select id="tkPayMethod"><option value="現金">現金</option><option value="クレカ">カード(Airペイ)</option><option value="PayPay">PayPay</option><option value="銀行振込">振込</option><option value="paypay送金">PayPay送金</option></select>
         <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
       </div>
-      <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）</p>
+      <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）。発行すると、その金額が売上としてスプレッドシートにも入ります。</p>
     </div>
 
     <div class="card">
@@ -1288,6 +1290,16 @@ async function tkIssue(){
   const { error } = await sb.from("tickets").insert({ member_id: memberId, kind, total, left_count: total, price, expires_at: jstDate(exp) });
   if(error){ toast("発行できませんでした"); return; }
   toast(`${kind} ${total}回券（¥${price.toLocaleString()}）を発行しました`); loadTickets();
+  // 回数券の売上もスプレッドシートへ（支払方法は「回数券・売上」タブの選択。未設定なら現金）
+  try{
+    const c = kkCfg(); if(!c.url || !c.tok) return;
+    const cu = (typeof CUSTS!=="undefined"?CUSTS:[]).find(x=>String(x.id)===String(memberId));
+    const who = cu ? (cu.nickname || cu.full_name || "") : "";
+    const method = (document.getElementById("tkPayMethod")||{}).value || "現金";
+    const d = await kkCall({ action:"sale", date: jstDate(new Date()), method, content: `${kind} ${total}回券`, customer: who, category:"スタジオ", source:"", amount: price });
+    toast(d.ok ? `売上も記録しました：${yen(price)}` : "売上の記録に失敗：" + d.error);
+    if(typeof kkSummary==="function") kkSummary();
+  }catch(e){ toast("売上の記録に失敗：" + e.message); }
 }
 
 const WDN = ["日","月","火","水","木","金","土"];
@@ -1414,29 +1426,61 @@ async function kkToday(){
   const ds = document.getElementById("kkTodayDate").value || jstDate(new Date());
   box.innerHTML = '<p class="notice">読み込み中…</p>';
   const { data: bks, error } = await sb.from("bookings")
-    .select("id, starts_at, status, title, source, channel, profiles(nickname, full_name), menus(name, price)")
+    .select("id, starts_at, status, title, source, channel, member_id, profiles(nickname, full_name), menus(name, price, price_note)")
     .gte("starts_at", ds + "T00:00:00+09:00").lt("starts_at", ds + "T23:59:59+09:00")
     .neq("status","cancelled").neq("source","block").order("starts_at");
   if(error){ box.innerHTML = '<p class="notice">予約を読み込めませんでした</p>'; return; }
   const list = (bks||[]);
   if(!list.length){ box.innerHTML = '<p class="notice">この日の予約はありません。下の「売上を入れる」から手で記録できます。</p>'; return; }
   const done = kkDone();
+  const ym = ds.slice(0,7);
+  // 回数券の残りを、この日の会員ぶんだけまとめて取得
+  const mids = [...new Set(list.map(b=>b.member_id).filter(Boolean))];
+  let tks = [];
+  if(mids.length){ const r = await sb.from("tickets").select("id, member_id, kind, left_count, total, expires_at").in("member_id", mids).gt("left_count",0).order("expires_at"); tks = r.data||[]; }
+  window.__kkTks = tks;
   box.innerHTML = list.map(b => {
     const s = new Date(b.starts_at);
     const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "（名称なし）";
     const menu = (b.menus && b.menus.name) || b.title || "";
     const price = (b.menus && b.menus.price) || 0;
+    const type = kkBillType(b);
+    const hm = `${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")}`;
+    const head = (badge, amt) => `<div class="top"><span>${hm}</span><b>${who}　<span style="font-weight:400;color:var(--sub)">${menu}</span> <span class="kkBadge">${badge}</span></b>${amt}</div>`;
+    if(type === "ticket"){
+      const t = tks.find(x=>x.member_id===b.member_id);
+      const dn = done["t"+b.id];
+      return `<div class="kkRow ${dn?"done":""}" id="kkRow-${b.id}">${head("回数券","")}
+        ${dn ? `<div class="ok">✓ 1回消化しました（残り${dn.left}回）</div>`
+             : t ? `<div class="kkChips"><button onclick="kkTapTicket(${b.id},${t.id},${t.left_count})">🎫 1回消化（残り ${t.left_count}/${t.total}回）</button></div>`
+                 : `<div class="ok" style="color:var(--warn)">有効な回数券がありません → 「回数券・売上」タブで発行（発行時に売上を記録します）</div>`}
+      </div>`;
+    }
+    if(type === "monthly"){
+      const key = "m:" + who + ":" + ym;
+      const dn = done[key];
+      const chips = KK_PAYS.map(p=>`<button onclick="kkTapSale(${b.id},'${p[0]}','${key}')">${p[1]}</button>`).join("");
+      return `<div class="kkRow ${dn?"done":""}" id="kkRow-${b.id}">${head("月謝", `<input type="number" inputmode="numeric" id="kkAmt-${b.id}" value="${price||""}" placeholder="月謝">`)}
+        ${dn ? `<div class="ok">✓ ${ym.slice(5)}月の月謝は記録済み（${dn.method}・${yen(dn.amount)}）</div>`
+             : `<div class="finePrint" style="margin:4px 0 0">今月の月謝をまだ記録していなければ、受け取った方法をタップ（月1回だけ入ります）</div><div class="kkChips">${chips}</div>`}
+      </div>`;
+    }
     const dn = done[b.id];
     const chips = KK_PAYS.map(p=>`<button onclick="kkTapSale(${b.id},'${p[0]}')">${p[1]}</button>`).join("");
-    return `<div class="kkRow ${dn?"done":""}" id="kkRow-${b.id}">
-      <div class="top"><span>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")}</span><b>${who}　<span style="font-weight:400;color:var(--sub)">${menu}</span></b>
-        <input type="number" inputmode="numeric" id="kkAmt-${b.id}" value="${price||""}" placeholder="金額"></div>
+    return `<div class="kkRow ${dn?"done":""}" id="kkRow-${b.id}">${head("都度", `<input type="number" inputmode="numeric" id="kkAmt-${b.id}" value="${price||""}" placeholder="金額">`)}
       ${dn ? `<div class="ok">✓ 記録済み（${dn.method}・${yen(dn.amount)}）</div>` : `<div class="kkChips">${chips}</div>`}
     </div>`;
   }).join("");
   window.__kkTodayBks = list;
 }
-async function kkTapSale(id, method){
+function kkBillType(b){
+  const note = String((b.menus && b.menus.price_note) || "");
+  const name = String((b.menus && b.menus.name) || b.title || "");
+  if(/回数券/.test(note) || /ひかり/.test(name)) return "ticket";
+  if(/月額|月謝/.test(note) || /キッズピラティス|ランニング|習い事|ファンクショナルローラー|FRP教室/.test(name)) return "monthly";
+  return "single";
+}
+async function kkTapSale(id, method, monthKey){
   const b = (window.__kkTodayBks||[]).find(x=>x.id===id); if(!b) return;
   const amount = parseInt(document.getElementById("kkAmt-"+id).value);
   if(!amount){ toast("金額を入れてください"); return; }
@@ -1444,17 +1488,27 @@ async function kkTapSale(id, method){
   row.querySelectorAll("button").forEach(x=>x.disabled=true);
   const who = (b.profiles && (b.profiles.nickname || b.profiles.full_name)) || b.title || "";
   const menu = (b.menus && b.menus.name) || b.title || "レッスン";
+  const ym = jstDate(new Date(b.starts_at)).slice(0,7);
   try{
-    const d = await kkCall({ action:"sale", date: jstDate(new Date(b.starts_at)), method, content: menu, customer: who,
-      category: kkMenuCat(menu), source: kkSrcOf(b), amount });
+    const d = await kkCall({ action:"sale", date: jstDate(new Date(b.starts_at)), method, content: monthKey ? (menu + " 月謝") : menu, customer: who,
+      category: kkMenuCat(menu), source: kkSrcOf(b), amount, once: monthKey ? ym : "" });
     if(!d.ok) throw new Error(d.error);
-    kkMarkDone(id, { method, amount, at: Date.now() });
-    toast(`記録しました：${menu}(${who} ${yen(amount)}`);
+    kkMarkDone(monthKey || id, { method, amount, at: Date.now() });
+    toast(d.dup ? `今月の月謝はすでにシートにありました（二重には入れていません）` : `記録しました：${menu}(${who} ${yen(amount)}`);
     kkToday(); kkSummary();
   }catch(e){
     toast("記録できませんでした：" + e.message);
     row.querySelectorAll("button").forEach(x=>x.disabled=false);
   }
+}
+async function kkTapTicket(bid, tid, left){
+  const row = document.getElementById("kkRow-"+bid);
+  row.querySelectorAll("button").forEach(x=>x.disabled=true);
+  const { error } = await sb.from("tickets").update({ left_count: left-1 }).eq("id", tid);
+  if(error){ toast("消化できませんでした"); row.querySelectorAll("button").forEach(x=>x.disabled=false); return; }
+  kkMarkDone("t"+bid, { left: left-1, at: Date.now() });
+  toast(`回数券を1回消化しました（残り${left-1}回）`);
+  kkToday();
 }
 function kkCustList(){
   const names = new Set();

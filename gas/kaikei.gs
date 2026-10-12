@@ -90,6 +90,16 @@ function addSale_(b) {
   const name = String(b.customer || '').trim();
   const content = String(b.content || '').trim() + (name ? '(' + name : '');   // 既存の書き方「パーソナル(伊藤」に合わせる
   const isExpense = b.kind === 'out';
+  // 月謝など「月に1回だけ」入れたいもの：同じ月に同じ内容＋お名前の行があれば入れない
+  if (b.once) {
+    const sh = salesSheet_(d);
+    const last = sh.getLastRow();
+    if (last >= 3) {
+      const rows = sh.getRange(3, 1, last - 2, 3).getValues();
+      const hit = rows.some(r => { const k = key_(r[0]); return k && k.slice(0, 7) === String(b.once).slice(0, 7) && String(r[2]).trim() === content; });
+      if (hit) return { ok: true, dup: true, saved: { date: fmt_(d), content: content, amount: amount } };
+    }
+  }
   appendMainRow_(salesSheet_(d), [
     d, b.method, content, String(b.source || ''), String(b.category || (isExpense ? '支払い' : '')),
     isExpense ? 0 : amount, isExpense ? amount : 0,
