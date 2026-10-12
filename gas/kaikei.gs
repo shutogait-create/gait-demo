@@ -1,5 +1,5 @@
 /**
- * gait 会計連携（スプレッドシート「gait」の Apps Script に貼り付けて使う）
+ * gait 会計連携（script.google.com で新しいプロジェクトを作って貼り付ける。シート付属のプロジェクトには貼らない：既存の doGet とぶつかるため）
  *
  * できること
  *  - 予約アプリの「🧾 会計」タブから送った売上・経費を「令和N年 売り上げ」シートに1行追加
@@ -11,12 +11,15 @@
  */
 
 const TZ = 'Asia/Tokyo';
+// スプレッドシート「gait」のID（単独プロジェクトから開く。シートに紐づけたプロジェクトには貼らない）
+const SPREADSHEET_ID = '18RRVxqLwBPFlOusqarX46K2sbddM0hr28W5M9k75l_c';
+function ss_() { return SpreadsheetApp.openById(SPREADSHEET_ID); }
 const EXPENSE_CATS = ['水道光熱費','旅費交通費','通信費','広告宣伝費','接待交際費','損害保険料','修繕費','消耗品','外注工賃','雑費','地代家賃','租税公課'];
 const PAY_METHODS = ['現金','クレカ','PayPay','銀行振込','paypay送金'];
 
 /* ---------- 初回セットアップ ---------- */
 function setup() {
-  const ss = SpreadsheetApp.getActive();
+  const ss = ss_();
   const props = PropertiesService.getScriptProperties();
   let token = props.getProperty('TOKEN');
   if (!token) {
@@ -113,7 +116,7 @@ function addExpense_(b) {
 
 /* ---------- 固定費：毎朝のトリガーで、今日が計上日のものを追加 ---------- */
 function postFixedCosts() {
-  const ss = SpreadsheetApp.getActive();
+  const ss = ss_();
   const fx = ss.getSheetByName('固定費');
   if (!fx || fx.getLastRow() < 2) return;
   const today = new Date();
@@ -168,7 +171,7 @@ function finish_(o) { o.monthProfit = o.monthIn - o.monthOut - o.monthExp; retur
 /* ---------- 共通の小道具 ---------- */
 function salesSheet_(d) {
   const name = '令和' + (d.getFullYear() - 2018) + '年 売り上げ';
-  const sh = SpreadsheetApp.getActive().getSheetByName(name);
+  const sh = ss_().getSheetByName(name);
   if (!sh) throw new Error('シート「' + name + '」が見つかりません');
   return sh;
 }
