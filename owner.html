@@ -489,12 +489,12 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <div id="tkAdmin"><p class="notice">読み込み中…</p></div>
       <div class="fRow" style="margin-top:12px">
         <select id="tkNewCust" style="flex:1"></select>
-        <select id="tkNewKind"><option>整体×ピラティス</option><option>全身整体</option></select>
-        <select id="tkNewType"><option>4回</option><option>10回</option><option>12回</option><option>20回</option><option>30回</option></select>
+        <select id="tkNewKind" onchange="tkKindChanged()"><option>整体×ピラティス</option><option>全身整体</option><option>ひかりキッズピラティス</option></select>
+        <select id="tkNewType"></select>
         <select id="tkPayMethod"><option value="現金">現金</option><option value="クレカ">カード(Airペイ)</option><option value="PayPay">PayPay</option><option value="銀行振込">振込</option><option value="paypay送金">PayPay送金</option></select>
         <button class="btn" style="width:auto;padding:8px 14px" onclick="tkIssue()">発行</button>
       </div>
-      <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000（有効期限6ヶ月）。発行すると、その金額が売上としてスプレッドシートにも入ります。</p>
+      <p class="finePrint">価格は自動設定：整体×ピラティス 4回¥28,800／10回¥69,000／20回¥132,000／30回¥189,000、全身整体 4回¥20,800／10回¥50,000／20回¥96,000／30回¥138,000、ひかりキッズピラティス 5回¥3,900／6回¥4,600（有効期限6ヶ月）。発行すると、その金額が売上としてスプレッドシートにも入ります。</p>
     </div>
 
     <div class="card">
@@ -572,7 +572,7 @@ const SB_KEY = "sb_publishable_xrUSPujoggvnmDDzT6idXg_qgkcLJlg";
 const sb = supabase.createClient(SB_URL, SB_KEY);
 let ME=null, CUSTS=[], CATS=[], CUR=null, CURVISITS=[];
 const FEE = { cash:0, airpay_card:0.0324, paypay:0.0198, bank:0, paypay_send:0 };
-const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,12:88000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000}};
+const TK_PRICE = {"整体×ピラティス":{4:28800,10:69000,12:88000,20:132000,30:189000},"全身整体":{4:20800,10:50000,20:96000,30:138000},"ひかりキッズピラティス":{5:3900,6:4600}};
 const EVAL_ITEMS = {
  "関節可動域（ROM）":["肩屈曲","肩外転","股関節屈曲","股関節伸展","膝関節屈曲","足関節背屈","体幹回旋"],
  "MMT（徒手筋力テスト 0〜5）":["体幹屈曲","体幹伸展","股関節外転","膝関節伸展","足関節底屈","肩甲骨内転"],
@@ -690,7 +690,7 @@ async function enterApp(){
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
   otabInit();
-  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
+  await loadCusts(); schToday(); loadBookings(); loadWaitlist(); loadInbox(); loadTickets(); tkKindChanged(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -1279,6 +1279,11 @@ async function tkUndo(id, left, total){
   await sb.from("tickets").update({ left_count: left+1 }).eq("id", id);
   toast(`直前の消化を取り消しました（残り${left+1}回）`); loadTickets();
 }
+function tkKindChanged(){
+  const kind = document.getElementById("tkNewKind").value;
+  const sel = document.getElementById("tkNewType");
+  sel.innerHTML = Object.keys(TK_PRICE[kind]||{}).map(n=>`<option value="${n}">${n}回（¥${TK_PRICE[kind][n].toLocaleString()}）</option>`).join("");
+}
 async function tkIssue(){
   const memberId = document.getElementById("tkNewCust").value;
   if(!memberId){ toast("会員がいません"); return; }
@@ -1296,7 +1301,7 @@ async function tkIssue(){
     const cu = (typeof CUSTS!=="undefined"?CUSTS:[]).find(x=>String(x.id)===String(memberId));
     const who = cu ? (cu.nickname || cu.full_name || "") : "";
     const method = (document.getElementById("tkPayMethod")||{}).value || "現金";
-    const d = await kkCall({ action:"sale", date: jstDate(new Date()), method, content: `${kind} ${total}回券`, customer: who, category:"スタジオ", source:"", amount: price });
+    const d = await kkCall({ action:"sale", date: jstDate(new Date()), method, content: `${kind} ${total}回券`, customer: who, category: /ひかり/.test(kind) ? "ひかり" : "スタジオ", source:"", amount: price });
     toast(d.ok ? `売上も記録しました：${yen(price)}` : "売上の記録に失敗：" + d.error);
     if(typeof kkSummary==="function") kkSummary();
   }catch(e){ toast("売上の記録に失敗：" + e.message); }
