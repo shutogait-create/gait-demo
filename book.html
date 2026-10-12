@@ -460,9 +460,9 @@ function renderMenus(){
      </div>`).join("");
 }
 
-// ── 月ごとのカレンダー（明日〜60日先まで選べる） ──
+// ── 月ごとのカレンダー（明日〜1ヶ月半先まで選べる） ──
 let CAL_Y = null, CAL_M = null;    // 表示中の年・月（0始まり）
-const BOOK_DAYS_AHEAD = 60;
+const BOOK_DAYS_AHEAD = 45;   // 1ヶ月半先まで
 function renderDays(){
   const first = new Date(Date.now()+1*86400000), last = new Date(Date.now()+BOOK_DAYS_AHEAD*86400000);
   const firstDs = jstDate(first), lastDs = jstDate(last);
