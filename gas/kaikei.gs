@@ -78,6 +78,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (!auth_(p.token)) return json_({ ok: false, error: '合言葉が違います' });
   if (p.action === 'summary') return json_(summary_());
+  if (p.action === 'setup')   { setup(); return json_({ ok: true, setup: true }); }   // 手数料シートなどを後から追加するとき用
   return json_({ ok: true, hello: 'gait 会計連携' });
 }
 
