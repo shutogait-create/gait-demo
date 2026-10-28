@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="gcal-live.js"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root{ --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6; --ink:#1c2b24; --sub:#68796f;
@@ -497,9 +498,13 @@ function busyIntervals(rows){
   return (rows||[]).map(b=>{ const t=+new Date(b.starts_at); return { s:t-BUF, e:t + (b.duration_min||60)*60000 + BUF }; });
 }
 async function fetchBusy(ds){
-  const { data, error } = await sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" });
-  if(error) return null;
-  BUSY[ds] = { iv: busyIntervals(data), at: Date.now() };
+  // 予約データとGoogleカレンダーを同時に確認（カレンダーに書いた予定は即座に×になる）
+  const [r, gc] = await Promise.all([
+    sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" }),
+    gcalBusyDay(ds, BUFFER_MIN)
+  ]);
+  if(r.error) return null;
+  BUSY[ds] = { iv: busyIntervals(r.data).concat(gc || []), at: Date.now() };
   return BUSY[ds];
 }
 // 近い日を先に読み込んでおく（押した瞬間に出したいので）
@@ -608,6 +613,11 @@ async function submitBooking(){
   let res;
   if(MOVE){
     btn.disabled = true; btn.textContent = "変更しています…";
+    { const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60, _st = +new Date(startsAt);
+      if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+        btn.disabled = false; btn.textContent = label; delete BUSY[selDate];
+        showErr(MOVE_ERR.taken); selSlot = null; renderSlots(); return;
+      } }
     res = await sb.rpc("move_booking", {
       p_booking_id: MOVE.id, p_new_starts_at: startsAt,
       p_tel: MOVE.tel || null, p_dob: MOVE.dob || null, p_name: MOVE.name || null });
@@ -618,6 +628,11 @@ async function submitBooking(){
     if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
     if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
     btn.disabled = true; btn.textContent = "予約しています…";
+    { const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60, _st = +new Date(startsAt);
+      if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+        btn.disabled = false; btn.textContent = label; delete BUSY[selDate];
+        showErr(MOVE_ERR.taken); selSlot = null; renderSlots(); return;
+      } }
     res = await sb.rpc("guest_book", {
       p_name: name, p_tel: tel, p_menu_id: ((MENUS.find(x=>x.id===selMenu)||{}).base_id || selMenu), p_staff_id: staffId,
       p_starts_at: startsAt, p_policy: POLICY_VERSION,

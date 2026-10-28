@@ -83,7 +83,10 @@ function setup() {
 /* ---------- 受け口 ---------- */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  // Googleカレンダーの「埋まっている時間」だけを返す（予定名は返さない）→ 予約ページがその場で×にする
+  if (p.action === 'busy') return json_(busy_(p.from, p.to));
   if (!auth_(p.token)) return json_({ ok: false, error: '合言葉が違います' });
+  if (p.action === 'events') return json_(events_(p.from, p.to));   // オーナー画面用（予定名つき）
   if (p.action === 'summary') return json_(summary_());
   if (p.action === 'setup')   { setup(); return json_({ ok: true, setup: true }); }   // 手数料シートなどを後から追加するとき用
   return json_({ ok: true, hello: 'gait 会計連携' });
@@ -105,6 +108,58 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ---------- Googleカレンダーとの即時連動（ダブルブッキング防止） ----------
+ * 予約ページ・会員アプリが空き枠を出すとき／予約を確定する直前に、ここへ問い合わせる。
+ * カレンダーに予定を書いた瞬間から、その時間は予約できなくなる（15分待たない）。
+ *  ・終日の予定は対象外（祝日・誕生日などで1日つぶれないように）
+ *  ・「予定なし（空き時間）」に設定した予定も対象外（サービス「Google Calendar API」を追加したとき）
+ */
+const BUSY_CAL_ID = 'primary';
+function rangeOf_(from, to) {
+  const a = new Date(from), b = new Date(to);
+  if (isNaN(a) || isNaN(b) || b <= a) throw new Error('期間が不正です');
+  if (b - a > 62 * 86400000) throw new Error('期間が長すぎます');
+  return [a, b];
+}
+function busy_(from, to) {
+  try {
+    const [a, b] = rangeOf_(from, to);
+    const ck = 'busy_' + a.getTime() + '_' + b.getTime();
+    const cache = CacheService.getScriptCache();
+    const hit = cache.get(ck);
+    if (hit) return { ok: true, busy: JSON.parse(hit), cached: true };
+    let out = [];
+    if (typeof Calendar !== 'undefined' && Calendar.Freebusy) {
+      const r = Calendar.Freebusy.query({ timeMin: a.toISOString(), timeMax: b.toISOString(), timeZone: TZ, items: [{ id: BUSY_CAL_ID }] });
+      const cal = (r.calendars || {})[BUSY_CAL_ID] || {};
+      out = (cal.busy || []).map(x => ({ s: x.start, e: x.end }));
+    } else {
+      CalendarApp.getDefaultCalendar().getEvents(a, b).forEach(ev => {
+        if (ev.isAllDayEvent()) return;
+        out.push({ s: ev.getStartTime().toISOString(), e: ev.getEndTime().toISOString() });
+      });
+    }
+    cache.put(ck, JSON.stringify(out), 20);   // 20秒だけ覚える（連続アクセス対策）
+    return { ok: true, busy: out };
+  } catch (err) {
+    return { ok: false, error: String(err.message || err), busy: [] };
+  }
+}
+function events_(from, to) {
+  const [a, b] = rangeOf_(from, to);
+  const list = CalendarApp.getDefaultCalendar().getEvents(a, b).map(ev => ({
+    id: ev.getId(), title: ev.getTitle() || '（無題）', allDay: ev.isAllDayEvent(),
+    s: ev.getStartTime().toISOString(), e: ev.getEndTime().toISOString(),
+    loc: ev.getLocation() || '',
+  }));
+  return { ok: true, events: list };
+}
+// エディタで「calendarTest」を実行 → カレンダーの権限を許可（最初の1回だけ）
+function calendarTest() {
+  const now = new Date();
+  return busy_(now.toISOString(), new Date(now.getTime() + 7 * 86400000).toISOString());
 }
 
 /* ---------- 売上（または固定費などの支出）を A〜G 列に1行追加 ---------- */

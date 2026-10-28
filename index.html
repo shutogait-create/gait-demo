@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="gcal-live.js"></script>
 <style>
 :root{
   --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6;
@@ -698,9 +699,13 @@ function busyIntervals(rows){
   return (rows||[]).map(b=>{ const t=+new Date(b.starts_at); return { s:t-BUF, e:t + (b.duration_min||60)*60000 + BUF }; });
 }
 async function fetchBusy(ds){
-  const { data, error } = await sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" });
-  if(error) return null;
-  BUSY[ds] = { iv: busyIntervals(data), at: Date.now() };
+  // 予約データとGoogleカレンダーを同時に確認（カレンダーに書いた予定は即座に×になる）
+  const [r, gc] = await Promise.all([
+    sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" }),
+    gcalBusyDay(ds, BUFFER_MIN)
+  ]);
+  if(r.error) return null;
+  BUSY[ds] = { iv: busyIntervals(r.data).concat(gc || []), at: Date.now() };
   return BUSY[ds];
 }
 function prefetchBusy(n){
@@ -773,6 +778,12 @@ async function confirmBooking(){
   const startsAt = selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00";
   const d = new Date(selDate+"T00:00:00");
   const staffId = (staffOnDate(selDate)[0] || {id:1}).id;
+  const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
+  const _st = +new Date(startsAt);
+  if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+    btn.disabled = false; delete BUSY[selDate];
+    toast("申し訳ありません。ちょうどこの枠が埋まりました。別の時間をお選びください"); selSlot = null; renderSlots(); return;
+  }
   const { error } = await sb.from("bookings").insert({ member_id: ME.id, menu_id: selMenu, staff_id: staffId, starts_at: startsAt, channel: "app",
               policy_version: POLICY_VERSION, policy_agreed_at: new Date().toISOString(),
               customer_note: (document.getElementById("bkNote").value.trim() || null) });

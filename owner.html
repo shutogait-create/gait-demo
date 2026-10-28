@@ -225,6 +225,61 @@ nav.bottom button.act .ic{filter:none;opacity:1}
         background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e6ede8 3px,#e6ede8 6px)}
 .schEmpty{padding:26px 10px;text-align:center;color:var(--sub);font-size:12.5px}
 
+
+/* ===== スケジュール（サロンボード風・横タイムライン） ===== */
+.tlWeek{display:flex;gap:5px;overflow-x:auto;margin:0 0 10px;padding-bottom:2px}
+.tlWeek button{flex:none;min-width:58px;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:5px 6px;
+  cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--ink);line-height:1.35}
+.tlWeek button b{display:block;font-size:14px}
+.tlWeek button.sel{background:var(--g);border-color:var(--g);color:#fff}
+.tlWeek button.sun b{color:#c0392b}.tlWeek button.sat b{color:#2266aa}
+.tlWeek button.sel b{color:#fff}
+.tlWeek button .n{display:inline-block;margin-top:2px;font-size:10px;font-weight:700;border-radius:999px;padding:0 6px;background:var(--gxl);color:var(--gd)}
+.tlWeek button.sel .n{background:#fff;color:var(--g)}
+.tlSum{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:8px;align-items:center}
+.tlSum span{border-radius:999px;padding:3px 10px;background:#f2f6f3;color:var(--ink);font-weight:700}
+.tlSum span.w{background:#fdf3f2;color:#c0392b}
+.tlSum span.c{background:#eef3fb;color:#2f5aa8}
+.tlLeg{display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--sub);margin:6px 0 2px}
+.tlLeg i{display:inline-block;width:12px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1.5px solid}
+.tlScroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;max-height:70vh;-webkit-overflow-scrolling:touch}
+.tlGrid{position:relative}
+.tlHead{display:flex;position:sticky;top:0;z-index:4;background:#f7faf8;border-bottom:1px solid var(--line)}
+.tlCorner{flex:none;position:sticky;left:0;z-index:5;background:#f7faf8;border-right:1px solid var(--line)}
+.tlHours{position:relative;height:30px}
+.tlHr{position:absolute;top:0;height:30px;border-left:1px solid #dbe5df;font-size:10.5px;color:var(--sub);padding:8px 0 0 4px;font-weight:700}
+.tlRow{display:flex;border-bottom:1px solid var(--line)}
+.tlLab{flex:none;position:sticky;left:0;z-index:3;background:#fbfdfc;border-right:1px solid var(--line);
+  padding:8px 8px;font-size:12px;font-weight:800;color:var(--gd);display:flex;flex-direction:column;justify-content:center}
+.tlLab small{font-weight:600;font-size:10px;color:var(--sub)}
+.tlLane{position:relative;cursor:copy}
+.tlLane.cal{background:#f8fafd;cursor:default}
+.tlLane .ln{position:absolute;top:0;bottom:0;border-left:1px solid #edf2ee;pointer-events:none}
+.tlLane .ln.h{border-left-color:#dbe5df}
+.tlOff{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#f3f3f3,#f3f3f3 4px,#e9e9e9 4px,#e9e9e9 8px);pointer-events:none}
+.tlBuf{position:absolute;top:6px;bottom:6px;background:repeating-linear-gradient(45deg,#f2f6f3,#f2f6f3 3px,#e3ebe5 3px,#e3ebe5 6px);border-radius:5px;pointer-events:none}
+.tlBk{position:absolute;top:5px;bottom:5px;border-radius:7px;border:1.5px solid var(--g);background:var(--gl);
+  padding:3px 6px;overflow:hidden;cursor:pointer;z-index:2;font-size:11px;line-height:1.35;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tlBk b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.tlBk .mn{display:block;color:var(--sub);font-size:10.5px;overflow:hidden;text-overflow:ellipsis}
+.tlBk.new{border-color:#e67e22;background:#fff4e6}
+.tlBk.gcb{border-color:#e0a24a;background:#fff6e8}
+.tlBk.blk{border-color:#b6c2ba;background:#eef1ef;color:#5b6b62}
+.tlBk.cal{border-color:#7d9bd1;background:#eef3fb;color:#2f4a7a}
+.tlBk.pend{border-color:#d98b83;border-style:dashed;background:#fdf3f2;color:#8a3b33}
+.tlNow{position:absolute;top:0;bottom:0;width:0;border-left:2px solid #e74c3c;z-index:3;pointer-events:none}
+.tlNow:before{content:"";position:absolute;top:-1px;left:-5px;width:8px;height:8px;border-radius:50%;background:#e74c3c}
+.tlPop{position:fixed;inset:0;z-index:60;background:rgba(20,30,25,.35);display:none;align-items:flex-end;justify-content:center}
+.tlPop.show{display:flex}
+.tlPop .bx{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px 16px 22px;box-shadow:0 -6px 24px rgba(0,0,0,.15)}
+.tlPop h4{font-size:15px;margin-bottom:6px;color:var(--gd)}
+.tlPop .ln2{font-size:13px;line-height:1.75;margin-bottom:10px}
+.tlPop .acts{display:flex;gap:8px;flex-wrap:wrap}
+.tlPop .acts button,.tlPop .acts a{flex:1 1 140px;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:10px 8px;
+  font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);text-align:center;text-decoration:none}
+.tlPop .acts .pri{background:var(--g);border-color:var(--g);color:#fff}
+.tlPop .acts .dng{color:#c0392b;border-color:#e8b8b2}
+
 /* タップの反応を速く・軽く見せるための指定 */
 *{touch-action:manipulation}
 button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
@@ -280,16 +335,27 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
         <button class="btn sub" style="width:auto;padding:7px 12px" onclick="loadNewBookings()">↻ 更新</button>
       </div>
     </div>
-    <div class="card">
-      <h3>🗓 1日のスケジュール</h3>
+    <div class="card" id="schCard">
+      <h3>🗓 スケジュール</h3>
       <div class="schNav">
+        <button onclick="schMove(-7)">◀◀</button>
         <button onclick="schMove(-1)">◀ 前日</button>
         <input type="date" id="schDate" onchange="loadSchedule()">
         <button onclick="schMove(1)">翌日 ▶</button>
+        <button onclick="schMove(7)">▶▶</button>
         <button class="now" onclick="schToday()">今日</button>
+        <button onclick="loadSchedule()">↻</button>
       </div>
+      <div class="tlWeek" id="tlWeek"></div>
       <div id="schWrap"><p class="notice">読み込み中…</p></div>
-      <p class="finePrint">斜線の帯は、予約の前後15分の準備時間です。この時間はお客様側の予約画面で選べないようになっています。</p>
+      <div class="tlLeg">
+        <span><i style="background:var(--gl);border-color:var(--g)"></i>予約</span>
+        <span><i style="background:#fff4e6;border-color:#e67e22"></i>新規のお客様</span>
+        <span><i style="background:#eef3fb;border-color:#7d9bd1"></i>Googleカレンダーの予定（リアルタイム）</span>
+        <span><i style="background:#eef1ef;border-color:#b6c2ba"></i>予約不可</span>
+        <span><i style="background:#fdf3f2;border-color:#d98b83"></i>振り分け待ち</span>
+      </div>
+      <p class="finePrint">空いているところをタップ → その時間を「予約不可」にできます。予約をタップ → 電話・カルテ・会計・取消。斜線の帯は前後15分の準備時間で、お客様側では選べません。Googleカレンダーに書いた予定は、お客様の予約画面でもその場で×になります。</p>
       <div style="margin-top:12px;border-top:1px solid var(--gxl);padding-top:12px">
         <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:8px">🚫 予約を受け付けない時間をつくる（私用・移動・休憩）</p>
         <div class="fRow">
@@ -304,7 +370,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
           <input id="blkNote" placeholder="内容（例：歯医者）" style="flex:1">
           <button class="btn" style="width:auto;padding:8px 14px" onclick="blockAdd()">登録</button>
         </div>
-        <p class="finePrint">登録すると、その時間はお客様の予約画面から選べなくなります。前後15分も自動であきます。スケジュール上ではグレーで表示され、タップで取り消せます。Googleカレンダーに直接予定を書いても同じように埋まります（15分以内に反映）。</p>
+        <p class="finePrint">登録すると、その時間はお客様の予約画面から選べなくなります。前後15分も自動であきます。スケジュール上ではグレーで表示され、タップで取り消せます。Googleカレンダーに直接予定を書いても、お客様の予約画面ではその場で×になります。</p>
       </div>
     </div>
 
@@ -575,6 +641,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
   </main>
 </div>
 
+<div class="tlPop" id="tlPop" onclick="if(event.target===this)tlClose()"><div class="bx" id="tlPopBx"></div></div>
 <div id="toast"><div class="lic">gait</div><div><div class="tt">gait オーナー管理</div><div class="tm" id="toastMsg"></div></div></div>
 <script>
 const SB_URL = "https://pizzhyvqptkhigwwhorp.supabase.co";
@@ -706,15 +773,18 @@ async function enterApp(){
 /* ============ カレンダー取り込みの振り分け ============ */
 let INBOX=[];
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-/* ============ 1日のスケジュール（オーナーのみ） ============ */
-const SCH_FROM = 8, SCH_TO = 22, SCH_PXMIN = 1.15, SCH_BUF = 15;
-let SCH_STAFF = null;
+/* ============ スケジュール（サロンボード風の横タイムライン） ============ */
+const SCH_FROM = 8, SCH_TO = 22, SCH_BUF = 15;
+const TL_PX = 2.2;          // 1分あたりのピクセル
+const TL_LAB = 92;          // 左の担当名の幅
+const TL_ROWH = 64;         // 1行の高さ
+let SCH_STAFF = null, TL_ITEMS = {}, TL_SEQ = 0;
 
 function schToday(){
   const t = jstDate(new Date());
   document.getElementById("schDate").value = t;
   const bd = document.getElementById("blkDate"); if(bd && !bd.value) bd.value = t;
-  loadSchedule();
+  loadSchedule(true);
 }
 function schMove(d){
   const cur = document.getElementById("schDate").value || jstDate(new Date());
@@ -723,94 +793,233 @@ function schMove(d){
   document.getElementById("schDate").value = jstDate(dt);
   loadSchedule();
 }
+function schGo(ds){ document.getElementById("schDate").value = ds; loadSchedule(); }
+const tlHM = m => Math.floor(m/60) + ":" + String(m%60).padStart(2,"0");
+const tlMin = d => d.getHours()*60 + d.getMinutes();
 
-async function loadSchedule(){
-  const wrap = document.getElementById("schDate");
-  if(!wrap.value) wrap.value = jstDate(new Date());
-  const ds = wrap.value;
+// Googleカレンダーの予定（予定名つき）をその場で読む。会計連携のURL・合言葉を使う
+async function tlCalEvents(ds){
+  const c = kkCfg(); if(!c.url || !c.tok) return null;
+  try{
+    const u = c.url + "?action=events&token=" + encodeURIComponent(c.tok) +
+      "&from=" + encodeURIComponent(ds+"T00:00:00+09:00") + "&to=" + encodeURIComponent(ds+"T23:59:59+09:00") + "&_=" + Date.now();
+    const r = await fetch(u, { redirect:"follow" });
+    const j = await r.json();
+    return (j && j.ok) ? (j.events||[]) : null;
+  }catch(e){ return null; }
+}
+
+async function tlWeek(ds){
+  const base = new Date(ds + "T00:00:00");
+  const start = new Date(base); start.setDate(base.getDate() - 3);
+  const end = new Date(start); end.setDate(start.getDate() + 7);
+  const { data } = await sb.from("bookings").select("starts_at, source").neq("status","cancelled")
+    .gte("starts_at", jstDate(start)+"T00:00:00+09:00").lt("starts_at", jstDate(end)+"T00:00:00+09:00");
+  const cnt = {};
+  (data||[]).forEach(b => { if(b.source === "block") return; const k = jstDate(new Date(b.starts_at)); cnt[k] = (cnt[k]||0) + 1; });
+  const today = jstDate(new Date());
+  let h = "";
+  for(let i=0;i<7;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const k = jstDate(d), w = d.getDay();
+    h += `<button class="${k===ds?"sel":""} ${w===0?"sun":""} ${w===6?"sat":""}" onclick="schGo('${k}')">
+      ${d.getMonth()+1}/${d.getDate()}（${WD[w]}）${k===today?"・今日":""}<b>${d.getDate()}</b><span class="n">${cnt[k]||0}件</span></button>`;
+  }
+  document.getElementById("tlWeek").innerHTML = h;
+}
+
+async function loadSchedule(scrollNow){
+  const inp = document.getElementById("schDate");
+  if(!inp.value) inp.value = jstDate(new Date());
+  const ds = inp.value;
+  const box = document.getElementById("schWrap");
+  tlWeek(ds);
 
   if(!SCH_STAFF){
-    const { data: st } = await sb.from("staff").select("id, name").order("id");
+    const { data: st } = await sb.from("staff").select("id, name, work_days, work_from, work_to").order("id");
     SCH_STAFF = (st && st.length) ? st : [{id:1,name:"宗田 修斗"},{id:2,name:"飯田"}];
   }
+  const [pendR, bkR, cal] = await Promise.all([
+    sb.from("gcal_inbox").select("id, starts_at, duration_min, ends_at, summary").eq("status","pending")
+      .gte("starts_at", ds+"T00:00:00+09:00").lt("starts_at", ds+"T23:59:59+09:00"),
+    sb.from("bookings")
+      .select("id, member_id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, guest_name, guest_tel, created_at, profiles(nickname, full_name, tel, last_visit_at), menus(name, duration_min)")
+      .gte("starts_at", ds+"T00:00:00+09:00").lt("starts_at", ds+"T23:59:59+09:00")
+      .neq("status","cancelled").order("starts_at"),
+    tlCalEvents(ds)
+  ]);
+  if(bkR.error){ box.innerHTML = '<p class="notice">スケジュールを読み込めませんでした</p>'; return; }
+  const bks = bkR.data || [], pend = pendR.data || [];
 
-  const { data: pend } = await sb.from("gcal_inbox")
-    .select("id, starts_at, duration_min, ends_at, summary")
-    .eq("status","pending")
-    .gte("starts_at", ds + "T00:00:00+09:00")
-    .lt("starts_at",  ds + "T23:59:59+09:00");
+  TL_ITEMS = {}; TL_SEQ = 0;
+  const W = (SCH_TO - SCH_FROM) * 60 * TL_PX;
+  const X = m => (m - SCH_FROM*60) * TL_PX;
+  const reg = o => { const k = "i" + (++TL_SEQ); TL_ITEMS[k] = o; return k; };
 
-  const { data: bks, error } = await sb.from("bookings")
-    .select("id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, guest_name, guest_tel, profiles(nickname, full_name, tel), menus(name, duration_min)")
-    .gte("starts_at", ds + "T00:00:00+09:00")
-    .lt("starts_at",  ds + "T23:59:59+09:00")
-    .neq("status", "cancelled")
-    .order("starts_at");
-
-  const box = document.getElementById("schWrap");
-  if(error){ box.innerHTML = '<p class="notice">スケジュールを読み込めませんでした</p>'; return; }
-
-  const H = (SCH_TO - SCH_FROM) * 60 * SCH_PXMIN;
-  const top = mins => (mins - SCH_FROM*60) * SCH_PXMIN;
-
-  // 時間の目盛り
-  let gut = "", lines = "";
-  for(let h = SCH_FROM; h <= SCH_TO; h++){
-    gut   += `<div class="schTime" style="top:${top(h*60)}px">${h}:00</div>`;
-    lines += `<div class="schLine hr" style="top:${top(h*60)}px"></div>`;
-    if(h < SCH_TO) lines += `<div class="schLine" style="top:${top(h*60+30)}px"></div>`;
+  // 目盛り
+  let hours = "", grid = "";
+  for(let h = SCH_FROM; h < SCH_TO; h++){
+    hours += `<div class="tlHr" style="left:${X(h*60)}px;width:${60*TL_PX}px">${h}:00</div>`;
+    grid  += `<div class="ln h" style="left:${X(h*60)}px"></div><div class="ln" style="left:${X(h*60+30)}px"></div>`;
   }
+  const dow = new Date(ds+"T00:00:00").getDay();
+  const isToday = ds === jstDate(new Date());
+  const nowM = tlMin(new Date());
+  const nowLine = (isToday && nowM >= SCH_FROM*60 && nowM <= SCH_TO*60) ? `<div class="tlNow" style="left:${X(nowM)}px"></div>` : "";
 
-  const d = new Date(ds + "T00:00:00");
-  let head = '<div class="schHead"><div class="g"></div>';
-  let body = `<div class="schBody"><div class="schGutter" style="height:${H}px">${gut}</div>`;
+  const blockOf = (b) => {
+    const s = new Date(b.starts_at), m0 = tlMin(s);
+    const dur = b.duration_min || (b.menus && b.menus.duration_min) || 60;
+    return { m0, dur };
+  };
 
+  let rows = "";
   SCH_STAFF.forEach(function(st){
-    head += `<div class="h">${st.name}<small>${st.id===1?"オーナー":"スタッフ"}</small></div>`;
-    const mine = (bks||[]).filter(b => (b.staff_id || 1) === st.id);
-    let cells = lines;
-    mine.forEach(function(b){
-      const s = new Date(b.starts_at);
-      const m0 = s.getHours()*60 + s.getMinutes();
-      const dur = b.duration_min || (b.menus && b.menus.duration_min) || 60;
+    // 勤務時間外は斜線
+    let off = "";
+    const works = String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
+    if(st.work_days != null && !works){ off = `<div class="tlOff" style="left:0;width:${W}px"></div>`; }
+    else if(st.work_from && st.work_to){
+      const f = +st.work_from.slice(0,2)*60 + +st.work_from.slice(3,5), t = +st.work_to.slice(0,2)*60 + +st.work_to.slice(3,5);
+      if(f > SCH_FROM*60) off += `<div class="tlOff" style="left:0;width:${X(f)}px"></div>`;
+      if(t < SCH_TO*60)   off += `<div class="tlOff" style="left:${X(t)}px;width:${W - X(t)}px"></div>`;
+    }
+    let cells = grid + off;
+    bks.filter(b => (b.staff_id || 1) === st.id).forEach(function(b){
+      const { m0, dur } = blockOf(b);
       const isBlk = b.source === "block";
       const who = isBlk ? ("🚫 " + (b.title || "予約不可"))
                         : ((b.profiles && (b.profiles.full_name || b.profiles.nickname)) || b.guest_name || b.title || "（名称なし）");
-      const telS = (b.profiles && b.profiles.tel) || b.guest_tel || "";
       const menu = (b.menus && b.menus.name) || b.title || "";
-      cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
-      cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
-      cells += `<div class="schBk ${isBlk?"blk":(b.source==="gcal"?"gc":"")}" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
-                     title="${who} ／ ${menu}${telS?" ／ ☎"+telS:""}${b.customer_note?" ／ 備考："+b.customer_note:""}" onclick="ownerCancel(${b.id})">
-                  <b>${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")} ${who}</b>
-                  <span class="mn">${isBlk?"ご予約を受け付けない時間":menu}${dur?" ・"+dur+"分":""}${b.customer_note?" 📝":""}</span>
-                </div>`;
+      const isNew = !isBlk && (/初回|新規|体験/.test(menu) || (b.profiles && !b.profiles.last_visit_at) || (!b.member_id && b.guest_name));
+      const cls = isBlk ? "blk" : (b.source === "gcal" ? "gcb" : (isNew ? "new" : ""));
+      const k = reg({ type: isBlk ? "block" : "booking", b, who, menu, dur, isNew });
+      if(!isBlk){
+        cells += `<div class="tlBuf" style="left:${X(m0-SCH_BUF)}px;width:${SCH_BUF*TL_PX}px"></div>`;
+        cells += `<div class="tlBuf" style="left:${X(m0+dur)}px;width:${SCH_BUF*TL_PX}px"></div>`;
+      }
+      cells += `<div class="tlBk ${cls}" style="left:${X(m0)}px;width:${Math.max(dur*TL_PX-2,30)}px" onclick="event.stopPropagation();tlOpen('${k}')">
+        <b>${tlHM(m0)} ${isNew?"🆕":""}${esc(who)}</b><span class="mn">${isBlk?"予約を受け付けない時間":esc(menu)} ・${dur}分${b.customer_note?" 📝":""}</span></div>`;
     });
-    // 振り分け待ちのカレンダー予定も、担当の左列に薄く出す
-    if(st.id === (SCH_STAFF[0]||{}).id){
-      (pend||[]).forEach(function(p){
-        const s2 = new Date(p.starts_at);
-        const m0 = s2.getHours()*60 + s2.getMinutes();
-        const dur = p.duration_min || (p.ends_at ? Math.round((new Date(p.ends_at)-s2)/60000) : 60) || 60;
-        cells += `<div class="schBuf" style="top:${top(m0-SCH_BUF)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
-        cells += `<div class="schBuf" style="top:${top(m0+dur)}px;height:${SCH_BUF*SCH_PXMIN}px"></div>`;
-        cells += `<div class="schBk pend" style="top:${top(m0)}px;height:${Math.max(dur*SCH_PXMIN-2,22)}px"
-                       title="カレンダーから届いた予定（振り分け待ち）"
-                       onclick="otab('book');document.getElementById('inboxCard').scrollIntoView({behavior:'smooth'})">
-                    <b>${s2.getHours()}:${String(s2.getMinutes()).padStart(2,"0")} ${(p.summary||"（無題）")}</b>
-                    <span class="mn">振り分け待ち ・${dur}分</span>
-                  </div>`;
-      });
-    }
-    body += `<div class="schCol" style="height:${H}px">${cells}</div>`;
+    rows += `<div class="tlRow"><div class="tlLab" style="width:${TL_LAB}px;height:${TL_ROWH}px">${esc(st.name)}<small>${st.id===1?"オーナー":"スタッフ"}${(st.work_days!=null&&!works)?"・お休み":""}</small></div>
+      <div class="tlLane" style="width:${W}px;height:${TL_ROWH}px" onclick="tlEmpty(event, ${st.id})">${cells}${nowLine}</div></div>`;
   });
-  head += "</div>"; body += "</div>";
 
-  const total = (bks||[]).length;
-  const np = (pend||[]).length;
-  box.innerHTML = `<div style="font-size:12.5px;color:var(--sub);margin-bottom:7px">
-      ${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）　ご予約 ${total}件${np?`　<span style="color:#c0392b;font-weight:700">・振り分け待ち ${np}件</span>`:""}</div>
-    <div class="schScroll">${head}${body}</div>`;
+  // Googleカレンダー（リアルタイム）＋振り分け待ち
+  let calCells = grid, nCal = 0;
+  const near = (t) => bks.some(b => Math.abs(new Date(b.starts_at) - t) < 5*60000) || pend.some(p => Math.abs(new Date(p.starts_at) - t) < 5*60000);
+  (cal||[]).forEach(function(ev){
+    if(ev.allDay) return;
+    const s = new Date(ev.s), e = new Date(ev.e);
+    if(near(s)) return;                                   // 予約として取り込み済みのものは重ねない
+    const m0 = Math.max(tlMin(s), SCH_FROM*60), m1 = Math.min(tlMin(e) + (e.getDate()!==s.getDate()?24*60:0), SCH_TO*60);
+    if(m1 <= SCH_FROM*60 || m0 >= SCH_TO*60) return;
+    nCal++;
+    const k = reg({ type:"cal", ev, m0: tlMin(s), m1: tlMin(e) });
+    calCells += `<div class="tlBk cal" style="left:${X(m0)}px;width:${Math.max((m1-m0)*TL_PX-2,30)}px" onclick="tlOpen('${k}')">
+      <b>${tlHM(tlMin(s))} ${esc(ev.title)}</b><span class="mn">Googleカレンダー ・${tlHM(tlMin(s))}〜${tlHM(tlMin(e))}</span></div>`;
+  });
+  pend.forEach(function(p){
+    const s2 = new Date(p.starts_at), m0 = tlMin(s2);
+    const dur = p.duration_min || (p.ends_at ? Math.round((new Date(p.ends_at)-s2)/60000) : 60) || 60;
+    const k = reg({ type:"pend", p, m0, dur });
+    calCells += `<div class="tlBk pend" style="left:${X(m0)}px;width:${Math.max(dur*TL_PX-2,30)}px" onclick="tlOpen('${k}')">
+      <b>${tlHM(m0)} ${esc(p.summary||"（無題）")}</b><span class="mn">振り分け待ち ・${dur}分</span></div>`;
+  });
+  const calNote = cal === null ? (kkCfg().url ? "（読込失敗）" : "（会計の連携設定が必要）") : "リアルタイム";
+  rows += `<div class="tlRow" style="border-bottom:none"><div class="tlLab" style="width:${TL_LAB}px;height:${TL_ROWH}px">📅 予定<small>${calNote}</small></div>
+    <div class="tlLane cal" style="width:${W}px;height:${TL_ROWH}px">${calCells}${nowLine}</div></div>`;
+
+  const total = bks.filter(b=>b.source!=="block").length;
+  const nNew = Object.values(TL_ITEMS).filter(o=>o.type==="booking" && o.isNew).length;
+  const d = new Date(ds+"T00:00:00");
+  box.innerHTML = `<div class="tlSum"><b style="font-size:13px">${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</b>
+      <span>ご予約 ${total}件</span>${nNew?`<span>🆕 新規 ${nNew}件</span>`:""}${nCal?`<span class="c">📅 予定 ${nCal}件</span>`:""}${pend.length?`<span class="w">振り分け待ち ${pend.length}件</span>`:""}</div>
+    <div class="tlScroll" id="tlScroll"><div class="tlGrid" style="width:${TL_LAB+W}px">
+      <div class="tlHead"><div class="tlCorner" style="width:${TL_LAB}px"></div><div class="tlHours" style="width:${W}px">${hours}</div></div>
+      ${rows}
+    </div></div>`;
+
+  // 今の時刻（今日以外は最初の予約）あたりまで横スクロール
+  const sc = document.getElementById("tlScroll");
+  let focus = isToday ? nowM - 60 : (bks.length ? tlMin(new Date(bks[0].starts_at)) - 60 : 9*60);
+  sc.scrollLeft = Math.max(0, X(focus));
+}
+
+function tlClose(){ document.getElementById("tlPop").classList.remove("show"); }
+function tlShow(html){ document.getElementById("tlPopBx").innerHTML = html; document.getElementById("tlPop").classList.add("show"); }
+
+// 空いているところをタップ
+function tlEmpty(ev, staffId){
+  const lane = ev.currentTarget, r = lane.getBoundingClientRect();
+  let m = SCH_FROM*60 + (ev.clientX - r.left) / TL_PX;
+  m = Math.floor(m / 15) * 15;
+  const ds = document.getElementById("schDate").value;
+  const st = (SCH_STAFF||[]).find(x=>x.id===staffId) || {name:""};
+  const t = String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
+  const gstart = new Date(ds + "T" + t + ":00+09:00").toISOString();
+  tlShow(`<h4>${ds.slice(5).replace("-","/")}（${WD[new Date(ds+"T00:00:00").getDay()]}） ${t}〜</h4>
+    <div class="ln2">担当：${esc(st.name)}</div>
+    <div class="acts">
+      <button class="pri" onclick="tlBlockQuick('${ds}','${t}',60)">🚫 60分 予約不可にする</button>
+      <button onclick="tlBlockQuick('${ds}','${t}',30)">🚫 30分</button>
+      <button onclick="tlBlockForm('${ds}','${t}')">✏️ 時間・内容を指定</button>
+      <button onclick="openGcal('${gstart}','予定',60,'');tlClose()">📅 Googleカレンダーに書く</button>
+      <button onclick="tlClose()">閉じる</button>
+    </div>`);
+}
+async function tlBlockQuick(ds, t, dur){
+  const { error } = await sb.from("bookings").insert({ starts_at: ds+"T"+t+":00+09:00", duration_min: dur, status:"confirmed",
+    channel:"other", source:"block", title:"予約不可", note:null });
+  tlClose();
+  if(error){ toast("登録できませんでした：" + error.message); return; }
+  toast(`${t}〜 ${dur}分 を予約不可にしました`); loadSchedule(); loadBookings();
+}
+function tlBlockForm(ds, t){
+  tlClose();
+  document.getElementById("blkDate").value = ds;
+  document.getElementById("blkFrom").value = t;
+  document.getElementById("blkNote").focus();
+  document.getElementById("blkNote").scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+// 予定をタップ
+function tlOpen(k){
+  const o = TL_ITEMS[k]; if(!o) return;
+  if(o.type === "cal"){
+    tlShow(`<h4>📅 ${esc(o.ev.title)}</h4>
+      <div class="ln2">${tlHM(o.m0)}〜${tlHM(o.m1)}${o.ev.loc?"<br>📍 "+esc(o.ev.loc):""}<br>
+      <span style="color:var(--sub);font-size:12px">Googleカレンダーの予定です。この時間はお客様の予約画面で×になっています。変更・削除はGoogleカレンダーで行ってください。</span></div>
+      <div class="acts"><a href="https://calendar.google.com/calendar/r/day/${document.getElementById("schDate").value.replace(/-/g,"/")}" target="_blank" rel="noopener">Googleカレンダーを開く</a><button onclick="tlClose()">閉じる</button></div>`);
+    return;
+  }
+  if(o.type === "pend"){
+    tlShow(`<h4>📥 ${esc(o.p.summary||"（無題）")}</h4>
+      <div class="ln2">${tlHM(o.m0)}〜 ${o.dur}分<br><span style="color:var(--sub);font-size:12px">カレンダーから届いた予定で、どのお客様か決まっていません。</span></div>
+      <div class="acts"><button class="pri" onclick="tlClose();document.getElementById('inboxCard').scrollIntoView({behavior:'smooth'})">お客様を割り当てる</button><button onclick="tlClose()">閉じる</button></div>`);
+    return;
+  }
+  const b = o.b;
+  const tel = (b.profiles && b.profiles.tel) || b.guest_tel || "";
+  if(o.type === "block"){
+    tlShow(`<h4>🚫 ${esc(b.title||"予約不可")}</h4>
+      <div class="ln2">${fmtTs(b.starts_at)}〜 ${o.dur}分</div>
+      <div class="acts"><button class="dng" onclick="tlClose();ownerCancel(${b.id})">取り消す（予約を受け付ける）</button><button onclick="tlClose()">閉じる</button></div>`);
+    return;
+  }
+  tlShow(`<h4>${o.isNew?"🆕 ":""}${esc(o.who)} さん</h4>
+    <div class="ln2">🕘 ${fmtTs(b.starts_at)}〜（${o.dur}分）<br>
+      💆 ${esc(o.menu)}<br>
+      ${tel?`📞 <a href="tel:${esc(tel)}">${esc(tel)}</a><br>`:""}
+      🔗 経路：${esc(chLabel(b.channel))}${b.member_id?"":"（会員登録なし）"}
+      ${b.customer_note?`<br>📝 <b>${esc(b.customer_note)}</b>`:""}</div>
+    <div class="acts">
+      ${tel?`<a href="tel:${esc(tel)}">📞 電話する</a>`:""}
+      ${b.member_id?`<button onclick="tlClose();otab('cust');openCust('${b.member_id}')">👤 カルテ</button>`:""}
+      <button class="pri" onclick="tlClose();otab('kaikei')">🧾 会計</button>
+      <button class="dng" onclick="tlClose();ownerCancel(${b.id})">取消</button>
+      <button onclick="tlClose()">閉じる</button>
+    </div>`);
 }
 
 /* ============ 管理画面のタブ ============ */
