@@ -588,6 +588,31 @@ function renderConfirm(){
   c.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
+/* ---- 日時変更モード（予約の確認ページ me.html の「日時を変更する」から来たとき） ---- */
+async function initMove(){
+  const hid = (location.hash.match(/move=(\d+)/)||[])[1];
+  if(!hid) return false;
+  let mv = null;
+  try{ mv = JSON.parse(localStorage.getItem("gait_move")||"null"); }catch(e){}
+  if(!mv || String(mv.id) !== String(hid) || !mv.tel){
+    showErr("日時変更の情報が見つかりませんでした。お手数ですが、予約の確認ページからやり直してください。");
+    return false;
+  }
+  MOVE = mv;
+  document.getElementById("moveBanner").style.display = "block";
+  document.getElementById("moveInfo").innerHTML =
+    "いまのご予約と<b>同じメニュー</b>を選んでから、新しい日時をお選びください。<br>メニュー・料金は変わりません。前日23:59まで変更できます。";
+  document.getElementById("step3Title").textContent = "変更後の日時のご確認";
+  ["guestFields","agreeRow","rememberRow"].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display="none"; });
+  document.getElementById("bkBtn").textContent = "この日時に変更する";
+  document.getElementById("bkFoot").textContent = "変更が終わると、この画面に完了のお知らせが出ます。";
+  return true;
+}
+function cancelMove(){
+  try{ localStorage.removeItem("gait_move"); }catch(e){}
+  location.href = "./me.html";
+}
+
 const MOVE_ERR = {
   taken: "申し訳ありません。ちょうどこの枠が埋まってしまいました。別の時間をお選びください。",
   closed: "ご予約の受付は前日23:59までです。当日のご予約はお電話か公式LINEでご相談ください。",

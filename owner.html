@@ -772,6 +772,8 @@ async function enterApp(){
 
 /* ============ カレンダー取り込みの振り分け ============ */
 let INBOX=[];
+// onclick の中に入れる文字は、記号を落として安全にする
+function safeTxt(s){return String(s==null?"":s).replace(/[^\p{L}\p{N}\s:+\-.・ー（）()]/gu,"")}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 /* ============ スケジュール（サロンボード風の横タイムライン） ============ */
 const SCH_FROM = 8, SCH_TO = 22, SCH_BUF = 15;
@@ -1076,9 +1078,9 @@ async function loadWaitlist(){
       ? `${(w.want_from||"").slice(0,5)}〜${(w.want_to||"").slice(0,5)}` : "時間の指定なし";
     return `<div class="bkRow">
       <div>
-        <div class="d">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${w.name} さん</div>
-        <div class="m">${band} ｜ ${w.menus?.name||"メニュー未指定"} ｜ ☎ ${w.tel}</div>
-        ${w.note?`<div class="m">📝 ${w.note}</div>`:""}
+        <div class="d">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(w.name)} さん</div>
+        <div class="m">${band} ｜ ${esc(w.menus?.name||"メニュー未指定")} ｜ ☎ ${esc(w.tel)}</div>
+        ${w.note?`<div class="m">📝 ${esc(w.note)}</div>`:""}
       </div>
       <button class="cxBtn" onclick="wlClose(${w.id})">対応済み</button>
     </div>`;
@@ -1146,15 +1148,15 @@ async function loadCusts(){
   const { data: vv } = await sb.from("v_customer_visits").select("id,total_visits,last_visit_at");
   const VM = {}; (vv||[]).forEach(v=>VM[v.id]=v);
   CUSTS.forEach(c=>{ const v=VM[c.id]; if(v){ c.visits_offset = v.total_visits; if(v.last_visit_at) c.last_visit_at = v.last_visit_at; } });
-  const opts = CUSTS.map(c=>`<option value="${c.id}">${c.nickname||"（名前未設定）"}${c.full_name?"（"+c.full_name+"）":""}</option>`).join("");
+  const opts = CUSTS.map(c=>`<option value="${c.id}">${esc(c.nickname||"（名前未設定）")}${c.full_name?"（"+esc(c.full_name)+"）":""}</option>`).join("");
   ["tkNewCust","payCust","evCust","prCust","ytCust"].forEach(id=>{ document.getElementById(id).innerHTML = opts || "<option value=''>会員がまだいません</option>"; });
   const { data: cats } = await sb.from("categories").select("*").order("id");
   CATS = cats||[];
-  document.getElementById("payCat").innerHTML = CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("payCat").innerHTML = CATS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
   document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>{
     const tag = c.role==="owner" ? '<span class="tagPill own">オーナー</span>'
               : (c.is_offline ? '<span class="tagPill off">アプリ未登録</span>' : '<span class="tagPill app">アプリ登録済</span>');
-    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${c.nickname||"（名前未設定）"} <span style="font-weight:500;color:var(--sub);font-size:11px">${c.full_name||""}</span>${tag}</div><div class="m">${c.visits_offset? "来店"+c.visits_offset+"回 ｜ " : ""}${c.last_visit_at? "前回"+c.last_visit_at+" ｜ " : ""}${c.chief_complaint? "主訴："+c.chief_complaint : "主訴未入力"}${c.tel? " ｜ "+c.tel : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
+    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${esc(c.nickname||"（名前未設定）")} <span style="font-weight:500;color:var(--sub);font-size:11px">${esc(c.full_name||"")}</span>${tag}</div><div class="m">${c.visits_offset? "来店"+c.visits_offset+"回 ｜ " : ""}${c.last_visit_at? "前回"+c.last_visit_at+" ｜ " : ""}${c.chief_complaint? "主訴："+esc(c.chief_complaint) : "主訴未入力"}${c.tel? " ｜ "+esc(c.tel) : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
   }).join("")
     : '<p class="notice">まだ顧客がいません。下のフォームから追加するか、お客様がアプリから会員登録すると表示されます。</p>';
 }
@@ -1512,7 +1514,7 @@ async function loadBookings(){
   const { data } = await sb.from("bookings").select("id, starts_at, status, channel, title, source, customer_note, guest_name, guest_tel, profiles(nickname, full_name, tel), menus(name), staff(name)")
     .eq("status","confirmed").gte("starts_at", new Date().toISOString()).order("starts_at").limit(60);
   document.getElementById("bkList").innerHTML = (data&&data.length) ? data.map(b=>
-    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${(b.profiles?.full_name||b.profiles?.nickname||b.guest_name) ? esc(b.profiles?.full_name||b.profiles?.nickname||b.guest_name)+" さん" : (esc(b.title)||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}${b.guest_name&&!b.profiles?'<span class="tagPill">登録なし</span>':""}</div><div class="m">${esc(b.menus?.name||b.title||"")} ｜ 担当:${esc(b.staff?.name||"")} ｜ 経路:${chLabel(b.channel)}${(b.profiles?.tel||b.guest_tel)?` ｜ <a href="tel:${esc(b.profiles?.tel||b.guest_tel)}">📞 ${esc(b.profiles?.tel||b.guest_tel)}</a>`:""}</div>${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${b.customer_note}</div>`:""}</div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${b.starts_at}','${(b.profiles?.nickname||"")} さん ${(b.menus?.name||"").replace(/'/g,"")}',60,'${b.staff?.name||""}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
+    `<div class="bkRow"><div><div class="d">${fmtTs(b.starts_at)}〜 ${(b.profiles?.full_name||b.profiles?.nickname||b.guest_name) ? esc(b.profiles?.full_name||b.profiles?.nickname||b.guest_name)+" さん" : (esc(b.title)||"（名称なし）")}${b.source==="gcal"?'<span class="tagPill off">カレンダー</span>':""}${b.guest_name&&!b.profiles?'<span class="tagPill">登録なし</span>':""}</div><div class="m">${esc(b.menus?.name||b.title||"")} ｜ 担当:${esc(b.staff?.name||"")} ｜ 経路:${chLabel(b.channel)}${(b.profiles?.tel||b.guest_tel)?` ｜ <a href="tel:${esc(b.profiles?.tel||b.guest_tel)}">📞 ${esc(b.profiles?.tel||b.guest_tel)}</a>`:""}</div>${b.customer_note?`<div class="m" style="color:var(--gd);font-weight:700">📝 ${esc(b.customer_note)}</div>`:""}</div><div style="display:flex;gap:6px"><button class="calBtn" onclick="openGcal('${safeTxt(b.starts_at)}','${safeTxt(b.profiles?.nickname)} さん ${safeTxt(b.menus?.name)}',60,'${safeTxt(b.staff?.name)}')">📅 カレンダー</button><button class="cxBtn" onclick="ownerCancel(${b.id})">取消</button></div></div>`).join("")
     : '<p class="notice">今後の予約はまだありません</p>';
 }
 async function ownerCancel(id){
@@ -1532,7 +1534,7 @@ async function ownerCancel(id){
 async function loadTickets(){
   const { data } = await sb.from("tickets").select("*, profiles(nickname)").gt("left_count",-1).order("issued_at",{ascending:false}).limit(30);
   document.getElementById("tkAdmin").innerHTML = (data&&data.length) ? data.filter(t=>t.left_count>0||true).map(t=>
-    `<div class="bkRow"><div><div class="d">${t.profiles?.nickname||""} さん</div><div class="m">${t.kind} ｜ 残り <b style="color:var(--gd)">${t.left_count}</b>/${t.total}回 ｜ 期限 ${t.expires_at||"—"}</div></div>
+    `<div class="bkRow"><div><div class="d">${esc(t.profiles?.nickname||"")} さん</div><div class="m">${esc(t.kind)} ｜ 残り <b style="color:var(--gd)">${t.left_count}</b>/${t.total}回 ｜ 期限 ${t.expires_at||"—"}</div></div>
      <div style="display:flex;gap:6px">${t.left_count>0?`<button class="btn" style="width:auto;padding:8px 12px;font-size:12px" onclick="tkUse(${t.id},${t.left_count})">✓ 1回消化</button>`:""}<button class="cxBtn" onclick="tkUndo(${t.id},${t.left_count},${t.total})">取消</button></div></div>`).join("")
     : '<p class="notice">発行済みの回数券はありません</p>';
 }
@@ -1645,7 +1647,7 @@ let kkMenu = KK_MENUS[0], kkPay = "現金";
 function kkCfg(){ try{ return { url: localStorage.getItem("gait_kk_url")||"", tok: localStorage.getItem("gait_kk_tok")||"" }; }catch(e){ return {url:"",tok:""}; } }
 function kkChipRow(id, items, cur, onPick){
   const el = document.getElementById(id);
-  el.innerHTML = items.map((it,i)=>`<button data-i="${i}" class="${it.key===cur?"on":""}">${it.label}</button>`).join("");
+  el.innerHTML = items.map((it,i)=>`<button data-i="${i}" class="${it.key===cur?"on":""}">${esc(it.label)}</button>`).join("");
   el.querySelectorAll("button").forEach(b=>b.onclick=()=>{ el.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); onPick(items[+b.dataset.i]); });
 }
 function kkInit(){
@@ -1721,7 +1723,7 @@ async function kkToday(){
     const price = (b.menus && b.menus.price) || 0;
     const type = kkBillType(b);
     const hm = `${s.getHours()}:${String(s.getMinutes()).padStart(2,"0")}`;
-    const head = (badge, amt) => `<div class="top"><span>${hm}</span><b>${who}　<span style="font-weight:400;color:var(--sub)">${menu}</span> <span class="kkBadge">${badge}</span></b>${amt}</div>`;
+    const head = (badge, amt) => `<div class="top"><span>${hm}</span><b>${esc(who)}　<span style="font-weight:400;color:var(--sub)">${esc(menu)}</span> <span class="kkBadge">${badge}</span></b>${amt}</div>`;
     if(type === "ticket"){
       const t = tks.find(x=>x.member_id===b.member_id);
       const dn = done["t"+b.id];
