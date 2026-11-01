@@ -1042,9 +1042,34 @@ function tlOpen(k){
       ${tel?`<a href="tel:${esc(tel)}">📞 電話する</a>`:""}
       ${b.member_id?`<button onclick="tlClose();otab('cust');openCust('${b.member_id}')">👤 カルテ</button>`:""}
       <button class="pri" onclick="tlClose();otab('kaikei')">🧾 会計</button>
+      <button onclick="tlReassign(${b.id})">🔁 お客様を変更</button>
       <button class="dng" onclick="tlClose();ownerCancel(${b.id})">取消</button>
       <button onclick="tlClose()">閉じる</button>
     </div>`);
+}
+
+/* ============ 予約のお客様を付け替える（割り当て間違いの修正） ============ */
+let TL_RE = null;
+function tlReassign(id){
+  const o = Object.values(TL_ITEMS).find(x => x.b && x.b.id === id); const b = o && o.b; if(!b) return;
+  TL_RE = b;
+  const opts = (CUSTS||[]).map(c=>`<option value="${c.id}" ${c.id===b.member_id?"selected":""}>${esc(c.nickname||c.full_name||"（名前未設定）")}${c.full_name&&c.nickname?"（"+esc(c.full_name)+"）":""}</option>`).join("");
+  tlShow(`<h4>🔁 お客様を変更</h4>
+    <div class="ln2">${fmtTs(b.starts_at)}〜 ${esc(b.title||"")}<br>
+      <select id="reCust" style="width:100%;margin-top:8px"><option value="">（お客様を外す：カレンダーの名前のまま表示）</option>${opts}</select>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:9px;font-size:13px"><input type="checkbox" id="reAll" checked style="width:17px;height:17px">「${esc(b.title||"")}」のこれからの予定もまとめて変更</label></div>
+    <div class="acts"><button class="pri" onclick="tlReassignSave()">変更する</button><button onclick="tlClose()">やめる</button></div>`);
+}
+async function tlReassignSave(){
+  const b = TL_RE; if(!b) return;
+  const mid = document.getElementById("reCust").value || null;
+  const all = document.getElementById("reAll").checked && b.title;
+  let q = sb.from("bookings").update({ member_id: mid });
+  q = all ? q.eq("title", b.title).eq("source", b.source || "gcal").gte("starts_at", b.starts_at) : q.eq("id", b.id);
+  const { data, error } = await q.select("id");
+  tlClose();
+  if(error){ toast("変更できませんでした：" + error.message); return; }
+  toast(`${(data||[]).length}件のお客様を変更しました`); loadSchedule(); loadBookings();
 }
 
 /* ============ 管理画面のタブ ============ */
