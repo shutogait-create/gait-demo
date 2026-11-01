@@ -290,6 +290,7 @@ let selMenu = null, selDate = null, selSlot = null;
 let MOVE = null;   // 日時変更モードのとき、変更する予約の情報が入る
 let STAFFDB = [];  // 担当と勤務パターン（曜日・時間帯）
 let HOLIDAYS = {}; // 祝日（YYYY-MM-DD → 名称）
+let DAYOV = {};    // 日付ごとのお休み・臨時出勤（"担当ID|YYYY-MM-DD" → {kind, work_from, work_to}）
 let selStaff = 0;  // 0=フリー（指名なし） / 1=宗田 修斗 / 2=飯田 隼人
 
 const STAFF_META = {
@@ -298,6 +299,8 @@ const STAFF_META = {
 };
 const hhmm = t => String(t||"").slice(0,5);
 function worksOn(st, ds){
+  const ov = DAYOV[st.id + "|" + ds];
+  if(ov) return ov.kind === "on";                      // 日付ごとの設定が最優先（休み／臨時出勤）
   if(st.skip_holidays && HOLIDAYS[ds]) return false;   // 祝日はお休み
   const dow = new Date(ds+"T00:00:00").getDay();
   return String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
@@ -314,7 +317,9 @@ function staffWorks(ds){
 function blocksFor(ds){
   const list = effStaff() ? STAFFDB.filter(x => x.id === effStaff()) : staffOnDate(ds);
   return list.filter(st => worksOn(st, ds))
-             .map(st => [hhmm(st.work_from) || "08:00", hhmm(st.work_to) || "21:00"]);
+             .map(st => { const ov = DAYOV[st.id + "|" + ds];
+               if(ov && ov.kind === "on" && ov.work_from && ov.work_to) return [hhmm(ov.work_from), hhmm(ov.work_to)];
+               return [hhmm(st.work_from) || "08:00", hhmm(st.work_to) || "21:00"]; });
 }
 // 指名なしでも担当付きメニュー（初回など）は全部出す。担当付きメニューを選んだら、その担当の枠だけ出す
 function menusFor(){
@@ -407,6 +412,8 @@ async function load(){
   const today = jstDate(new Date()), until = jstDate(new Date(Date.now()+75*86400000));
   const { data: hol } = await sb.from("holidays").select("d, name").gte("d", today).lte("d", until);
   HOLIDAYS = {}; (hol||[]).forEach(h=>{ HOLIDAYS[h.d] = h.name; });
+  const { data: dov } = await sb.rpc("day_overrides", { p_from: today, p_to: until });   // メモは含まない（お休みの理由は見せない）
+  DAYOV = {}; (dov||[]).forEach(o=>{ DAYOV[o.staff_id + "|" + o.d] = o; });
 
   const { data: stf } = await sb.from("staff").select("id, name, work_days, work_from, work_to, skip_holidays").order("id");
   STAFFDB = (stf || []).filter(x => x.work_days);

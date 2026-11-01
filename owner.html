@@ -636,6 +636,23 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       単発のお休み（私用・研修など）は「予約」タブの<b>🚫 予約を受け付けない時間をつくる</b>で埋めてください。</p>
       <div id="staffHours"><p class="notice">読み込み中…</p></div>
     </div>
+    <div class="card">
+      <h3>📅 日付ごとのお休み・臨時出勤</h3>
+      <p class="notice" style="margin-bottom:10px">出張・研修・臨時休業の日は「お休み」、いつもは休みの曜日に入る日は「臨時出勤」。ここで決めた日は、毎週の設定より優先されます。お客様の予約画面にすぐ反映されます。</p>
+      <div class="fRow" style="flex-wrap:wrap;align-items:center">
+        <select id="dovStaff" style="width:130px"></select>
+        <input type="date" id="dovFrom" style="width:150px">
+        <span style="color:var(--sub)">〜</span>
+        <input type="date" id="dovTo" style="width:150px" title="1日だけなら空欄でOK">
+        <select id="dovKind" style="width:120px" onchange="document.getElementById('dovTimes').style.display=this.value==='on'?'flex':'none'">
+          <option value="off">お休み</option><option value="on">臨時出勤</option></select>
+      </div>
+      <div class="fRow" id="dovTimes" style="display:none;align-items:center">
+        <input type="time" id="dovWf" value="09:00" style="width:120px"><span style="color:var(--sub)">〜</span><input type="time" id="dovWt" value="18:00" style="width:120px">
+      </div>
+      <div class="fRow"><input id="dovNote" placeholder="メモ（例：東京出張）" style="flex:1"><button class="btn" style="width:auto;padding:8px 18px" onclick="dovAdd()">追加</button></div>
+      <div id="dovList" style="margin-top:10px"><p class="notice">読み込み中…</p></div>
+    </div>
 
     </div>
   </main>
@@ -767,7 +784,7 @@ async function enterApp(){
   document.getElementById("scrLogin").style.display="none";
   document.getElementById("scrApp").style.display="block";
   otabInit();
-  await loadCusts(); schToday(); loadBookings(); loadNewBookings(); loadWaitlist(); loadInbox(); loadTickets(); tkKindChanged(); loadStaffHours(); loadPaySummary(); evInit(); kkInit();
+  await loadCusts(); schToday(); loadBookings(); loadNewBookings(); loadWaitlist(); loadInbox(); loadTickets(); tkKindChanged(); loadStaffHours(); loadDayOverrides(); loadPaySummary(); evInit(); kkInit();
 }
 
 /* ============ カレンダー取り込みの振り分け ============ */
@@ -850,6 +867,8 @@ async function loadSchedule(scrollNow){
       .neq("status","cancelled").order("starts_at"),
     tlCalEvents(ds)
   ]);
+  const { data: dovR } = await sb.from("staff_day_overrides").select("staff_id, kind, work_from, work_to").eq("d", ds);
+  const DOV = {}; (dovR||[]).forEach(o=>{ DOV[o.staff_id] = o; });
   if(bkR.error){ box.innerHTML = '<p class="notice">スケジュールを読み込めませんでした</p>'; return; }
   const bks = bkR.data || [], pend = pendR.data || [];
 
@@ -879,10 +898,14 @@ async function loadSchedule(scrollNow){
   SCH_STAFF.forEach(function(st){
     // 勤務時間外は斜線
     let off = "";
-    const works = String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
-    if(st.work_days != null && !works){ off = `<div class="tlOff" style="left:0;width:${W}px"></div>`; }
-    else if(st.work_from && st.work_to){
-      const f = +st.work_from.slice(0,2)*60 + +st.work_from.slice(3,5), t = +st.work_to.slice(0,2)*60 + +st.work_to.slice(3,5);
+    const ov = DOV[st.id];
+    let works = String(st.work_days||"").split(",").map(x=>x.trim()).indexOf(String(dow)) >= 0;
+    if(ov) works = ov.kind === "on";
+    const wf = (ov && ov.kind === "on" && ov.work_from) ? ov.work_from : st.work_from;
+    const wt = (ov && ov.kind === "on" && ov.work_to) ? ov.work_to : st.work_to;
+    if((st.work_days != null || ov) && !works){ off = `<div class="tlOff" style="left:0;width:${W}px"></div>`; }
+    else if(wf && wt){
+      const f = +wf.slice(0,2)*60 + +wf.slice(3,5), t = +wt.slice(0,2)*60 + +wt.slice(3,5);
       if(f > SCH_FROM*60) off += `<div class="tlOff" style="left:0;width:${X(f)}px"></div>`;
       if(t < SCH_TO*60)   off += `<div class="tlOff" style="left:${X(t)}px;width:${W - X(t)}px"></div>`;
     }
@@ -903,7 +926,7 @@ async function loadSchedule(scrollNow){
       cells += `<div class="tlBk ${cls}" style="left:${X(m0)}px;width:${Math.max(dur*TL_PX-2,30)}px" onclick="event.stopPropagation();tlOpen('${k}')">
         <b>${tlHM(m0)} ${isNew?"🆕":""}${esc(who)}</b><span class="mn">${isBlk?"予約を受け付けない時間":esc(menu)} ・${dur}分${b.customer_note?" 📝":""}</span></div>`;
     });
-    rows += `<div class="tlRow"><div class="tlLab" style="width:${TL_LAB}px;height:${TL_ROWH}px">${esc(st.name)}<small>${st.id===1?"オーナー":"スタッフ"}${(st.work_days!=null&&!works)?"・お休み":""}</small></div>
+    rows += `<div class="tlRow"><div class="tlLab" style="width:${TL_LAB}px;height:${TL_ROWH}px">${esc(st.name)}<small>${st.id===1?"オーナー":"スタッフ"}${((st.work_days!=null||ov)&&!works)?"・お休み":(ov?"・臨時出勤":"")}</small></div>
       <div class="tlLane" style="width:${W}px;height:${TL_ROWH}px" onclick="tlEmpty(event, ${st.id})">${cells}${nowLine}</div></div>`;
   });
 
@@ -1602,6 +1625,49 @@ async function loadStaffHours(){
       <p class="finePrint" style="margin-top:7px">いまの設定：${days.filter(d=>d!=="").map(d=>WDN[+d]).join("・") || "なし"}曜 ${String(st.work_from||"").slice(0,5)}〜${String(st.work_to||"").slice(0,5)}</p>
     </div>`;
   }).join("");
+}
+/* ============ 日付ごとのお休み・臨時出勤 ============ */
+async function loadDayOverrides(){
+  const { data: st } = await sb.from("staff").select("id, name").order("id");
+  const sel = document.getElementById("dovStaff");
+  if(sel && !sel.options.length) sel.innerHTML = (st||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("");
+  const today = jstDate(new Date());
+  const { data, error } = await sb.from("staff_day_overrides").select("id, staff_id, d, kind, work_from, work_to, note").gte("d", today).order("d").order("staff_id");
+  const el = document.getElementById("dovList");
+  if(error){ el.innerHTML = '<p class="notice">読み込めませんでした（設定用の表がまだ無い可能性があります）</p>'; return; }
+  const nm = {}; (st||[]).forEach(x=>{ nm[x.id] = x.name; });
+  el.innerHTML = (data && data.length) ? data.map(o=>{
+    const d = new Date(o.d+"T00:00:00");
+    const lab = o.kind === "off" ? '<span class="tagPill off">お休み</span>' : `<span class="tagPill">臨時出勤 ${String(o.work_from||"").slice(0,5)}〜${String(o.work_to||"").slice(0,5)}</span>`;
+    return `<div class="bkRow"><div><div class="d">${d.getMonth()+1}/${d.getDate()}（${WDN[d.getDay()]}） ${esc(nm[o.staff_id]||"")} ${lab}</div>${o.note?`<div class="m">📝 ${esc(o.note)}</div>`:""}</div>
+      <button class="btn sub" style="width:auto;padding:6px 12px" onclick="dovDel(${o.id})">取り消す</button></div>`;
+  }).join("") : '<p class="notice">これからの予定はありません</p>';
+}
+async function dovAdd(){
+  const staff_id = +document.getElementById("dovStaff").value;
+  const from = document.getElementById("dovFrom").value;
+  const to = document.getElementById("dovTo").value || from;
+  const kind = document.getElementById("dovKind").value;
+  const wf = document.getElementById("dovWf").value, wt = document.getElementById("dovWt").value;
+  const note = document.getElementById("dovNote").value.trim() || null;
+  if(!staff_id || !from){ toast("担当と日付を選んでください"); return; }
+  if(to < from){ toast("終わりの日付は始まりの日付以降にしてください"); return; }
+  if(kind === "on" && (!wf || !wt || wf >= wt)){ toast("臨時出勤の時間を正しく入れてください"); return; }
+  const rows = [];
+  for(let d = new Date(from+"T00:00:00"); jstDate(d) <= to; d.setDate(d.getDate()+1)){
+    rows.push({ staff_id, d: jstDate(d), kind, work_from: kind==="on"?wf:null, work_to: kind==="on"?wt:null, note });
+    if(rows.length > 62){ toast("一度に入れられるのは2か月分までです"); return; }
+  }
+  const { error } = await sb.from("staff_day_overrides").upsert(rows, { onConflict: "staff_id,d" });
+  if(error){ toast("保存できませんでした：" + error.message); return; }
+  toast(`${rows.length}日分を「${kind==="off"?"お休み":"臨時出勤"}」にしました。予約画面にすぐ反映されます`);
+  document.getElementById("dovNote").value = "";
+  loadDayOverrides(); if(typeof loadSchedule==="function") loadSchedule();
+}
+async function dovDel(id){
+  const { error } = await sb.from("staff_day_overrides").delete().eq("id", id);
+  if(error){ toast("取り消せませんでした：" + error.message); return; }
+  toast("取り消しました。いつもの曜日の設定に戻ります"); loadDayOverrides(); if(typeof loadSchedule==="function") loadSchedule();
 }
 async function saveStaffHours(id){
   const days = [];
