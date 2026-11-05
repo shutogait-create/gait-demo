@@ -81,7 +81,7 @@ function writeTable_(ss, name, rows, preferred) {
   sh.clearContents();
   if (!rows.length) { sh.getRange(1, 1).setValue('（データなし）'); return; }
   const keys = [];
-  (preferred || []).forEach(k => { if (keys.indexOf(k) < 0) keys.push(k); });
+  (preferred || []).forEach(k => { if (keys.indexOf(k) < 0 && rows.some(r => k in r)) keys.push(k); });
   rows.forEach(r => Object.keys(r).forEach(k => { if (keys.indexOf(k) < 0) keys.push(k); }));
   const vals = [keys].concat(rows.map(r => keys.map(k => toCell_(k, r[k]))));
   sh.getRange(1, 1, vals.length, keys.length).setValues(vals);
