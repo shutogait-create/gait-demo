@@ -69,7 +69,7 @@ function saveJson_(data, now) {
 
 function toCell_(k, v) {
   if (v === null || v === undefined) return '';
-  if (v instanceof Date) return v;
+  if (v instanceof Date) return v; if (/tel|電話/.test(k) && v !== '') return "'" + v;
   if (typeof v === 'object') return JSON.stringify(v);
   if (typeof v === 'string' && /(_at|^starts_at|^ends_at)$/.test(k) && /^\d{4}-\d{2}-\d{2}T/.test(v)) { const d = new Date(v); if (!isNaN(d)) return d; }
   if (typeof v === 'string' && v.length > 45000) return v.slice(0, 45000) + '…';
@@ -162,7 +162,7 @@ function writeSheets_(data, now) {
   // ③ 更新情報
   const info = ss.getSheetByName('更新情報') || ss.insertSheet('更新情報', 0);
   info.clearContents();
-  const lines = [['最終バックアップ', Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm')], ['顧客一覧', summary.length + '人'], ['予約', bookings.length + '件']]
+  const lines = [['最終バックアップ', Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm')], ['顧客一覧', summary.length + '人']]
     .concat(SHEETS.map(([k, n]) => [n, (data[k] || []).length + '件']))
     .concat([['', ''], ['説明', '毎晩2時台に予約アプリの全データで上書きします。このシートを直接直しても予約アプリには反映されません（予約アプリの管理画面で直してください）。'],
              ['JSON', '同じ内容の丸ごとファイルを Drive「gait バックアップ（毎晩のJSON）」に' + KEEP_DAYS + '日分残しています。']]);
