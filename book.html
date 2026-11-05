@@ -136,6 +136,9 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 .tkLead{font-size:13.5px;line-height:1.9;color:var(--ink)}
 .tkCatch{font-weight:800;color:var(--gd);font-size:13px;margin-top:8px}
 </style>
+<!-- Googleアナリティクス（ページの閲覧数だけ。お名前・電話番号などは送らない） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TJ54Z2N1Q6"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-TJ54Z2N1Q6");</script>
 </head>
 <body>
 
@@ -693,6 +696,7 @@ async function submitBooking(){
   document.getElementById("flow").style.display = "none";
   document.getElementById("doneScr").style.display = "block";
   window.scrollTo(0,0);
+  try{ if(window.gtag) gtag("event", MOVE ? "booking_move" : "booking_complete", { menu_name: m ? m.name : "" }); }catch(e){}
 }
 
 load();

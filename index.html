@@ -167,6 +167,9 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 .btn:active,a.btn:active,.tile:active{transform:scale(.97)}
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
+<!-- Googleアナリティクス（ページの閲覧数だけ。お名前・電話番号などは送らない） -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TJ54Z2N1Q6"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-TJ54Z2N1Q6");</script>
 </head>
 <body>
 <!-- LOGIN / SIGNUP -->
@@ -585,11 +588,24 @@ async function enterApp(){
   document.getElementById("scrApp").style.display = "block";
   document.getElementById("homeNick").textContent = PROFILE.nickname || "会員";
   document.getElementById("myNick").textContent = PROFILE.nickname || "会員";
+  logEv("login");
   loadHome(); loadBookingMaster(); loadMypage(); loadLine(); loadPhotos(); goFromHash();
 }
 
 /* ============ nav ============ */
+// 会員アプリの利用記録（どのページを開いたか）。同じページは1分以内なら1回とみなす
+let LAST_EV = {};
+function logEv(page, detail){
+  try{
+    if(!ME) return;
+    const now = Date.now();
+    if(LAST_EV[page] && now - LAST_EV[page] < 60000) return;
+    LAST_EV[page] = now;
+    sb.from("app_events").insert({ member_id: ME.id, page: page, detail: detail || null }).then(()=>{}, ()=>{});
+  }catch(e){}
+}
 function go(t){
+  logEv(t);
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("act"));
   document.getElementById("tab-"+t).classList.add("act");
   document.querySelectorAll("#navUser button, .deskNav button").forEach(b=>b.classList.toggle("act",b.dataset.t===t));

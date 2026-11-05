@@ -287,6 +287,40 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
   will-change:transform}
 .slot:active:not(.ng),.dayBtn:active:not(.off),.menuOpt:active,.staffOpt:active,
 .btn:active,a.btn:active,.tile:active{transform:scale(.97)}
+
+/* ===== 顧客管理（サロンボード風・スマホ対応） ===== */
+.cuSearch{display:flex;gap:8px;margin-bottom:8px}
+.cuSearch input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px;font-family:inherit}
+.cuSearch input:focus{outline:none;border-color:var(--g)}
+.cuChips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
+.cuChips button{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;font-family:inherit;color:var(--sub);cursor:pointer}
+.cuChips button.act{background:var(--g);border-color:var(--g);color:#fff;font-weight:700}
+.cuMeta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--sub);margin:4px 2px 8px}
+.cuMeta select{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:12px;font-family:inherit;background:#fff}
+.cuCard{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:8px;background:#fff;cursor:pointer}
+.cuCard:active{background:var(--gxl)}
+.cuAva{flex:0 0 40px;height:40px;border-radius:50%;background:var(--gl);color:var(--gd);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.cuAva.guest{background:#fff3c4;color:#8a6d00}
+.cuBody{flex:1;min-width:0}
+.cuName{font-weight:700;font-size:14.5px;line-height:1.35}
+.cuName small{font-weight:500;color:var(--sub);font-size:11px;margin-left:4px}
+.cuSub{font-size:11.5px;color:var(--sub);line-height:1.5;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuTel{flex:0 0 auto;border:1.5px solid var(--g);color:var(--gd);background:#fff;border-radius:10px;padding:7px 9px;font-size:13px;text-decoration:none}
+.cuStats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}
+.cuStats div{background:var(--gxl);border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
+.cuStats b{display:block;font-size:16px;color:var(--gd)}
+.cuStats span{font-size:10.5px;color:var(--sub)}
+.cuActs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.cuActs a,.cuActs button{flex:1;min-width:90px;text-align:center;border:1.5px solid var(--g);color:var(--gd);background:#fff;border-radius:10px;padding:8px 6px;font-size:12.5px;font-weight:700;font-family:inherit;text-decoration:none;cursor:pointer}
+.cuHist{border-top:1px solid var(--gxl);font-size:12.5px}
+.cuHist div{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid var(--gxl)}
+.cuHist .st{font-size:10.5px;padding:1px 7px;border-radius:999px;background:var(--gl);color:var(--gd);white-space:nowrap}
+.cuHist .st.cx{background:#fdecec;color:#c62828}.cuHist .st.fut{background:#e6efff;color:#2b5bb5}
+.muTable{width:100%;border-collapse:collapse;font-size:12px}
+.muTable th,.muTable td{padding:6px 4px;border-bottom:1px solid var(--gxl);text-align:left;vertical-align:top}
+.muTable th{color:var(--sub);font-weight:600;font-size:11px}
+.muBar{height:7px;background:var(--g);border-radius:4px}
+@media(min-width:880px){ .cuGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px} .cuGrid .cuCard{margin-bottom:0} }
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 .ownNav button .bdgNew{background:#e67e22!important;color:#fff!important;margin-left:4px}
 </style>
@@ -395,8 +429,25 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
     </div>
     <div class="ownTab" id="ot-cust">
     <div class="card">
-      <h3>👥 顧客一覧（タップで詳細・編集）</h3>
-      <div id="custList"><p class="notice">読み込み中…</p></div>
+      <h3>👥 顧客一覧 <span class="kkBadge" id="cuCount">-</span></h3>
+      <div class="cuSearch"><input id="cuQ" type="search" placeholder="🔍 名前・カナ・電話番号で検索" oninput="cuRender()"></div>
+      <div class="cuChips" id="cuChips">
+        <button class="act" data-f="all" onclick="cuFilter('all')">すべて</button>
+        <button data-f="app" onclick="cuFilter('app')">📱 アプリ登録済</button>
+        <button data-f="off" onclick="cuFilter('off')">アプリ未登録</button>
+        <button data-f="guest" onclick="cuFilter('guest')">予約のみ（顧客未登録）</button>
+        <button data-f="ticket" onclick="cuFilter('ticket')">🎫 回数券あり</button>
+        <button data-f="next" onclick="cuFilter('next')">📅 次回予約あり</button>
+        <button data-f="away" onclick="cuFilter('away')">⏳ 60日以上来ていない</button>
+      </div>
+      <div class="cuMeta"><span id="cuHit"></span>
+        <select id="cuSort" onchange="cuRender()">
+          <option value="last">最終来店が新しい順</option>
+          <option value="visits">来店回数が多い順</option>
+          <option value="kana">名前（カナ）順</option>
+          <option value="new">登録が新しい順</option>
+        </select></div>
+      <div id="custList" class="cuGrid"><p class="notice">読み込み中…</p></div>
       <div style="margin-top:14px;border-top:1px solid var(--gxl);padding-top:12px">
         <p style="font-size:12.5px;font-weight:700;color:var(--gd);margin-bottom:8px">＋ 顧客を追加（アプリ未登録の既存のお客様・ホットペッパーからの移行用）</p>
         <div class="fRow">
@@ -419,6 +470,7 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
 
     <div class="card" id="custDetail" style="display:none">
       <h3>📝 カルテ：<span id="cdName"></span></h3>
+      <div id="cuTop"></div>
       <div class="fRow"><label style="width:100%;font-size:11px;color:var(--sub)">主訴<textarea id="cdChief" rows="2" style="width:100%"></textarea></label></div>
       <div class="fRow"><label style="width:100%;font-size:11px;color:var(--sub)">目標<textarea id="cdGoal" rows="2" style="width:100%"></textarea></label></div>
       <div class="fRow">
@@ -498,6 +550,15 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <button class="btn ghost" onclick="document.getElementById('custDetail').style.display='none'">閉じる</button>
     </div>
 
+    <div class="card" id="muCard">
+      <h3>📱 会員アプリの利用状況 <span class="kkBadge" id="muCount">-</span></h3>
+      <p class="finePrint" style="margin-top:0">会員登録した方だけの記録です（予約ページだけの方はGoogleアナリティクスで見ます）。</p>
+      <div class="fRow" style="align-items:center;margin-bottom:4px"><b style="font-size:12.5px;color:var(--gd)">よく見られているページ</b>
+        <select id="muDays" onchange="loadMemberUsage()" style="margin-left:auto"><option value="7">7日</option><option value="30" selected>30日</option><option value="90">90日</option></select></div>
+      <div id="muPages"><p class="notice">読み込み中…</p></div>
+      <b style="font-size:12.5px;color:var(--gd);display:block;margin:12px 0 4px">マイページを持っている方（会員登録済み）</b>
+      <div id="muList" style="overflow-x:auto"><p class="notice">読み込み中…</p></div>
+    </div>
     </div>
     <div class="ownTab" id="ot-kaikei">
     <div class="card" id="kkSumCard">
@@ -1201,12 +1262,154 @@ async function loadCusts(){
   const { data: cats } = await sb.from("categories").select("*").order("id");
   CATS = cats||[];
   document.getElementById("payCat").innerHTML = CATS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
-  document.getElementById("custList").innerHTML = CUSTS.length ? CUSTS.map(c=>{
-    const tag = c.role==="owner" ? '<span class="tagPill own">オーナー</span>'
-              : (c.is_offline ? '<span class="tagPill off">アプリ未登録</span>' : '<span class="tagPill app">アプリ登録済</span>');
-    return `<div class="bkRow" style="cursor:pointer" onclick="openCust('${c.id}')"><div><div class="d">${esc(c.nickname||"（名前未設定）")} <span style="font-weight:500;color:var(--sub);font-size:11px">${esc(c.full_name||"")}</span>${tag}</div><div class="m">${c.visits_offset? "来店"+c.visits_offset+"回 ｜ " : ""}${c.last_visit_at? "前回"+c.last_visit_at+" ｜ " : ""}${c.chief_complaint? "主訴："+esc(c.chief_complaint) : "主訴未入力"}${c.tel? " ｜ "+esc(c.tel) : ""}</div></div><span style="color:var(--sub);font-size:11px">編集 ›</span></div>`;
-  }).join("")
-    : '<p class="notice">まだ顧客がいません。下のフォームから追加するか、お客様がアプリから会員登録すると表示されます。</p>';
+  await cuLoadExtra();
+  cuRender();
+  loadMemberUsage();
+}
+
+/* ============ 顧客管理（サロンボード風） ============ */
+let CU_BK = [], CU_TK = {}, CU_PAY = {}, CU_FILTER = "all", CU_GUESTS = [], CU_PENDING_TEL = null;
+const digits = s => String(s||"").replace(/[^0-9]/g,"");
+const jd = ts => { const d = new Date(ts); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; };
+async function cuLoadExtra(){
+  const [bk, tk, pay] = await Promise.all([
+    sb.from("bookings").select("id, member_id, starts_at, status, source, guest_name, guest_tel, menus(name)").neq("source","block").order("starts_at",{ascending:false}).limit(5000),
+    sb.from("tickets").select("member_id, kind, total, left_count, expires_at").gt("left_count",0),
+    sb.from("payments").select("member_id, amount")
+  ]);
+  CU_BK = (bk.data||[]);
+  const today = jstDate(new Date());
+  CU_TK = {}; (tk.data||[]).forEach(t=>{ if(t.expires_at && String(t.expires_at).slice(0,10) < today) return; (CU_TK[t.member_id] = CU_TK[t.member_id]||[]).push(t); });
+  CU_PAY = {}; (pay.data||[]).forEach(p=>{ if(p.member_id) CU_PAY[p.member_id] = (CU_PAY[p.member_id]||0) + (+p.amount||0); });
+  const now = Date.now();
+  const telIdx = {}; CUSTS.forEach(c=>{ const t = digits(c.tel); if(t) telIdx[t] = c.id; });
+  CUSTS.forEach(c=>{ c._past = 0; c._last = null; c._next = null; c._first = null; });
+  const CM = {}; CUSTS.forEach(c=>CM[c.id]=c);
+  const G = {};
+  CU_BK.forEach(b=>{
+    let mid = b.member_id;
+    if(!mid && b.guest_tel && telIdx[digits(b.guest_tel)]) mid = telIdx[digits(b.guest_tel)];   // 電話番号が同じ顧客にひもづける（表示だけ）
+    b._mid = mid || null;
+    const t = new Date(b.starts_at).getTime();
+    if(mid && CM[mid]){
+      const c = CM[mid];
+      if(b.status === "cancelled") return;
+      if(t < now){ c._past++; if(!c._last || t > c._last) c._last = t; if(!c._first || t < c._first) c._first = t; }
+      else if(!c._next || t < c._next) c._next = t;
+    } else if(b.guest_name || b.guest_tel){
+      const k = digits(b.guest_tel) || ("n:" + (b.guest_name||""));
+      const g = G[k] = G[k] || { key:k, name:b.guest_name||"（お名前なし）", tel:b.guest_tel||"", _past:0, _last:null, _next:null, _first:null, _all:0 };
+      g._all++;
+      if(b.status === "cancelled") return;
+      if(t < now){ g._past++; if(!g._last || t > g._last) g._last = t; if(!g._first || t < g._first) g._first = t; }
+      else if(!g._next || t < g._next) g._next = t;
+    }
+  });
+  CU_GUESTS = Object.values(G);
+}
+function cuFilter(f){
+  CU_FILTER = f;
+  document.querySelectorAll("#cuChips button").forEach(b=>b.classList.toggle("act", b.dataset.f === f));
+  cuRender();
+}
+function cuRender(){
+  const q = (document.getElementById("cuQ").value||"").trim().toLowerCase();
+  const qd = digits(q);
+  const sort = document.getElementById("cuSort").value;
+  const now = Date.now(), d60 = 60*86400000;
+  let rows = CUSTS.filter(c=>c.role!=="owner").map(c=>({ type:"c", c,
+      name: c.full_name || c.nickname || "（名前未設定）", sub: c.full_name && c.nickname && c.nickname!==c.full_name ? c.nickname : "",
+      kana: c.kana||"", tel: c.tel||"", visits: Math.max(c.visits_offset||0, c._past||0),
+      last: c._last || (c.last_visit_at ? new Date(c.last_visit_at).getTime() : null), next: c._next,
+      tk: (CU_TK[c.id]||[]).reduce((a,t)=>a+(+t.left_count||0),0), app: !c.is_offline, created: c.created_at }));
+  CU_GUESTS.forEach(g=>rows.push({ type:"g", g, name:g.name, sub:"", kana:"", tel:g.tel, visits:g._past, last:g._last, next:g._next, tk:0, app:false, created:null }));
+  const all = rows.length;
+  if(q) rows = rows.filter(r=> (r.name+" "+r.sub+" "+r.kana).toLowerCase().includes(q) || (qd.length>=3 && digits(r.tel).includes(qd)));
+  rows = rows.filter(r=>{
+    switch(CU_FILTER){
+      case "app": return r.type==="c" && r.app;
+      case "off": return r.type==="c" && !r.app;
+      case "guest": return r.type==="g";
+      case "ticket": return r.tk > 0;
+      case "next": return !!r.next;
+      case "away": return r.last && (now - r.last) > d60 && !r.next;
+      default: return true;
+    }
+  });
+  const by = { last:(a,b)=>(b.last||0)-(a.last||0), visits:(a,b)=>b.visits-a.visits,
+               kana:(a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,"ja"), new:(a,b)=>String(b.created||"").localeCompare(String(a.created||"")) };
+  rows.sort(by[sort]||by.last);
+  document.getElementById("cuCount").textContent = all + "人";
+  document.getElementById("cuHit").textContent = rows.length + "人を表示";
+  document.getElementById("custList").innerHTML = rows.length ? rows.slice(0,300).map(r=>{
+    const tags = r.type==="g" ? '<span class="tagPill" style="background:#fff3c4;color:#8a6d00">予約のみ</span>'
+               : (r.app ? '<span class="tagPill app">アプリ登録済</span>' : '<span class="tagPill off">アプリ未登録</span>');
+    const subs = [ r.visits ? "来店"+r.visits+"回" : "来店なし", r.last ? "前回 "+jd(r.last) : "", r.next ? "次回 "+jd(r.next) : "", r.tk ? "回数券 残"+r.tk : "" ].filter(Boolean).join(" ｜ ");
+    const click = r.type==="c" ? `openCust('${r.c.id}')` : `openGuest('${esc(r.g.key).replace(/'/g,"")}')`;
+    const tel = r.tel ? `<a class="cuTel" href="tel:${digits(r.tel)}" onclick="event.stopPropagation()">📞</a>` : "";
+    return `<div class="cuCard" onclick="${click}"><div class="cuAva ${r.type==='g'?'guest':''}">${esc((r.name||"？").slice(0,1))}</div>
+      <div class="cuBody"><div class="cuName">${esc(r.name)}${r.sub?`<small>${esc(r.sub)}</small>`:""} ${tags}</div><div class="cuSub">${subs}</div></div>${tel}</div>`;
+  }).join("") : '<p class="notice">該当するお客様がいません。</p>';
+}
+function cuHistHtml(list){
+  const now = Date.now();
+  if(!list.length) return '<p class="notice">予約の記録はまだありません</p>';
+  return '<div class="cuHist">' + list.slice(0,30).map(b=>{
+    const t = new Date(b.starts_at).getTime();
+    const st = b.status==="cancelled" ? '<span class="st cx">キャンセル</span>' : (t>now ? '<span class="st fut">予約</span>' : '<span class="st">来店</span>');
+    return `<div><span>${fmtTs(b.starts_at)}　${esc(b.menus?.name||b.title||"")}</span>${st}</div>`;
+  }).join("") + '</div>';
+}
+function cuTopHtml(o){
+  return `<div class="cuStats">
+      <div><b>${o.visits}</b><span>来店回数</span></div>
+      <div><b style="font-size:12.5px">${o.first?jd(o.first):"—"}</b><span>初回</span></div>
+      <div><b style="font-size:12.5px">${o.last?jd(o.last):"—"}</b><span>前回</span></div>
+      <div><b style="font-size:12.5px">${o.next?jd(o.next):"—"}</b><span>次回</span></div></div>
+    ${o.extra||""}
+    <div class="cuActs"><button onclick="document.getElementById('cuQ').scrollIntoView({behavior:'smooth',block:'center'})">‹ 一覧に戻る</button>${o.tel?`<a href="tel:${digits(o.tel)}">📞 電話する</a>`:""}${o.acts||""}</div>
+    <details ${o.open?"open":""} style="margin-bottom:12px"><summary style="font-size:12.5px;font-weight:700;color:var(--gd);cursor:pointer">📅 来店・予約の履歴（${o.hist.length}件）</summary>${cuHistHtml(o.hist)}</details>`;
+}
+function openGuest(key){
+  const g = CU_GUESTS.find(x=>x.key===key); if(!g) return;
+  const hist = CU_BK.filter(b=>!b._mid && ((digits(b.guest_tel)||("n:"+(b.guest_name||""))) === key));
+  const box = document.getElementById("custDetail");
+  box.style.display = "block";
+  document.getElementById("cdName").textContent = g.name + "（予約のみ・顧客未登録）";
+  document.getElementById("cuTop").innerHTML = cuTopHtml({ visits:g._past, first:g._first, last:g._last, next:g._next, tel:g.tel, hist, open:true,
+     extra:'<p class="finePrint" style="margin:0 0 8px">予約ページから会員登録なしで予約した方です。「顧客に追加」すると、カルテ・回数券・評価が使えるようになり、これまでの予約もこの方にひもづきます。</p>',
+     acts:`<button onclick="guestToCust('${esc(key)}')">＋ 顧客に追加</button>` });
+  box.querySelectorAll(":scope > :not(h3):not(#cuTop)").forEach(el=>{ el.dataset.cuHide = "1"; el.style.display = "none"; });
+  box.scrollIntoView({behavior:"smooth", block:"start"});
+}
+function guestToCust(key){
+  const g = CU_GUESTS.find(x=>x.key===key); if(!g) return;
+  document.getElementById("ncNick").value = g.name;
+  document.getElementById("ncName").value = g.name;
+  document.getElementById("ncTel").value = digits(g.tel);
+  CU_PENDING_TEL = digits(g.tel) || null;
+  document.getElementById("ncNick").scrollIntoView({behavior:"smooth", block:"center"});
+  toast("内容を確認して「この内容で顧客を追加する」を押してください");
+}
+const PAGE_JA = { login:"ログイン（アプリを開いた）", home:"ホーム", book:"予約", my:"マイページ" };
+async function loadMemberUsage(){
+  const days = +document.getElementById("muDays").value || 30;
+  const [ps, ml] = await Promise.all([ sb.rpc("owner_page_stats", { p_days: days }), sb.rpc("owner_member_list") ]);
+  if(ps.error || ml.error){
+    const msg = '<p class="notice">利用記録のしくみがまだ有効になっていません（SQL「members_backup.sql」の実行待ち）。</p>';
+    document.getElementById("muPages").innerHTML = msg; document.getElementById("muList").innerHTML = ""; document.getElementById("muCount").textContent = "-";
+    return;
+  }
+  const P = ps.data||[], mx = Math.max(1, ...P.map(p=>p.views));
+  document.getElementById("muPages").innerHTML = P.length ? `<table class="muTable"><tr><th>ページ</th><th style="width:40%"></th><th>閲覧</th><th>人数</th></tr>` +
+    P.map(p=>`<tr><td>${esc(PAGE_JA[p.page]||p.page)}</td><td><div class="muBar" style="width:${Math.round(p.views/mx*100)}%"></div></td><td>${p.views}</td><td>${p.people}人</td></tr>`).join("") + `</table>`
+    : '<p class="notice">この期間の記録はまだありません</p>';
+  const M = ml.data||[];
+  document.getElementById("muCount").textContent = M.length + "人";
+  document.getElementById("muList").innerHTML = M.length ? `<table class="muTable"><tr><th>お名前</th><th>登録日</th><th>最終ログイン</th><th>30日の閲覧</th><th>よく見るページ</th></tr>` +
+    M.map(m=>`<tr style="cursor:pointer" onclick="otab('cust');openCust('${m.id}')"><td><b>${esc(m.full_name||m.nickname||"")}</b>${m.full_name&&m.nickname?`<br><span style="color:var(--sub)">${esc(m.nickname)}</span>`:""}</td>
+      <td>${m.registered_at?jd(m.registered_at):""}</td><td>${m.last_sign_in_at?jd(m.last_sign_in_at):"—"}</td><td>${m.views_30d||0}回</td><td>${esc(PAGE_JA[m.top_page]||m.top_page||"—")}</td></tr>`).join("") + `</table>`
+    : '<p class="notice">まだ会員登録した方はいません</p>';
 }
 async function custAdd(){
   const nick = document.getElementById("ncNick").value.trim();
@@ -1222,16 +1425,38 @@ async function custAdd(){
     is_offline: true,
     role: "member"
   };
-  const { error } = await sb.from("profiles").insert(row);
+  const { data: ins, error } = await sb.from("profiles").insert(row).select("id").single();
   if(error){ toast("追加できませんでした：" + error.message); return; }
+  // 「予約のみ」の方から追加したときは、これまでの予約（同じ電話番号・未ひもづけ）をこの方にひもづける
+  let linked = 0;
+  if(ins && CU_PENDING_TEL && digits(row.tel) === CU_PENDING_TEL){
+    const ids = CU_BK.filter(b=>!b.member_id && digits(b.guest_tel) === CU_PENDING_TEL).map(b=>b.id);
+    if(ids.length){ const r = await sb.from("bookings").update({ member_id: ins.id }).in("id", ids).select("id"); linked = (r.data||[]).length; }
+  }
+  CU_PENDING_TEL = null;
   ["ncNick","ncName","ncKana","ncTel","ncDob","ncChief","ncMemo"].forEach(id=>document.getElementById(id).value="");
-  toast(`${nick} さんを顧客に追加しました`);
+  toast(`${nick} さんを顧客に追加しました` + (linked ? `（予約${linked}件をひもづけ）` : ""));
   await loadCusts();
+  if(ins) openCust(ins.id);
 }
 
 async function openCust(id){
   CUR = CUSTS.find(c=>c.id===id); if(!CUR) return;
   document.getElementById("custDetail").style.display="block";
+  document.querySelectorAll('#custDetail [data-cu-hide]').forEach(el=>{ el.style.display = ""; delete el.dataset.cuHide; });
+  setTimeout(()=>document.getElementById("custDetail").scrollIntoView({behavior:"smooth", block:"start"}), 60);
+  {
+    const hist = CU_BK.filter(b=>b._mid === id);
+    const tk = CU_TK[id]||[];
+    const tkTxt = tk.length ? tk.map(t=>`🎫 ${esc(t.kind||"回数券")} 残り<b>${t.left_count}</b>/${t.total}回${t.expires_at?"（期限 "+String(t.expires_at).slice(0,10)+"）":""}`).join("<br>") : "";
+    const pay = CU_PAY[id] ? `💴 記録された支払い合計 <b>¥${CU_PAY[id].toLocaleString()}</b>` : "";
+    const badge = CUR.is_offline ? '<span class="tagPill off">アプリ未登録</span>' : '<span class="tagPill app">アプリ登録済（マイページあり）</span>';
+    document.getElementById("cuTop").innerHTML = cuTopHtml({
+      visits: Math.max(CUR.visits_offset||0, CUR._past||0), first: CUR._first, last: CUR._last || (CUR.last_visit_at ? new Date(CUR.last_visit_at).getTime() : null),
+      next: CUR._next, tel: CUR.tel, hist,
+      extra: `<div style="font-size:12.5px;line-height:1.8;margin-bottom:8px">${badge}${CUR.kana?` ｜ ${esc(CUR.kana)}`:""}${CUR.dob?` ｜ 生年月日 ${esc(CUR.dob)}`:""}${tkTxt?"<br>"+tkTxt:""}${pay?"<br>"+pay:""}</div>`,
+      acts: `<button onclick="otab('kaikei')">🧾 会計</button><button onclick="otab('money');document.getElementById('tkNewCust').value='${id}'">🎫 回数券</button><button onclick="document.getElementById('soDate')&&document.getElementById('soDate').scrollIntoView({behavior:'smooth',block:'center'})">🩺 SOAP</button>` });
+  }
   document.getElementById("cdName").textContent = (CUR.nickname||"") + (CUR.full_name?"（"+CUR.full_name+"）":"");
   document.getElementById("cdChief").value = CUR.chief_complaint||"";
   document.getElementById("cdGoal").value = CUR.goal||"";
