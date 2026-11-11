@@ -275,11 +275,12 @@ async function linkLine(name, tel){
 // 営業する曜日と時間帯は「オーナー管理 → 設定 → 担当の勤務時間」で変えられます。
 const SLOT_STEP   = 30;   // 何分刻みで枠を出すか
 const BUFFER_MIN  = 15;   // 予約の前後にあける分数
+const EARLIEST_MIN = 9*60; // 8:00〜9:00はLIVE配信の時間なので、予約は毎日9:00からにする（本人指示 2026-11-11）
 function genSlots(blocks, dur){
   const out = [];
   blocks.forEach(function(bk){
     const a = bk[0].split(":"), b = bk[1].split(":");
-    const from = (+a[0])*60 + (+a[1]), to = (+b[0])*60 + (+b[1]);
+    const from = Math.max((+a[0])*60 + (+a[1]), EARLIEST_MIN), to = (+b[0])*60 + (+b[1]);
     for(let t = from; t + dur <= to; t += SLOT_STEP){
       out.push(String(Math.floor(t/60)).padStart(2,"0") + ":" + String(t%60).padStart(2,"0"));
     }
