@@ -923,7 +923,7 @@ async function loadSchedule(scrollNow){
     sb.from("gcal_inbox").select("id, starts_at, duration_min, ends_at, summary").eq("status","pending")
       .gte("starts_at", ds+"T00:00:00+09:00").lt("starts_at", ds+"T23:59:59+09:00"),
     sb.from("bookings")
-      .select("id, member_id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, guest_name, guest_tel, created_at, profiles(nickname, full_name, tel, last_visit_at), menus(name, duration_min)")
+      .select("id, member_id, starts_at, duration_min, status, title, staff_id, source, channel, customer_note, guest_name, guest_tel, created_at, profiles(nickname, full_name, tel, last_visit_at), menus(name, duration_min, price, price_note)")
       .gte("starts_at", ds+"T00:00:00+09:00").lt("starts_at", ds+"T23:59:59+09:00")
       .neq("status","cancelled").order("starts_at"),
     tlCalEvents(ds)
@@ -1069,6 +1069,19 @@ function tlBlockForm(ds, t){
   document.getElementById("blkNote").scrollIntoView({behavior:"smooth", block:"center"});
 }
 
+// 予約シートの料金表示（全プラン共通）
+function tlPrice(b){
+  const m = b.menus || {};
+  const yen = n => "¥" + Number(n).toLocaleString();
+  const ticket = /【回数券利用】/.test(b.customer_note || "");
+  let t;
+  if(ticket) t = "回数券1回分" + (m.price ? `（通常 ${yen(m.price)}）` : "");
+  else if(m.price) t = yen(m.price) + (m.price_note ? `（${esc(m.price_note)}）` : "");
+  else if(m.price_note) t = esc(m.price_note);
+  else if(b.menus) t = "プラン内";
+  else return "";
+  return `💴 <b>${t}</b><br>`;
+}
 // 予定をタップ
 function tlOpen(k){
   const o = TL_ITEMS[k]; if(!o) return;
@@ -1096,6 +1109,7 @@ function tlOpen(k){
   tlShow(`<h4>${o.isNew?"🆕 ":""}${esc(o.who)} さん</h4>
     <div class="ln2">🕘 ${fmtTs(b.starts_at)}〜（${o.dur}分）<br>
       💆 ${esc(o.menu)}<br>
+      ${tlPrice(b)}
       ${tel?`📞 <a href="tel:${esc(tel)}">${esc(tel)}</a><br>`:""}
       🔗 経路：${esc(chLabel(b.channel))}${b.member_id?"":"（会員登録なし）"}
       ${b.customer_note?`<br>📝 <b>${esc(b.customer_note)}</b>`:""}</div>
