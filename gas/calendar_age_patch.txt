@@ -1,0 +1,24 @@
+Apps Script「gait カレンダー連携」（コード.gs）の差し替え — 新規予約メールに年齢を載せる
+前提：supabase/booking_customer_age.sql を Run 済み
+
+■ 差し替え前（doPost → handleSupabaseHook_ の後半、新規予約メールを送る部分）
+    MailApp.sendEmail(NOTIFY_EMAIL,
+      '【gait】新規予約 ' + fmt(start) + ' ' + customer + ' さん',
+      '新しい予約が入りました。\n\n' +
+      '日時：' + fmt(start) + '〜（' + minutes + '分）\n' + desc +
+      '\n\nGoogleカレンダーにも登録しました。');
+
+■ 差し替え後
+    var ag = sbRpc_('booking_customer_age', { p_secret: SHARED_SECRET, p_booking_id: Number(bookingId) || null });
+    var hasAge = !!(ag && ag.ok && ag.age != null);
+    var ageTxt = hasAge ? (ag.age + '歳（生年月日 ' + ag.dob + '）') : '未登録';
+    MailApp.sendEmail(NOTIFY_EMAIL,
+      '【gait】新規予約 ' + fmt(start) + ' ' + customer + ' さん' + (hasAge ? '（' + ag.age + '歳）' : ''),
+      '新しい予約が入りました。\n\n' +
+      '日時：' + fmt(start) + '〜（' + minutes + '分）\n' +
+      '年齢：' + ageTxt + '\n' + desc +
+      '\n\nGoogleカレンダーにも登録しました。');
+
+■ 保存後
+  デプロイ → デプロイを管理 → 編集（鉛筆）→ バージョン「新バージョン」→ デプロイ
+  ※ URLは変わらないので Supabase 側の設定はそのまま
