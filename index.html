@@ -714,6 +714,7 @@ function busyIntervals(rows){
   const BUF = BUFFER_MIN*60000;
   return (rows||[]).map(b=>{ const t=+new Date(b.starts_at); return { s:t-BUF, e:t + (b.duration_min||60)*60000 + BUF }; });
 }
+function _iidaOnly(ds){ const d = staffOnDate(ds); return d.length === 1 && d[0].id === 2; }
 async function fetchBusy(ds){
   // 予約データとGoogleカレンダーを同時に確認（カレンダーに書いた予定は即座に×になる）
   const [r, gc] = await Promise.all([
@@ -721,7 +722,8 @@ async function fetchBusy(ds){
     gcalBusyDay(ds, BUFFER_MIN)
   ]);
   if(r.error || gc === null){ delete BUSY[ds]; return null; }   // カレンダーを確認できない日は枠を出さない
-  BUSY[ds] = { iv: busyIntervals(r.data).concat(gc || []), at: Date.now() };
+  const _db = busyIntervals(r.data);
+  BUSY[ds] = { iv: _db.concat(gc || []), ivDb: _db, at: Date.now() };   // ivDb＝予約データだけ（飯田のみの日はこちらを使う）
   return BUSY[ds];
 }
 function prefetchBusy(n){
@@ -761,7 +763,7 @@ function renderSlots(){
   if(!times.length){ slotMsg("このメニューの所要時間では、この日に取れる枠がありません"); return; }
 
   const head = iida ? `<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（${hhmm(onDuty[0].work_from)}〜${hhmm(onDuty[0].work_to)}）</div>` : "";
-  const now = Date.now(), iv = cache.iv;
+  const now = Date.now(), iv = iida ? cache.ivDb : cache.iv;   // 飯田だけが担当の日は、宗田のGoogleカレンダーでは閉じない（飯田の休みは設定で手動）
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
     const a2 = +new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00"), b2 = a2 + myDur*60000;
@@ -796,7 +798,7 @@ async function confirmBooking(){
   const staffId = (staffOnDate(selDate)[0] || {id:1}).id;
   const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60;
   const _st = +new Date(startsAt);
-  if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+  if(!_iidaOnly(selDate) && await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
     btn.disabled = false; delete BUSY[selDate];
     toast("申し訳ありません。ちょうどこの枠が埋まりました。別の時間をお選びください"); selSlot = null; renderSlots(); return;
   }

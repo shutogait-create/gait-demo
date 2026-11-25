@@ -508,6 +508,7 @@ function busyIntervals(rows){
   const BUF = BUFFER_MIN*60000;
   return (rows||[]).map(b=>{ const t=+new Date(b.starts_at); return { s:t-BUF, e:t + (b.duration_min||60)*60000 + BUF }; });
 }
+function _iidaOnly(ds){ const d = effStaff() ? STAFFDB.filter(x=>x.id===effStaff()) : staffOnDate(ds); return d.length === 1 && d[0].id === 2; }
 async function fetchBusy(ds){
   // 予約データとGoogleカレンダーを同時に確認（カレンダーに書いた予定は即座に×になる）
   const [r, gc] = await Promise.all([
@@ -515,7 +516,8 @@ async function fetchBusy(ds){
     gcalBusyDay(ds, BUFFER_MIN)
   ]);
   if(r.error || gc === null){ delete BUSY[ds]; return null; }   // カレンダーを確認できない日は枠を出さない
-  BUSY[ds] = { iv: busyIntervals(r.data).concat(gc || []), at: Date.now() };
+  const _db = busyIntervals(r.data);
+  BUSY[ds] = { iv: _db.concat(gc || []), ivDb: _db, at: Date.now() };   // ivDb＝予約データだけ（飯田のみの日はこちらを使う）
   return BUSY[ds];
 }
 // 近い日を先に読み込んでおく（押した瞬間に出したいので）
@@ -563,7 +565,7 @@ function renderSlots(){
   if(!times.length){ slotMsg("このメニューの所要時間では、この日に取れる枠がありません"); return; }
 
   const head = iida ? `<div style="grid-column:1/-1;font-size:11.5px;color:var(--gd);font-weight:700;padding:2px 0">👨‍⚕️ この日は 飯田 隼人 が担当します（${hhmm(onDuty[0].work_from)}〜${hhmm(onDuty[0].work_to)}）</div>` : "";
-  const now = Date.now(), iv = cache.iv;
+  const now = Date.now(), iv = iida ? cache.ivDb : cache.iv;   // 飯田だけが担当の日は、宗田のGoogleカレンダーでは閉じない（飯田の休みは設定で手動）
   el.innerHTML = head + times.map(t=>{
     const [hh,mm] = t.split(":");
     const a = +new Date(selDate+"T"+hh.padStart(2,"0")+":"+mm+":00+09:00"), b2 = a + myDur*60000;
@@ -650,7 +652,7 @@ async function submitBooking(){
   if(MOVE){
     btn.disabled = true; btn.textContent = "変更しています…";
     { const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60, _st = +new Date(startsAt);
-      if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+      if(!_iidaOnly(selDate) && await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
         btn.disabled = false; btn.textContent = label; delete BUSY[selDate];
         showErr(MOVE_ERR.taken); selSlot = null; renderSlots(); return;
       } }
@@ -665,7 +667,7 @@ async function submitBooking(){
     if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
     btn.disabled = true; btn.textContent = "予約しています…";
     { const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60, _st = +new Date(startsAt);
-      if(await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
+      if(!_iidaOnly(selDate) && await gcalTaken(_st, _st + _dur*60000, BUFFER_MIN)){
         btn.disabled = false; btn.textContent = label; delete BUSY[selDate];
         showErr(MOVE_ERR.taken); selSlot = null; renderSlots(); return;
       } }
