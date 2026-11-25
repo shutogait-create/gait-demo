@@ -5,14 +5,18 @@
  * 予定名はお客様側に一切送られません（時間だけ）。
  * GCAL_URL は「gait 会計連携（予約アプリ）」のウェブアプリURL（/exec で終わるもの）
  * ========================================================= */
-const GCAL_URL = "";
-const GCAL_TIMEOUT = 7000;
+const GCAL_URL = "https://script.google.com/macros/s/AKfycbzfe9QdqcOI_wLfLvhb2wpxUHHWMRdOKb8kSyCWgxGLDfrboqPZEJmOVkxFwGlIXbJLIA/exec";
+const GCAL_TIMEOUT = 9000;
 
 function gcalEnabled(){ return /^https:\/\/script\.google\.com\//.test(GCAL_URL); }
 
 // [{s,e}]（ミリ秒）を返す。取れなかったときは null
 async function gcalBusy(fromIso, toIso){
   if(!gcalEnabled()) return [];
+  const a = await gcalBusyOnce(fromIso, toIso);
+  return a !== null ? a : await gcalBusyOnce(fromIso, toIso);   // 失敗したら1回だけやり直す
+}
+async function gcalBusyOnce(fromIso, toIso){
   const ctl = ("AbortController" in window) ? new AbortController() : null;
   const tm = ctl ? setTimeout(()=>ctl.abort(), GCAL_TIMEOUT) : null;
   try{
@@ -37,11 +41,11 @@ async function gcalBusyDay(ds, bufMin){
 }
 
 // 確定直前のチェック：この時間がカレンダーで埋まっていたら true
-// 取れなかったとき（通信エラー）は false を返して予約は通す（15分ごとの同期が後で拾う）
+// 取れなかったとき（通信エラー）も true を返して予約は通さない（ダブルブッキングを絶対に出さないため）
 async function gcalTaken(startMs, endMs, bufMin){
   if(!gcalEnabled()) return false;
   const B = (bufMin||0) * 60000;
   const iv = await gcalBusy(new Date(startMs - B - 60000).toISOString(), new Date(endMs + B + 60000).toISOString());
-  if(!iv) return false;
+  if(!iv) return true;
   return iv.some(x => startMs < x.e + B && endMs > x.s - B);
 }

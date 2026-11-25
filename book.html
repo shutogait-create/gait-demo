@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://pizzhyvqptkhigwwhorp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="gcal-live.js"></script>
+<script src="gcal-live.js?v=20261125"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root{ --g:#2e9e72; --gd:#1f7a56; --gl:#e6f5ee; --gxl:#f2faf6; --ink:#1c2b24; --sub:#68796f;
@@ -514,7 +514,7 @@ async function fetchBusy(ds){
     sb.rpc("busy_slots", { p_from: ds+"T00:00:00+09:00", p_to: ds+"T23:59:59+09:00" }),
     gcalBusyDay(ds, BUFFER_MIN)
   ]);
-  if(r.error) return null;
+  if(r.error || gc === null){ delete BUSY[ds]; return null; }   // カレンダーを確認できない日は枠を出さない
   BUSY[ds] = { iv: busyIntervals(r.data).concat(gc || []), at: Date.now() };
   return BUSY[ds];
 }
