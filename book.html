@@ -80,6 +80,12 @@ main{max-width:600px;margin:0 auto;padding:16px}
 .slot.ng small{display:block;font-size:8.5px;font-weight:500}
 .slot.sel{background:var(--g);border-color:var(--g);color:#fff}
 .confirmBox{background:var(--gxl);border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.95;margin-bottom:13px}
+.pkRow{display:flex;gap:8px}
+.field .pkOpt{flex:1;display:flex;align-items:center;gap:7px;border:1.5px solid #d9e3de;border-radius:10px;padding:11px 12px;font-size:14px;font-weight:700;color:#222;cursor:pointer;margin:0;background:#fff}
+.field .pkOpt input{width:18px;height:18px;margin:0}
+.pkGuide{margin-top:10px;border:1px solid #d9e3de;border-radius:12px;padding:12px;background:#f7faf8;font-size:13px;line-height:1.7}
+.pkGuide p{margin:4px 0 8px}
+.pkGuide img{width:100%;height:auto;border-radius:10px;display:block;margin-bottom:10px}
 .field{margin-bottom:11px}
 .field label{font-size:12px;font-weight:700;color:var(--sub);display:block;margin-bottom:3px}
 .field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit}
@@ -195,6 +201,20 @@ button,.slot,.dayBtn,.menuOpt,.staffOpt,.tile,a.btn,.bkRow button{
       <div class="field">
         <label>電話番号（ハイフンなし）</label>
         <input id="tel" type="tel" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label>駐車場のご利用</label>
+        <div class="pkRow">
+          <label class="pkOpt"><input type="radio" name="pk" value="yes" onchange="pkChange()"><span>利用する</span></label>
+          <label class="pkOpt"><input type="radio" name="pk" value="no" onchange="pkChange()"><span>利用しない</span></label>
+        </div>
+        <div id="pkGuide" style="display:none"><div class="pkGuide">
+          <b>駐車場の入り口</b>
+          <p>小山ビルの正面に向かって右側、<b>赤丸のところ</b>が駐車場への入り口です。</p>
+          <img src="./parking-1.jpg" alt="小山ビルの正面。右側の赤丸が駐車場への入り口" loading="lazy">
+          <p>入り口を近くから見たところ</p>
+          <img src="./parking-2.jpg" alt="駐車場の入り口を近くから見た写真" loading="lazy">
+        </div></div>
       </div>
       <div class="field">
         <label>ご要望・気になるところ（任意）</label>
@@ -528,6 +548,8 @@ function prefetchBusy(n){
   }
 }
 
+function pkValue(){ const r = document.querySelector('input[name="pk"]:checked'); return r ? r.value : ""; }
+function pkChange(){ document.getElementById("pkGuide").style.display = pkValue()==="yes" ? "block" : "none"; }
 function slotMsg(text){
   document.getElementById("slotGrid").innerHTML =
     '<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12.5px;padding:14px 0">' + text + '</div>';
@@ -664,6 +686,7 @@ async function submitBooking(){
     tel  = document.getElementById("tel").value.replace(/[^0-9]/g,"");
     if(!name){ showErr("お名前を入力してください"); return; }
     if(tel.length < 10){ showErr("電話番号を正しく入力してください（ハイフンなし）"); return; }
+    if(!pkValue()){ showErr("駐車場をご利用になるかお選びください"); return; }
     if(!document.getElementById("agree").checked){ showErr("キャンセル・変更の内容にご同意ください"); return; }
     btn.disabled = true; btn.textContent = "予約しています…";
     { const _dur = (MENUS.find(x=>x.id===selMenu)||{}).duration_min || 60, _st = +new Date(startsAt);
@@ -674,7 +697,7 @@ async function submitBooking(){
     res = await sb.rpc("guest_book", {
       p_name: name, p_tel: tel, p_menu_id: ((MENUS.find(x=>x.id===selMenu)||{}).base_id || selMenu), p_staff_id: staffId,
       p_starts_at: startsAt, p_policy: POLICY_VERSION,
-      p_note: (((MENUS.find(x=>x.id===selMenu)||{}).base_id) ? "【回数券利用】" : "") + (document.getElementById("note").value.trim() || "") || null });
+      p_note: (((MENUS.find(x=>x.id===selMenu)||{}).base_id) ? "【回数券利用】" : "") + (pkValue()==="yes" ? "【駐車場利用】" : "【駐車場なし】") + (document.getElementById("note").value.trim() || "") });
   }
   const { data, error } = res;
   btn.disabled = false; btn.textContent = label;

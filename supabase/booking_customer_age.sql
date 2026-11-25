@@ -1,5 +1,5 @@
 -- ============================================================
--- 新規予約メールに「年齢（生年月日）」を載せるための関数
+-- 新規予約メールに「電話番号」と「年齢（生年月日）」を載せるための関数
 --  呼び出し元: Apps Script「gait カレンダー連携」の doPost（新規予約メールを送る直前）
 --  探し方: ①会員予約 → その会員の生年月日
 --          ②登録なし予約 → 同じ電話番号の顧客の生年月日（サロンボードから取り込んだ分を含む）
@@ -21,7 +21,7 @@ security definer
 set search_path = public, private
 as $$
 declare
-  v_secret text; v_dob date; v_member uuid; v_tel text;
+  v_secret text; v_dob date; v_member uuid; v_tel text; v_ptel text;
 begin
   select value into v_secret from private.app_settings where key = 'hook_secret';
   if coalesce(v_secret,'') = '' or p_secret is distinct from v_secret then
@@ -34,6 +34,10 @@ begin
 
   if v_member is not null then
     begin select p.dob::date into v_dob from public.profiles p where p.id = v_member; exception when others then v_dob := null; end;
+  end if;
+  if v_member is not null then
+    begin select regexp_replace(coalesce(p.tel,''), '\D', '', 'g') into v_ptel from public.profiles p where p.id = v_member; exception when others then v_ptel := null; end;
+    if coalesce(v_tel,'') = '' then v_tel := coalesce(v_ptel,''); end if;
   end if;
 
   if v_dob is null and coalesce(v_tel,'') <> '' then
@@ -48,11 +52,12 @@ begin
   end if;
 
   if v_dob is null then
-    return jsonb_build_object('ok', true, 'age', null, 'dob', null);
+    return jsonb_build_object('ok', true, 'age', null, 'dob', null, 'tel', nullif(v_tel,''));
   end if;
   return jsonb_build_object('ok', true,
     'age', extract(year from age((now() at time zone 'Asia/Tokyo')::date, v_dob))::int,
-    'dob', to_char(v_dob, 'YYYY/MM/DD'));
+    'dob', to_char(v_dob, 'YYYY/MM/DD'),
+    'tel', nullif(v_tel,''));
 end $$;
 
 revoke all on function public.booking_customer_age(text, bigint) from public;
